@@ -51,9 +51,22 @@ nav:
   - Home: index.md
   - Methodology: methodology.md
   - Safety and compliance: safety.md
-  - Model cards: model-cards/index.md
+  - Model cards:
+      - Overview: models/index.md
+      - Kronos mini: models/kronos-mini.md
+      - Kronos small: models/kronos-small.md
+      - Kronos base: models/kronos-base.md
+      - TimesFM 2.5: models/timesfm.md
+      - Chronos-2: models/chronos-2.md
+      - Random walk: models/random-walk.md
+      - Drift: models/drift.md
+      - Seasonal naive: models/seasonal-naive.md
+      - ARIMA: models/arima.md
+      - GARCH: models/garch.md
   - Decisions:
       - 0001 Licensing and open core: adr/0001-licensing-and-open-core.md
+      - 0002 Kronos integration: adr/0002-kronos-integration.md
+      - 0003 Point-in-time data and the forecast contract: adr/0003-point-in-time-data-and-forecast-contract.md
 
 watch:
   - src/tycheon

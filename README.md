@@ -11,8 +11,18 @@ desk actually uses. Tycheon is that missing layer.
 [![License](https://img.shields.io/badge/license-Apache--2.0-blue.svg)](LICENSE)
 [![Python](https://img.shields.io/badge/python-3.11%20%7C%203.12-blue.svg)](pyproject.toml)
 
-> **Status: Phase T0 — bootstrap.** The layout, tooling and gates are in place;
-> the modules are declared and empty. Nothing here forecasts anything yet.
+> **Status: Phase T1 — foundations.** Point-in-time data, five honest baselines and
+> Kronos / TimesFM / Chronos behind one forecaster contract are built. Forecasts are
+> **uncalibrated**: conformal calibration (T2), the risk layer and leakage-proof
+> evaluation (T3) come next, so nothing here yet tells you *how much to trust* a
+> forecast, which is the whole point of the project.
+
+![Kronos-small beside the random-walk baseline on a synthetic series, from examples/forecast.py](docs/assets/forecast-example.png)
+
+*Kronos-small and the random walk, forecasting the same synthetic series from the same
+history (`make example`). On this one series Kronos-small's interval is about three times
+narrower and the realised path leaves it: a single anecdote, not a result, and exactly
+the over-confidence the calibration phases exist to measure.*
 
 ## What it does
 
@@ -93,10 +103,30 @@ Requires [uv](https://docs.astral.sh/uv/) and Python 3.11+.
 ```bash
 git clone https://github.com/anilatambharii/tycheon.git
 cd tycheon
-make setup          # create the venv, install dev deps and git hooks
+make setup          # venv + dev deps + CPU torch (for Kronos) + git hooks
 make check          # lint, format check, mypy --strict, fast tests
-python -c "import tycheon; print(tycheon.__version__)"
+uv run python -c "import tycheon; print(tycheon.__version__)"
+make example        # Kronos-small beside the random walk -> examples/output/forecast.png
 ```
+
+A forecast is a distribution, always, and every read is point-in-time:
+
+```python
+from tycheon.data import load_sample
+from tycheon.models.baselines import RandomWalkForecaster
+from tycheon.models.kronos import KronosForecaster
+
+bars = load_sample("SYN-GARCH")  # synthetic: Tycheon ships no market data
+history = bars.iloc[:900]
+as_of = history["available_at"].iloc[-1]  # when this history became known
+
+for model in (RandomWalkForecaster(), KronosForecaster("small")):
+    forecast = model.predict(history, horizon=10, n_samples=50, as_of=as_of)
+    print(forecast.summary())  # quantiles, calibration status, model mix, as_of, disclaimer
+```
+
+Passing a history that includes anything published after `as_of` raises
+`LookaheadError` before the model runs. See [ADR 0003](docs/adr/0003-point-in-time-data-and-forecast-contract.md).
 
 Optional dev services (Postgres, Redis, MinIO, Jaeger):
 
@@ -106,15 +136,32 @@ make up             # start and wait for health
 make down           # stop and delete volumes
 ```
 
-The foundation models are optional extras, so the base install stays small:
+The foundation models are optional extras, so the base install stays small
+(`import tycheon.models` never imports torch):
 
 ```bash
-uv sync --extra kronos      # Kronos + torch
-uv sync --extra timesfm
-uv sync --extra chronos
+uv sync --extra kronos      # Kronos (vendored) + torch
+uv sync --extra timesfm     # TimesFM 2.5
+uv sync --extra chronos     # Chronos-2
 uv sync --extra serve       # FastAPI + MCP server
 uv sync --all-extras        # everything
 ```
+
+## Models
+
+Every forecaster returns a `ForecastDistribution` and ships a
+[model card](docs/models/index.md).
+
+| Forecaster | What it is | Sample paths | Card |
+|---|---|---|---|
+| `kronos-mini` / `-small` / `-base` | Zero-shot Kronos, 2048 / 512 / 512-bar context | yes | [mini](docs/models/kronos-mini.md), [small](docs/models/kronos-small.md), [base](docs/models/kronos-base.md) |
+| `timesfm-2.5-200m` | Zero-shot TimesFM 2.5 | quantiles only | [card](docs/models/timesfm.md) |
+| `chronos-2` | Zero-shot Chronos-2 | quantiles only | [card](docs/models/chronos-2.md) |
+| `random-walk` | Driftless log-price walk: the baseline everything is read against | yes | [card](docs/models/random-walk.md) |
+| `drift`, `seasonal-naive`, `arima`, `garch` | The other honest baselines | yes | [drift](docs/models/drift.md), [seasonal-naive](docs/models/seasonal-naive.md), [arima](docs/models/arima.md), [garch](docs/models/garch.md) |
+
+Kronos is vendored from upstream at a pinned commit ([ADR 0002](docs/adr/0002-kronos-integration.md)),
+with its sampler replaced so the sample paths are kept rather than averaged away.
 
 Validate the smoke benchmark config:
 
@@ -130,7 +177,7 @@ make benchmark-small
 
 ```
 src/tycheon/
-  data/          provider protocol, as-of store, sample data
+  data/          provider protocol, as-of store, synthetic sample data
   models/        kronos, timesfm, chronos, baselines
   calibration/   conformal intervals, diagnostics
   covariates/    news, fundamentals, macro features
@@ -141,6 +188,7 @@ src/tycheon/
   agents/        planner, specialists, verifier (from T4)
   serve/         FastAPI + MCP server
 benchmarks/      leaderboard harness, configs, results
+third_party/     vendored upstream Kronos (MIT), byte-identical, hash-checked
 docs/            methodology, ADRs, model cards
 ee/              proprietary Tycheon Cloud — separate license
 ```
@@ -181,8 +229,9 @@ own proprietary licence. The boundary and the rules for it are in
 [`docs/adr/0001-licensing-and-open-core.md`](docs/adr/0001-licensing-and-open-core.md).
 
 Kronos is used under its upstream MIT licence
-([shiyu-coder/Kronos](https://github.com/shiyu-coder/Kronos)); its notice is
-retained wherever its code is vendored.
+([shiyu-coder/Kronos](https://github.com/shiyu-coder/Kronos)). Its code is vendored in
+[`third_party/kronos/`](third_party/kronos/README.md) with the original licence file,
+which also ships inside the wheel.
 
 ## Contributing
 

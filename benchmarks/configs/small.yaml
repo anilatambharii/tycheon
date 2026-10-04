@@ -1,15 +1,16 @@
-# The smallest honest benchmark: a handful of liquid US equities, one horizon,
-# three folds. `make benchmark-small` validates this config today and will run
-# it once the T3 walk-forward engine lands.
+# The smallest honest benchmark: three synthetic series, one horizon, three folds.
+# `make benchmark-small` validates this config today and will run it once the T3
+# walk-forward engine lands. The data is synthetic (see tycheon.data.sample): there
+# is no real market data in this repository, so no ticker appears here.
 name: small
 description: Smoke-sized leaderboard config for CI and local development.
 
-# Sample data ships with the repo; no licensed market data is committed.
-dataset: sample-equities-daily
+# Generated deterministically on demand; nothing is committed or redistributed.
+dataset: sample-synthetic-daily
 universe:
-  - AAPL
-  - MSFT
-  - SPY
+  - SYN-GBM
+  - SYN-GARCH
+  - SYN-REGIME
 
 horizons: [5]          # trading days ahead
 quantiles: [0.05, 0.25, 0.5, 0.75, 0.95]
@@ -17,12 +18,12 @@ quantiles: [0.05, 0.25, 0.5, 0.75, 0.95]
 models:
   - kronos-small
 
-# random_walk is mandatory: every published number is read against doing
+# random-walk is mandatory: every published number is read against doing
 # nothing, with a Diebold-Mariano test on the difference.
 baselines:
-  - random_walk
+  - random-walk
   - drift
-  - seasonal_naive
+  - seasonal-naive
 
 walk_forward:
   folds: 3

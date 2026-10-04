@@ -1,8 +1,10 @@
 # Methodology
 
 This page states what Tycheon intends to do and, just as importantly, what it
-refuses to claim. It is written in Phase T0, before the implementation, so that
-later phases can be held to it.
+refuses to claim. It was written before the implementation, in Phase T0, so that
+later phases can be held to it, and it is updated as they land. Phase T1 built the
+point-in-time data layer and the forecasters; calibration (T2), the risk layer and
+evaluation (T3) are still to come, and every section below says which is which.
 
 ## Why this layer exists
 
