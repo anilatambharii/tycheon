@@ -1,0 +1,43 @@
+# The smallest honest benchmark: a handful of liquid US equities, one horizon,
+# three folds. `make benchmark-small` validates this config today and will run
+# it once the T3 walk-forward engine lands.
+name: small
+description: Smoke-sized leaderboard config for CI and local development.
+
+# Sample data ships with the repo; no licensed market data is committed.
+dataset: sample-equities-daily
+universe:
+  - AAPL
+  - MSFT
+  - SPY
+
+horizons: [5]          # trading days ahead
+quantiles: [0.05, 0.25, 0.5, 0.75, 0.95]
+
+models:
+  - kronos-small
+
+# random_walk is mandatory: every published number is read against doing
+# nothing, with a Diebold-Mariano test on the difference.
+baselines:
+  - random_walk
+  - drift
+  - seasonal_naive
+
+walk_forward:
+  folds: 3
+  train_window: 756      # ~3y of trading days
+  test_window: 63        # ~1 quarter
+  # Gap between train and test so a label cannot leak backwards across the
+  # boundary. Mandatory; the runner refuses a config without it.
+  embargo: 5
+
+calibration:
+  method: split_conformal
+  target_coverage: 0.9
+  report_reliability: true
+
+costs:
+  # Evaluation is honest about frictions, even on a smoke config.
+  spread_bps: 2
+  slippage_bps: 1
