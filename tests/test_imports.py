@@ -1,7 +1,8 @@
-"""Every declared module must import cleanly.
+"""Every declared module must import cleanly, and the package layout must not drift.
 
-Phase T0 ships empty modules, so this is the whole of its functional surface:
-if the layout drifts from AGENTS.md, this fails first.
+The packages below are the layout AGENTS.md prescribes. Adding or removing a package
+is a deliberate change that must show up in this list; leaf modules inside a package
+are free to come and go, but every one of them must import and be documented.
 """
 
 from __future__ import annotations
@@ -14,8 +15,8 @@ import pytest
 
 import tycheon
 
-# The layout AGENTS.md prescribes for src/tycheon/.
-CORE_MODULES = [
+# Top-level packages from the AGENTS.md layout, plus the shared errors module.
+CORE_PACKAGES = [
     "tycheon.backtest",
     "tycheon.calibration",
     "tycheon.covariates",
@@ -26,7 +27,9 @@ CORE_MODULES = [
     "tycheon.serve",
 ]
 
-MODEL_MODULES = [
+DATA_PACKAGES = ["tycheon.data.providers"]
+
+MODEL_PACKAGES = [
     "tycheon.models.baselines",
     "tycheon.models.chronos",
     "tycheon.models.kronos",
@@ -35,10 +38,16 @@ MODEL_MODULES = [
 
 # Placeholders until Phase T4. They must import today so the boundary they
 # define is real before there is code to put behind it.
-T4_MODULES = [
+T4_PACKAGES = [
     "tycheon.agents",
     "tycheon.governance",
 ]
+
+DECLARED_PACKAGES = CORE_PACKAGES + DATA_PACKAGES + MODEL_PACKAGES + T4_PACKAGES
+
+
+def _walk() -> list[pkgutil.ModuleInfo]:
+    return list(pkgutil.walk_packages(tycheon.__path__, prefix="tycheon."))
 
 
 def test_top_level_import() -> None:
@@ -46,26 +55,15 @@ def test_top_level_import() -> None:
     assert tycheon.__doc__ is not None
 
 
-@pytest.mark.parametrize("name", CORE_MODULES)
-def test_core_module_imports(name: str) -> None:
-    assert importlib.import_module(name) is not None
-
-
-@pytest.mark.parametrize("name", MODEL_MODULES)
-def test_model_module_imports(name: str) -> None:
-    assert importlib.import_module(name) is not None
-
-
-@pytest.mark.parametrize("name", T4_MODULES)
-def test_placeholder_module_imports(name: str) -> None:
-    """A placeholder still has to be importable without its T4 dependencies."""
+@pytest.mark.parametrize("name", DECLARED_PACKAGES)
+def test_declared_package_imports(name: str) -> None:
     assert importlib.import_module(name) is not None
 
 
 def test_no_module_in_tree_fails_to_import() -> None:
     """Walk the installed package so a new broken module cannot slip through."""
     failures: list[str] = []
-    for info in pkgutil.walk_packages(tycheon.__path__, prefix="tycheon."):
+    for info in _walk():
         try:
             importlib.import_module(info.name)
         except Exception as exc:  # we want to report every failure, not the first
@@ -73,21 +71,28 @@ def test_no_module_in_tree_fails_to_import() -> None:
     assert not failures, "modules failed to import: " + "; ".join(failures)
 
 
-def test_every_module_in_tree_is_declared() -> None:
-    """The tree and the declared layout must not drift apart."""
-    found = {info.name for info in pkgutil.walk_packages(tycheon.__path__, prefix="tycheon.")}
-    declared = set(CORE_MODULES) | set(MODEL_MODULES) | set(T4_MODULES)
+def test_the_set_of_packages_matches_the_declared_layout() -> None:
+    """The package tree and the declared layout must not drift apart."""
+    found = {info.name for info in _walk() if info.ispkg}
+    declared = set(DECLARED_PACKAGES)
     assert found == declared, (
-        f"undeclared modules: {sorted(found - declared)}; "
+        f"undeclared packages: {sorted(found - declared)}; "
         f"missing from tree: {sorted(declared - found)}"
     )
+
+
+def test_the_t4_placeholders_are_still_empty() -> None:
+    """governance/ and agents/ arrive in Phase T4; nothing may be built in them before then."""
+    for name in T4_PACKAGES:
+        leaves = [info.name for info in _walk() if info.name.startswith(name + ".")]
+        assert not leaves, f"{name} must stay a placeholder until T4, but contains {leaves}"
 
 
 def test_every_module_has_a_docstring() -> None:
     """Empty modules are allowed; undocumented ones are not."""
     undocumented = [
         info.name
-        for info in pkgutil.walk_packages(tycheon.__path__, prefix="tycheon.")
+        for info in _walk()
         if not (importlib.import_module(info.name).__doc__ or "").strip()
     ]
     assert not undocumented, f"modules without a docstring: {undocumented}"

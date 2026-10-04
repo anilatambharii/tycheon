@@ -35,7 +35,16 @@ REQUIRED_FILES = [
     "docs/methodology.md",
     "docs/safety.md",
     "docs/adr/0001-licensing-and-open-core.md",
+    "docs/adr/0002-kronos-integration.md",
+    "docs/adr/0003-point-in-time-data-and-forecast-contract.md",
+    "docs/models/index.md",
     "examples/README.md",
+    "examples/forecast.py",
+    "third_party/kronos/LICENSE",
+    "third_party/kronos/README.md",
+    "third_party/kronos/UPSTREAM.json",
+    "third_party/kronos/model/kronos.py",
+    "third_party/kronos/model/module.py",
     "src/tycheon/py.typed",
     "src/tycheon/agents/README.md",
     "src/tycheon/governance/README.md",
@@ -46,6 +55,22 @@ REQUIRED_FILES = [
     ".github/workflows/nightly-slow.yml",
     ".github/workflows/secret-scan.yml",
 ]
+
+
+# One card per forecaster: AGENTS.md says no forecast without a model card reference.
+MODEL_CARDS = [
+    "kronos-mini",
+    "kronos-small",
+    "kronos-base",
+    "timesfm",
+    "chronos-2",
+    "random-walk",
+    "drift",
+    "seasonal-naive",
+    "arima",
+    "garch",
+]
+REQUIRED_FILES += [f"docs/models/{name}.md" for name in MODEL_CARDS]
 
 
 @pytest.mark.parametrize("relpath", REQUIRED_FILES)
@@ -90,3 +115,21 @@ def test_not_investment_advice_disclaimer_is_published() -> None:
     for relpath in ("README.md", "docs/index.md"):
         text = (PROJECT_ROOT / relpath).read_text().lower()
         assert "not investment advice" in text, f"{relpath} is missing the disclaimer"
+
+
+def test_no_unfinished_markers_ship_in_the_docs() -> None:
+    """AGENTS.md: no TODO without an issue. Docs must not carry draft markers either."""
+    markers = ("PLACEHOLDER", "TODO", "TBD", "FIXME", "XXX", "<<")
+    paths = [
+        *PROJECT_ROOT.glob("docs/**/*.md"),
+        PROJECT_ROOT / "README.md",
+        PROJECT_ROOT / "benchmarks" / "README.md",
+        PROJECT_ROOT / "examples" / "README.md",
+    ]
+    offenders = [
+        f"{path.relative_to(PROJECT_ROOT)}: {marker}"
+        for path in paths
+        for marker in markers
+        if marker in path.read_text(encoding="utf-8")
+    ]
+    assert not offenders, f"unfinished markers: {offenders}"
