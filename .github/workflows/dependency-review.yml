@@ -15,6 +15,11 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: actions/dependency-review-action@v4
+        # Non-blocking until the repository Dependency graph setting is turned
+        # on; the action errors out without it and would red-flag every PR.
+        # Remove this line once it is enabled -- see issue #2. While it is here
+        # this check gates nothing.
+        continue-on-error: true
         with:
           fail-on-severity: high
           comment-summary-in-pr: on-failure

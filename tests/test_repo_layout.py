@@ -19,6 +19,7 @@ REQUIRED_FILES = [
     "SECURITY.md",
     ".env.example",
     ".gitattributes",
+    ".gitleaks.toml",
     ".gitignore",
     ".pre-commit-config.yaml",
     ".secrets.baseline",

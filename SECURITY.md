@@ -44,10 +44,15 @@ this project specifically:
 
 ## Hardening in CI
 
-Every PR runs secret scanning (detect-secrets and gitleaks), CodeQL, and GitHub
-dependency review. Pre-commit blocks private keys and large files. `.env` is
-gitignored; `.env.example` is committed with every secret value empty, and a
-test asserts it stays that way.
+Every PR runs secret scanning (detect-secrets against a committed baseline, and
+gitleaks over history) and CodeQL with the security-extended query set.
+Pre-commit blocks private keys and large files. `.env` is gitignored;
+`.env.example` is committed with every secret value empty, and a test asserts it
+stays that way.
+
+GitHub dependency review is wired up but **not yet gating**: it needs the
+repository Dependency graph setting enabled, tracked in issue #2. Until then,
+new dependencies are reviewed by a human reading the PR.
 
 ## Disclaimer
 

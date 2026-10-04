@@ -2,8 +2,9 @@
 # obvious mistakes (and any committed secret) before they reach a branch.
 #   make setup   installs them
 #   make hooks   runs them over the whole tree
-default_language_version:
-  python: python3.11
+# No `default_language_version`: pinning `python3.11` breaks any environment
+# where the interpreter is uv-managed and not on PATH under that name (CI).
+# Hook environments use the Python pre-commit itself runs under.
 exclude: |
   (?x)^(
     \.secrets\.baseline|

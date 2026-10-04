@@ -1,0 +1,19 @@
+# gitleaks configuration. Extends the default rule set rather than replacing it.
+title = "Tycheon"
+
+[extend]
+useDefault = true
+
+[allowlist]
+description = """
+Two committed files are made of hashes by design and trip the generic
+high-entropy rules. Allowlisting them keeps the scanner useful instead of
+noisy; everything else in the tree, including history, is still scanned.
+"""
+paths = [
+  # detect-secrets baseline: SHA-1 hashes of known, audited findings. There are
+  # no secret values in it, only digests of them.
+  '''^\.secrets\.baseline$''',
+  # uv.lock: package names, versions and sha256 distribution digests.
+  '''^uv\.lock$''',
+]
