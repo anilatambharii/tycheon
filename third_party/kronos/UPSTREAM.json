@@ -1,0 +1,12 @@
+{
+  "repository": "https://github.com/shiyu-coder/Kronos",
+  "commit": "67b630e67f6a18c9e9be918d9b4337c960db1e9a",
+  "license": "MIT",
+  "copyright": "Copyright (c) 2025 ShiYu",
+  "note": "Byte-identical copies. Do not edit; see third_party/kronos/README.md.",
+  "files": {
+    "LICENSE": "acb2d194d378204e5f2be4dcd24d39ecac437903620c790c3315a96dab388fdc",
+    "model/kronos.py": "0a5f90282e2039c2de0771473419715c845def154896dbd0f5747837e6241032",
+    "model/module.py": "a4df669998fa8115ac219b06687abaff2fac0fce9da762007dd142038949eee5"
+  }
+}

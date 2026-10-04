@@ -22,7 +22,7 @@ to size risk, so the bar here is higher than "it works on my machine".
 ## Getting set up
 
 ```bash
-make setup          # venv + dev deps + git hooks
+make setup          # venv + dev deps + CPU torch (Kronos tests need it) + git hooks
 make check          # the gate
 make up             # optional dev services (Postgres, Redis, MinIO, Jaeger)
 ```

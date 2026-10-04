@@ -10,7 +10,8 @@ exclude: |
     \.secrets\.baseline|
     uv\.lock|
     LICENSE|
-    ee/LICENSE
+    ee/LICENSE|
+    third_party/.*
   )$
 
 repos:
@@ -47,17 +48,18 @@ repos:
         args: [--fix]
       - id: ruff-format
 
-  - repo: https://github.com/pre-commit/mirrors-mypy
-    rev: v2.4.0
+  - repo: local
     hooks:
       - id: mypy
-        # Mirror `make types`: strict, src/ only, with the stubs mypy needs.
-        files: ^src/
-        args: [--strict, --ignore-missing-imports]
-        additional_dependencies:
-          - pydantic>=2.11
-          - pandas-stubs
-          - types-pyyaml
+        name: mypy (project environment)
+        # Runs in the project environment, not an isolated mirror one, so it sees
+        # numpy, pandas-stubs and torch exactly as `make types` does. A mirrored
+        # environment without them type-checks a different program and disagrees.
+        entry: uv run --extra kronos mypy
+        language: system
+        types: [python]
+        files: ^(src/|pyproject\.toml$)
+        pass_filenames: false
 
   - repo: https://github.com/Yelp/detect-secrets
     rev: v1.5.0

@@ -9,7 +9,7 @@ description = "Calibrated financial forecasting and risk. Kronos forecasts the p
 readme = "README.md"
 requires-python = ">=3.11"
 license = "Apache-2.0"
-license-files = ["LICENSE"]
+license-files = ["LICENSE", "third_party/kronos/LICENSE"]
 authors = [{ name = "The Tycheon Authors" }]
 keywords = [
     "forecasting", "time-series", "conformal-prediction", "calibration",
@@ -35,11 +35,11 @@ classifiers = [
 dependencies = [
     "numpy>=2.1,<3",
     "pandas>=2.2,<4",
-    "pyarrow>=18,<24",
+    "pyarrow>=18,<26",
     "duckdb>=1.1,<2",
     "scipy>=1.14,<2",
     "statsmodels>=0.14,<1",
-    "arch>=7.2,<8",
+    "arch>=8.0,<9",
     "lightgbm>=4.5,<5",
     "pydantic>=2.11,<3",
 ]
@@ -53,17 +53,26 @@ Documentation = "https://github.com/anilatambharii/tycheon/tree/main/docs"
 # Heavy and optional pieces. AGENTS.md: heavy models live behind extras, so a
 # `pip install tycheon` never drags in a multi-gigabyte torch build.
 [project.optional-dependencies]
+# Kronos is vendored (third_party/kronos, ADR 0002), so this extra carries only
+# what its source imports at module load: torch, einops, tqdm and the Hugging
+# Face stack that downloads the safetensors weights.
 kronos = [
     "torch>=2.5,<3",
+    # huggingface-hub 2.x exists but is deliberately excluded: upstream Kronos was
+    # written against 0.33 and its PyTorchModelHubMixin loading is untested on 2.x.
     "huggingface-hub>=0.26,<1",
     "safetensors>=0.4,<1",
     "einops>=0.8,<1",
+    "tqdm>=4.66,<5",
 ]
+# TimesFM 2.5 (Apache-2.0). The `torch` extra of the upstream package is what
+# provides TimesFM_2p5_200M_torch; the default install has no backend.
 timesfm = [
-    "timesfm>=1.2,<3",
+    "timesfm[torch]>=3.0.2,<4",
 ]
+# Chronos-2 lives in chronos-forecasting 2.x (Apache-2.0).
 chronos = [
-    "chronos-forecasting>=1.4,<2",
+    "chronos-forecasting>=2.3,<3",
 ]
 # CUDA wheels are not on PyPI proper. This extra installs the accelerator-side
 # libraries; point your resolver at the PyTorch index for the CUDA build, e.g.
@@ -97,6 +106,14 @@ dev = [
     "pre-commit>=4.6",
     "detect-secrets>=1.5",
     "pyyaml>=6.0",
+    "pandas-stubs>=2.2",
+    "types-pyyaml>=6.0",
+]
+# Plotting for examples/. Deliberately NOT in any published extra, and
+# yfinance is deliberately absent from the lock altogether: it is for
+# local development only and is installed by hand (see the provider).
+examples = [
+    "matplotlib>=3.9",
 ]
 docs = [
     "mkdocs-material>=9.7",
@@ -106,15 +123,21 @@ docs = [
 [tool.hatch.build.targets.wheel]
 packages = ["src/tycheon"]
 
+# Upstream Kronos lives at third_party/kronos in the repo (AGENTS.md layout) and
+# is shipped inside the package so an installed wheel can find it. The loader in
+# tycheon.models.kronos.vendor looks in both places.
+[tool.hatch.build.targets.wheel.force-include]
+"third_party/kronos" = "tycheon/_vendor/kronos"
+
 [tool.hatch.build.targets.sdist]
-include = ["src/tycheon", "tests", "benchmarks", "README.md", "LICENSE"]
+include = ["src/tycheon", "third_party", "tests", "benchmarks", "README.md", "LICENSE"]
 
 # --------------------------------------------------------------------- ruff
 [tool.ruff]
 line-length = 100
 target-version = "py311"
 src = ["src", "tests"]
-extend-exclude = ["ee/dashboard", "deploy"]
+extend-exclude = ["ee/dashboard", "deploy", "third_party"]
 
 [tool.ruff.lint]
 select = [
@@ -147,12 +170,20 @@ ignore = [
     "ISC001",     # conflicts with the formatter
     "TRY003",     # long messages outside exception class — we want readable errors
     "PLR0913",    # many arguments; model and risk signatures are wide by nature
+    "PLR2004",    # `n < 2` reads better inline than as a named constant
 ]
 
 [tool.ruff.lint.per-file-ignores]
-"tests/**" = ["S101", "PLR2004", "ARG", "ERA001"]
-# The leaderboard harness is a CLI: it reports to stdout by design.
+# Tests import optional extras inside functions (after importorskip) and dispatch
+# fixtures with a long if-chain on purpose.
+"tests/**" = ["S101", "ARG", "ERA001", "PLC0415", "PLR0911"]
+# Foundation models are optional extras: importing torch, timesfm or chronos at
+# module level would make `import tycheon.models` require them, so those imports are
+# deliberately inside functions.
+"src/tycheon/models/**" = ["PLC0415"]
+# The leaderboard harness and the examples are CLIs: they report to stdout by design.
 "benchmarks/**" = ["T20"]
+"examples/**" = ["T20", "PLC0415"]
 
 [tool.ruff.lint.isort]
 known-first-party = ["tycheon", "benchmarks"]
@@ -214,6 +245,10 @@ filterwarnings = ["error"]
 [tool.coverage.run]
 source = ["src/tycheon"]
 branch = true
+# The vendored upstream Kronos is executed (it is imported) but is not ours to cover:
+# counting it would measure Kronos, not Tycheon, and would swing the gate with every
+# upstream update. Our behaviour on it is pinned by the hash and equality tests instead.
+omit = ["*/third_party/*", "*/_vendor/*"]
 
 [tool.coverage.report]
 show_missing = true
@@ -224,3 +259,15 @@ exclude_also = [
     "@overload",
     "if __name__ == .__main__.:",
 ]
+
+# ----------------------------------------------------------------------- uv
+# Dev and CI only (tool.uv is not published metadata). On Linux, PyPI's torch
+# drags in ~3 GB of CUDA libraries; the CPU index keeps CI and `make setup`
+# small. Windows and macOS wheels from PyPI are already CPU/MPS builds.
+[[tool.uv.index]]
+name = "pytorch-cpu"
+url = "https://download.pytorch.org/whl/cpu"
+explicit = true
+
+[tool.uv.sources]
+torch = [{ index = "pytorch-cpu", marker = "sys_platform == 'linux'" }]
