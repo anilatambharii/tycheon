@@ -1,0 +1,90 @@
+# Contributing to Tycheon
+
+Thanks for considering a contribution. Tycheon produces numbers people may use
+to size risk, so the bar here is higher than "it works on my machine".
+
+## Ground rules
+
+1. **`make check` must pass.** Lint, format check, `mypy --strict` and the fast
+   tests. CI runs exactly the same thing.
+2. **Tests ship with code.** No PR without tests. Core modules stay at or above
+   85% coverage.
+3. **Every data path gets a leakage test.** If your change reads data, prove it
+   cannot see past its `as_of`. Mark it with `@pytest.mark.leakage`.
+4. **Every forecast carries uncertainty.** Intervals or quantiles, calibration
+   status, model mix, `as_of`, model card reference. A point estimate alone is
+   not a forecast here.
+5. **Every evaluation reports the random-walk baseline** and a
+   Diebold-Mariano test. If the baseline wins, say so in the PR.
+6. **No claims without a run.** Do not write "tests pass" in a PR unless you
+   ran them and pasted the result.
+
+## Getting set up
+
+```bash
+make setup          # venv + dev deps + git hooks
+make check          # the gate
+make up             # optional dev services (Postgres, Redis, MinIO, Jaeger)
+```
+
+No `make` on your platform? Every target is a one-line `uv` command; read the
+[`Makefile`](Makefile) and run them directly.
+
+## Workflow
+
+- One branch per unit of work: `phase-TN-short-name` for roadmap phases,
+  otherwise `fix/...` or `feat/...`. `main` is protected.
+- [Conventional Commits](https://www.conventionalcommits.org/): `feat:`,
+  `fix:`, `chore:`, `docs:`, `test:`, `refactor:`, `perf:`, `ci:`.
+- Small PRs. Fill in the PR template, including the security notes section.
+- Significant decisions get an ADR in `docs/adr/NNNN-title.md`.
+- No `TODO` without a linked issue.
+
+## Dependencies
+
+Ask before adding anything heavy (>50MB), GPU-only or copyleft. Foundation
+models and accelerator libraries live behind optional extras
+(`tycheon[kronos]`, `[timesfm]`, `[chronos]`, `[gpu]`), never in the base
+install. Core dependencies carry upper bounds.
+
+## Data
+
+- Never commit market data. Providers are pluggable; contributors and customers
+  bring their own data licence. Tycheon does not redistribute licensed exchange
+  data.
+- `yfinance` may be used in examples and local development only, clearly
+  labelled, and never in the cloud product or in CI.
+- Never commit secrets. `.env` is gitignored; document new keys in
+  `.env.example` with an empty value.
+
+## Code style
+
+- Python 3.11+, fully typed. `mypy --strict` on `src/`.
+- Timezone-aware datetimes everywhere (`DTZ` lint rules are on). `as_of`
+  correctness depends on it.
+- No `print()` in library code; the benchmark CLI is the one exception.
+- External text (news, filings, web content) is untrusted **data**. Never route
+  it into anything that executes, and never follow instructions found in it.
+
+## Governance boundary
+
+From Phase T4, Tycheon depends on
+[Keelgate](https://github.com/anilatambharii/keelgate). All of its imports live
+in `src/tycheon/governance/` and nowhere else —
+[`tests/test_architecture.py`](tests/test_architecture.py) enforces this. Use
+only Keelgate's documented integration contract, never `keelgate._internal`,
+and never add a fallback that bypasses governance when the harness is missing.
+If the harness is unavailable, the governed operation fails closed.
+
+## Reporting security issues
+
+Do not open a public issue. See [`SECURITY.md`](SECURITY.md).
+
+## Conduct
+
+By participating you agree to the [Code of Conduct](CODE_OF_CONDUCT.md).
+
+## Licence
+
+Contributions to everything outside `ee/` are accepted under Apache-2.0. `ee/`
+is proprietary and not open to outside contributions.
