@@ -9,11 +9,12 @@ honest baselines, translation of forecasts into VaR, Expected Shortfall and
 drawdown probabilities, and leakage-proof walk-forward evaluation with a public
 leaderboard.
 
-!!! warning "Phase T1 - foundations"
-    Point-in-time data, five baselines and Kronos / TimesFM / Chronos behind one
-    forecaster contract are built. Every forecast is **uncalibrated**: calibration,
-    the risk layer and leakage-proof evaluation are the next phases, so nothing here
-    yet says how much to trust a forecast.
+!!! warning "Phase T2 - calibration and risk"
+    Conformal calibration with measured holdout coverage, a regime-weighted ensemble and a
+    risk layer (VaR, ES, drawdown, stress, JSON and HTML report) are built on top of the T1
+    foundations. Leakage-proof evaluation against baselines (T3) is not, so no claim of
+    forecasting skill is made. Multi-asset portfolio risk is always uncalibrated.
+    See [calibration](calibration.md) and [risk](risk.md).
 
 ![Kronos-small beside the random-walk baseline](assets/forecast-example.png)
 

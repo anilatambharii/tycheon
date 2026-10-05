@@ -3,8 +3,10 @@
 This page states what Tycheon intends to do and, just as importantly, what it
 refuses to claim. It was written before the implementation, in Phase T0, so that
 later phases can be held to it, and it is updated as they land. Phase T1 built the
-point-in-time data layer and the forecasters; calibration (T2), the risk layer and
-evaluation (T3) are still to come, and every section below says which is which.
+point-in-time data layer and the forecasters; Phase T2 built calibration, the covariate
+residual corrector, routing and the risk layer (see [calibration](calibration.md) and
+[risk](risk.md)); evaluation (T3) is still to come, and every section below says which is
+which.
 
 ## Why this layer exists
 

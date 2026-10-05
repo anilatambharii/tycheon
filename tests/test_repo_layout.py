@@ -69,7 +69,10 @@ MODEL_CARDS = [
     "seasonal-naive",
     "arima",
     "garch",
+    "residual-corrected",
+    "regime-ensemble",
 ]
+REQUIRED_FILES += ["docs/calibration.md", "docs/risk.md"]
 REQUIRED_FILES += [f"docs/models/{name}.md" for name in MODEL_CARDS]
 
 
