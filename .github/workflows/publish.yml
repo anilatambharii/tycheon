@@ -1,12 +1,14 @@
 # Publish to PyPI with trusted publishing (OIDC): no API token is stored anywhere.
 #
-# One-time setup (see docs/releasing.md): on pypi.org and test.pypi.org add a trusted publisher
-# for this repository, workflow `publish.yml`, environment `pypi` / `testpypi`; then create the
-# two GitHub environments (give `pypi` required reviewers).
+# One-time setup (see docs/releasing.md): on pypi.org add a trusted publisher for this
+# repository, workflow `publish.yml`, environment `pypi`; then create the GitHub environment
+# `pypi` and give it required reviewers so a human approves each real upload.
 #
-#   * a tag `v*` builds, verifies the tag matches pyproject, publishes to TestPyPI, and then
-#     to PyPI once the `pypi` environment is approved;
-#   * manual dispatch publishes to TestPyPI only (a dry run of the whole path).
+#   * a tag `v*` builds, verifies the tag matches pyproject, smoke-tests the wheel, and then
+#     publishes to PyPI once the `pypi` environment is approved;
+#   * manual dispatch publishes to TestPyPI only: an optional dry run that needs a TestPyPI
+#     trusted publisher and a `testpypi` environment. Skipping TestPyPI is fine; the PyPI job
+#     does not depend on it.
 name: Publish
 
 on:
@@ -46,8 +48,9 @@ jobs:
           path: dist/
 
   testpypi:
-    name: publish to TestPyPI
+    name: publish to TestPyPI (manual dry run)
     needs: build
+    if: github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
     environment: testpypi
     permissions:
@@ -64,7 +67,7 @@ jobs:
 
   pypi:
     name: publish to PyPI
-    needs: testpypi
+    needs: build
     if: startsWith(github.ref, 'refs/tags/v')
     runs-on: ubuntu-latest
     environment: pypi
