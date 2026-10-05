@@ -190,7 +190,7 @@ ignore = [
 "src/tycheon/**/plots.py" = ["PLC0415"]
 "src/tycheon/risk/report.py" = ["PLC0415"]
 # The leaderboard harness and the examples are CLIs: they report to stdout by design.
-"benchmarks/**" = ["T20"]
+"benchmarks/**" = ["T20", "PLC0415"]
 "examples/**" = ["T20", "PLC0415"]
 
 [tool.ruff.lint.isort]

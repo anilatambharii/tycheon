@@ -1,0 +1,4 @@
+id: seasonal-naive
+kind: baseline
+class: SeasonalNaiveForecaster
+options: {season_length: 5}

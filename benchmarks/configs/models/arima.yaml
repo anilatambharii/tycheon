@@ -1,0 +1,4 @@
+id: arima
+kind: baseline
+class: ARIMAForecaster
+options: {order: [1, 0, 1], window: 500}

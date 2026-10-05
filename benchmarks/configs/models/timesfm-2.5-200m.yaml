@@ -1,0 +1,6 @@
+id: timesfm-2.5-200m
+kind: foundation
+class: TimesFMForecaster
+extra: timesfm
+options: {max_context: 512}
+walk_forward: {max_history: 512}

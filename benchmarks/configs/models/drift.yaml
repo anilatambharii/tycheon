@@ -1,0 +1,4 @@
+id: drift
+kind: baseline
+class: DriftForecaster
+options: {window: 250}

@@ -1,42 +1,45 @@
-# The smallest honest benchmark: three synthetic series, one horizon, three folds.
-# `make benchmark-small` validates this config today and will run it once the T3
-# walk-forward engine lands. The data is synthetic (see tycheon.data.sample): there
-# is no real market data in this repository, so no ticker appears here.
+# The smallest honest benchmark: three synthetic series, one horizon, three folds. It runs on
+# CPU in minutes (`make benchmark-small`). The data is synthetic (see tycheon.data.sample):
+# there is no market data in this repository, so no ticker appears here and the results test
+# the machinery, not any claim about markets.
 name: small
-description: Smoke-sized leaderboard config for CI and local development.
+description: Smoke-sized leaderboard for CI and local development (CPU, synthetic data).
 
-# Generated deterministically on demand; nothing is committed or redistributed.
 dataset: sample-synthetic-daily
+universe_kind: static    # a fixed list; harmless for synthetic data, flagged for real data
 universe:
   - SYN-GBM
   - SYN-GARCH
   - SYN-REGIME
 
-horizons: [5]          # trading days ahead
-quantiles: [0.05, 0.25, 0.5, 0.75, 0.95]
+horizons: [5]            # trading days ahead
 
+# Kronos-mini is the only foundation model here (smallest, fastest on CPU). TimesFM, Chronos
+# and the larger Kronos models are in full.yaml.
 models:
-  - kronos-small
+  - kronos-mini
+  - tycheon-ensemble
+  - tycheon-calibrated
 
-# random-walk is mandatory: every published number is read against doing
-# nothing, with a Diebold-Mariano test on the difference.
+# random-walk is mandatory: every published number is read against doing nothing, with a
+# Diebold-Mariano test on the difference.
 baselines:
   - random-walk
   - drift
   - seasonal-naive
+  - garch
 
 walk_forward:
   folds: 3
-  train_window: 756      # ~3y of trading days
-  test_window: 63        # ~1 quarter
-  # Gap between train and test so a label cannot leak backwards across the
-  # boundary. Mandatory; the runner refuses a config without it.
+  train_window: 756      # ~3y of trading days given to each refit
+  test_window: 63        # ~1 quarter of origins per fold
+  # Gap between the end of the training history and the first origin it serves, so a label
+  # cannot leak backwards across the boundary. Mandatory.
   embargo: 5
-
-calibration:
-  method: split_conformal
-  target_coverage: 0.9
-  report_reliability: true
+  refit: fold            # rebuild router and calibrator at every fold
+  n_samples: 100         # sample paths per forecast (Kronos overrides this, see its config)
+  max_history: 500
+  seed: 0
 
 costs:
   # Evaluation is honest about frictions, even on a smoke config.
