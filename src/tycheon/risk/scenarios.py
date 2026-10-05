@@ -67,7 +67,7 @@ class ScenarioResult:
 
 def _drawdown(values: Floats) -> float:
     peak = np.maximum.accumulate(values)
-    return float((1.0 - values / peak).max())
+    return float(np.max(1.0 - values / peak))
 
 
 def _portfolio_path(
@@ -156,8 +156,8 @@ def worst_windows(
         if len(chosen) == k:
             break
     out = []
-    for rank, start in enumerate(chosen, 1):
-        rel = _portfolio_path(portfolio, closes, start, slice(start + 1, start + horizon + 1))
+    for rank, begin in enumerate(chosen, 1):
+        rel = _portfolio_path(portfolio, closes, begin, slice(begin + 1, begin + horizon + 1))
         out.append(
             ScenarioResult(
                 name=f"worst {horizon}-bar window #{rank}",
@@ -166,8 +166,8 @@ def worst_windows(
                 max_drawdown=_drawdown(np.concatenate([[1.0], rel])),
                 path=tuple(float(x - 1.0) for x in rel),
                 window=(
-                    closes.index[start + 1].isoformat(),
-                    closes.index[start + horizon].isoformat(),
+                    closes.index[begin + 1].isoformat(),
+                    closes.index[begin + horizon].isoformat(),
                 ),
                 caveat="found automatically in the history known at as_of; the worst the past "
                 "offers, not the worst possible",

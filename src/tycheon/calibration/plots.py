@@ -52,8 +52,8 @@ def pit_svg(report: CalibrationReport, title: str = "PIT histogram") -> str:
     edges = np.linspace(0, 1, bins + 1)
     centre = (edges[:-1] + edges[1:]) / 2
     width = 0.4 / bins
-    raw = report.pit_raw / max(report.pit_raw.sum(), 1) * bins
-    cal = report.pit_calibrated / max(report.pit_calibrated.sum(), 1) * bins
+    raw = report.pit_raw / max(float(report.pit_raw.sum()), 1.0) * bins
+    cal = report.pit_calibrated / max(float(report.pit_calibrated.sum()), 1.0) * bins
     ax.bar(centre - width / 1.6, raw, width=width * 1.5, color=ORANGE, label="raw")
     ax.bar(centre + width / 1.6, cal, width=width * 1.5, color=BLUE, label="calibrated")
     ax.axhline(1.0, color=GREY, lw=1.0, ls="--")

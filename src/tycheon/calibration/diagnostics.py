@@ -201,7 +201,7 @@ def evaluate_calibration(
             shifted = np.stack(
                 [
                     shift_samples(scores.samples[start + r], levels_sel, delta_s[r])
-                    for r in np.flatnonzero(usable)
+                    for r in map(int, np.flatnonzero(usable))
                 ]
             )
             crps_cal = float(crps_samples(shifted, y[usable]).mean())

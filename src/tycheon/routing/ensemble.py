@@ -150,7 +150,8 @@ class RegimeRouter:
 
     def _weights(self, losses: Floats) -> Floats:
         mean = losses.mean(axis=0)
-        relative = (mean - mean.min()) / max(mean.min(), 1e-12)
+        floor = float(np.min(mean))
+        relative = (mean - floor) / max(floor, 1e-12)
         w = np.exp(-self.sensitivity * relative)
         w /= w.sum()
         return np.asarray((1.0 - self.shrinkage) * w + self.shrinkage / len(w), dtype=np.float64)

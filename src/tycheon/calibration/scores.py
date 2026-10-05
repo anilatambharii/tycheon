@@ -98,7 +98,7 @@ class ScoreSet:
         """The latest moment any outcome in this set became known."""
         if self.n == 0:
             return pd.Timestamp.min.tz_localize("UTC")
-        return pd.Timestamp(int(self.outcome_times.max()), tz="UTC")
+        return pd.Timestamp(int(np.max(self.outcome_times)), tz="UTC")
 
     def take(self, index: NDArray[np.intp] | slice) -> ScoreSet:
         """A sub-set of origins (kept in the same order)."""
