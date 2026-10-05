@@ -57,7 +57,10 @@ def test_publishing_uses_trusted_publishing_and_stores_no_token() -> None:
 def test_a_real_pypi_upload_only_happens_for_a_version_tag() -> None:
     wf = _workflow("publish.yml")
     assert "refs/tags/v" in wf["jobs"]["pypi"]["if"]
-    assert wf["jobs"]["pypi"]["needs"] == "testpypi"  # TestPyPI first, always
+    # PyPI depends on the build only, so skipping TestPyPI never blocks a release...
+    assert wf["jobs"]["pypi"]["needs"] == "build"
+    # ...and the TestPyPI dry run happens only when someone starts it by hand
+    assert wf["jobs"]["testpypi"]["if"] == "github.event_name == 'workflow_dispatch'"
     steps = " ".join(str(s) for s in wf["jobs"]["build"]["steps"])
     assert "pyproject.toml" in steps and "GITHUB_REF_NAME" in steps  # tag must match version
 
