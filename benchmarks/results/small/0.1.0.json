@@ -1,0 +1,1587 @@
+{
+  "schema_version": 1,
+  "benchmark": "small",
+  "tycheon_version": "0.1.0",
+  "created_at": "2026-10-05T15:41:15+00:00",
+  "git": {
+    "sha": "5c344b4660013446bf41c92e89f179be68972643",
+    "dirty": true
+  },
+  "config": {
+    "name": "small",
+    "description": "Smoke-sized leaderboard for CI and local development (CPU, synthetic data).",
+    "dataset": "sample-synthetic-daily",
+    "universe_kind": "static",
+    "universe": [
+      "SYN-GBM",
+      "SYN-GARCH",
+      "SYN-REGIME"
+    ],
+    "horizons": [
+      5
+    ],
+    "models": [
+      "kronos-mini",
+      "tycheon-ensemble",
+      "tycheon-calibrated"
+    ],
+    "baselines": [
+      "random-walk",
+      "drift",
+      "seasonal-naive",
+      "garch"
+    ],
+    "walk_forward": {
+      "folds": 3,
+      "train_window": 756,
+      "test_window": 63,
+      "embargo": 5,
+      "refit": "fold",
+      "n_samples": 100,
+      "max_history": 500,
+      "seed": 0
+    },
+    "costs": {
+      "spread_bps": 2,
+      "slippage_bps": 1
+    }
+  },
+  "config_sha256": "2bffed120b9c033f90c12083ddbfb53893b279a2e0dc1579a23e4da10acd3d01",
+  "dataset": {
+    "name": "sample-synthetic-daily",
+    "synthetic": true,
+    "redistributable": true,
+    "manifest_sha256": "4cfa619fbe91e3fcb6227613e3ddfd11acc2c398be45452f7b7eaf3d2fef92b9",
+    "series": [
+      {
+        "symbol": "SYN-GBM",
+        "n_bars": 1500,
+        "first": "2018-01-01T00:00:00+00:00",
+        "last": "2023-09-29T00:00:00+00:00"
+      },
+      {
+        "symbol": "SYN-GARCH",
+        "n_bars": 1500,
+        "first": "2018-01-01T00:00:00+00:00",
+        "last": "2023-09-29T00:00:00+00:00"
+      },
+      {
+        "symbol": "SYN-REGIME",
+        "n_bars": 1500,
+        "first": "2018-01-01T00:00:00+00:00",
+        "last": "2023-09-29T00:00:00+00:00"
+      }
+    ]
+  },
+  "environment": {
+    "python": "3.12.15",
+    "platform": "Windows AMD64",
+    "numpy": "2.5.3",
+    "device": "cpu",
+    "torch": "2.14.1+cpu"
+  },
+  "warnings": [],
+  "model_status": {
+    "random-walk": {
+      "status": "ran"
+    },
+    "drift": {
+      "status": "ran"
+    },
+    "seasonal-naive": {
+      "status": "ran"
+    },
+    "garch": {
+      "status": "ran"
+    },
+    "kronos-mini": {
+      "status": "ran"
+    },
+    "tycheon-ensemble": {
+      "status": "ran"
+    },
+    "tycheon-calibrated": {
+      "status": "ran"
+    }
+  },
+  "results": [
+    {
+      "horizon": 5,
+      "models": {
+        "random-walk": {
+          "pooled": {
+            "model_id": "random-walk",
+            "n_origins": 108,
+            "horizon": 5,
+            "mae": 0.023745203135709818,
+            "rmse": 0.03229154965920159,
+            "mase": 1.014481420876345,
+            "directional_accuracy": 0.5092592592592593,
+            "ic": 0.03611139464834723,
+            "rank_ic": 0.003181952423142511,
+            "crps": 0.017516065864324984,
+            "crps_approximate": false,
+            "coverage": {
+              "0.5": {
+                "achieved": 0.5740740740740741,
+                "mean_width": 0.03613750943658107
+              },
+              "0.8": {
+                "achieved": 0.7592592592592593,
+                "mean_width": 0.06722348361069395
+              },
+              "0.9": {
+                "achieved": 0.7962962962962963,
+                "mean_width": 0.08373343178694918
+              }
+            },
+            "qlike": 0.7383678951566955,
+            "diebold_mariano_vs_random_walk": {
+              "squared_error": {
+                "statistic": 0.0,
+                "p_two_sided": 1.0,
+                "p_model_better": 0.5,
+                "mean_diff": 0.0,
+                "n": 108,
+                "lags": 0
+              },
+              "crps": {
+                "statistic": 0.0,
+                "p_two_sided": 1.0,
+                "p_model_better": 0.5,
+                "mean_diff": 0.0,
+                "n": 108,
+                "lags": 0
+              }
+            },
+            "verdict": "benchmark",
+            "is_benchmark": true
+          },
+          "by_series": {
+            "SYN-GBM": {
+              "model_id": "random-walk",
+              "n_origins": 36,
+              "horizon": 5,
+              "mae": 0.020067177711027045,
+              "rmse": 0.02676392773638486,
+              "mase": 1.0011204250219206,
+              "directional_accuracy": 0.6388888888888888,
+              "ic": 0.07630084467747346,
+              "rank_ic": 0.13951093951093954,
+              "crps": 0.014569078374201572,
+              "crps_approximate": false,
+              "coverage": {
+                "0.5": {
+                  "achieved": 0.6111111111111112,
+                  "mean_width": 0.03642393976148912
+                },
+                "0.8": {
+                  "achieved": 0.8333333333333334,
+                  "mean_width": 0.0677943348038589
+                },
+                "0.9": {
+                  "achieved": 0.8611111111111112,
+                  "mean_width": 0.08444204508122585
+                }
+              },
+              "qlike": 0.22183450631870277,
+              "diebold_mariano_vs_random_walk": {
+                "squared_error": {
+                  "statistic": 0.0,
+                  "p_two_sided": 1.0,
+                  "p_model_better": 0.5,
+                  "mean_diff": 0.0,
+                  "n": 36,
+                  "lags": 0
+                },
+                "crps": {
+                  "statistic": 0.0,
+                  "p_two_sided": 1.0,
+                  "p_model_better": 0.5,
+                  "mean_diff": 0.0,
+                  "n": 36,
+                  "lags": 0
+                }
+              },
+              "verdict": "benchmark",
+              "is_benchmark": true
+            },
+            "SYN-GARCH": {
+              "model_id": "random-walk",
+              "n_origins": 36,
+              "horizon": 5,
+              "mae": 0.02264629838905747,
+              "rmse": 0.0288542794882619,
+              "mase": 1.0191089580165738,
+              "directional_accuracy": 0.4722222222222222,
+              "ic": -0.10921203419977477,
+              "rank_ic": -0.1451737451737452,
+              "crps": 0.015849685299355994,
+              "crps_approximate": false,
+              "coverage": {
+                "0.5": {
+                  "achieved": 0.5555555555555556,
+                  "mean_width": 0.03435819108353991
+                },
+                "0.8": {
+                  "achieved": 0.7222222222222222,
+                  "mean_width": 0.06401423938031219
+                },
+                "0.9": {
+                  "achieved": 0.8055555555555556,
+                  "mean_width": 0.07971312639834066
+                }
+              },
+              "qlike": 0.2978761141550745,
+              "diebold_mariano_vs_random_walk": {
+                "squared_error": {
+                  "statistic": 0.0,
+                  "p_two_sided": 1.0,
+                  "p_model_better": 0.5,
+                  "mean_diff": 0.0,
+                  "n": 36,
+                  "lags": 0
+                },
+                "crps": {
+                  "statistic": 0.0,
+                  "p_two_sided": 1.0,
+                  "p_model_better": 0.5,
+                  "mean_diff": 0.0,
+                  "n": 36,
+                  "lags": 0
+                }
+              },
+              "verdict": "benchmark",
+              "is_benchmark": true
+            },
+            "SYN-REGIME": {
+              "model_id": "random-walk",
+              "n_origins": 36,
+              "horizon": 5,
+              "mae": 0.028522133307044936,
+              "rmse": 0.03974110297302889,
+              "mase": 1.0203838148210853,
+              "directional_accuracy": 0.4166666666666667,
+              "ic": 0.10529339890185414,
+              "rank_ic": 0.023423423423423427,
+              "crps": 0.022129433919417383,
+              "crps_approximate": false,
+              "coverage": {
+                "0.5": {
+                  "achieved": 0.5555555555555556,
+                  "mean_width": 0.03763039746471418
+                },
+                "0.8": {
+                  "achieved": 0.7222222222222222,
+                  "mean_width": 0.06986187664791084
+                },
+                "0.9": {
+                  "achieved": 0.7222222222222222,
+                  "mean_width": 0.087045123881281
+                }
+              },
+              "qlike": 1.695393064996309,
+              "diebold_mariano_vs_random_walk": {
+                "squared_error": {
+                  "statistic": 0.0,
+                  "p_two_sided": 1.0,
+                  "p_model_better": 0.5,
+                  "mean_diff": 0.0,
+                  "n": 36,
+                  "lags": 0
+                },
+                "crps": {
+                  "statistic": 0.0,
+                  "p_two_sided": 1.0,
+                  "p_model_better": 0.5,
+                  "mean_diff": 0.0,
+                  "n": 36,
+                  "lags": 0
+                }
+              },
+              "verdict": "benchmark",
+              "is_benchmark": true
+            }
+          },
+          "leakage_controls": {
+            "guard_checks": 108,
+            "refits": 9
+          },
+          "n_samples": 100,
+          "max_history": 500,
+          "seconds": 0.98,
+          "strategy": {
+            "gross_mean": 0.0018962182821647949,
+            "net_mean": 0.0017073293932759065,
+            "turnover_per_period": 0.9166666666666666,
+            "hit_rate": 0.5092592592592593,
+            "note": "naive sign strategy; research diagnostic, not a recommendation"
+          }
+        },
+        "drift": {
+          "pooled": {
+            "model_id": "drift",
+            "n_origins": 108,
+            "horizon": 5,
+            "mae": 0.023977201656085367,
+            "rmse": 0.03264439507072542,
+            "mase": 1.0243932412657797,
+            "directional_accuracy": 0.49074074074074076,
+            "ic": -0.003075534063962516,
+            "rank_ic": -0.00466813379443063,
+            "crps": 0.017779024289895442,
+            "crps_approximate": false,
+            "coverage": {
+              "0.5": {
+                "achieved": 0.5833333333333334,
+                "mean_width": 0.03655250876149031
+              },
+              "0.8": {
+                "achieved": 0.7685185185185185,
+                "mean_width": 0.0681016929192128
+              },
+              "0.9": {
+                "achieved": 0.7962962962962963,
+                "mean_width": 0.08541264357362961
+              }
+            },
+            "qlike": 0.7664234019860148,
+            "diebold_mariano_vs_random_walk": {
+              "squared_error": {
+                "statistic": 1.0430991111130756,
+                "p_two_sided": 0.29925338494191606,
+                "p_model_better": 0.8503733075290419,
+                "mean_diff": 2.2912350140919764e-05,
+                "n": 108,
+                "lags": 0
+              },
+              "crps": {
+                "statistic": 1.318524694564716,
+                "p_two_sided": 0.19014338602432054,
+                "p_model_better": 0.9049283069878398,
+                "mean_diff": 0.0002629584255704583,
+                "n": 108,
+                "lags": 0
+              }
+            },
+            "verdict": "indistinguishable from the random walk",
+            "is_benchmark": false
+          },
+          "by_series": {
+            "SYN-GBM": {
+              "model_id": "drift",
+              "n_origins": 36,
+              "horizon": 5,
+              "mae": 0.020520203779125792,
+              "rmse": 0.027344666770460768,
+              "mase": 1.0237211941172082,
+              "directional_accuracy": 0.4722222222222222,
+              "ic": 0.032724081630689135,
+              "rank_ic": 0.06254826254826255,
+              "crps": 0.015020939629363315,
+              "crps_approximate": false,
+              "coverage": {
+                "0.5": {
+                  "achieved": 0.6388888888888888,
+                  "mean_width": 0.03683148486384148
+                },
+                "0.8": {
+                  "achieved": 0.8055555555555556,
+                  "mean_width": 0.06863814090468248
+                },
+                "0.9": {
+                  "achieved": 0.8611111111111112,
+                  "mean_width": 0.08606821367504011
+                }
+              },
+              "qlike": 0.21228994397922576,
+              "diebold_mariano_vs_random_walk": {
+                "squared_error": {
+                  "statistic": 1.2098169574282251,
+                  "p_two_sided": 0.23445729366660262,
+                  "p_model_better": 0.8827713531666987,
+                  "mean_diff": 3.142297290911035e-05,
+                  "n": 36,
+                  "lags": 0
+                },
+                "crps": {
+                  "statistic": 1.362958775698398,
+                  "p_two_sided": 0.18160053722921737,
+                  "p_model_better": 0.9091997313853913,
+                  "mean_diff": 0.00045186125516175144,
+                  "n": 36,
+                  "lags": 0
+                }
+              },
+              "verdict": "indistinguishable from the random walk",
+              "is_benchmark": false
+            },
+            "SYN-GARCH": {
+              "model_id": "drift",
+              "n_origins": 36,
+              "horizon": 5,
+              "mae": 0.02262878828231849,
+              "rmse": 0.028703948784719376,
+              "mase": 1.0183209834731426,
+              "directional_accuracy": 0.4722222222222222,
+              "ic": -0.09223480619135652,
+              "rank_ic": -0.0815958815958816,
+              "crps": 0.015824373663396406,
+              "crps_approximate": false,
+              "coverage": {
+                "0.5": {
+                  "achieved": 0.5277777777777778,
+                  "mean_width": 0.034737333954085486
+                },
+                "0.8": {
+                  "achieved": 0.7777777777777778,
+                  "mean_width": 0.06481886844569608
+                },
+                "0.9": {
+                  "achieved": 0.8055555555555556,
+                  "mean_width": 0.08116676934636566
+                }
+              },
+              "qlike": 0.298740977970913,
+              "diebold_mariano_vs_random_walk": {
+                "squared_error": {
+                  "statistic": -0.26317878183382654,
+                  "p_two_sided": 0.7939559697707571,
+                  "p_model_better": 0.39697798488537855,
+                  "mean_diff": -8.652768950938535e-06,
+                  "n": 36,
+                  "lags": 0
+                },
+                "crps": {
+                  "statistic": -0.10184427790258047,
+                  "p_two_sided": 0.919461523326002,
+                  "p_model_better": 0.459730761663001,
+                  "mean_diff": -2.531163595958393e-05,
+                  "n": 36,
+                  "lags": 0
+                }
+              },
+              "verdict": "indistinguishable from the random walk",
+              "is_benchmark": false
+            },
+            "SYN-REGIME": {
+              "model_id": "drift",
+              "n_origins": 36,
+              "horizon": 5,
+              "mae": 0.028782612906811802,
+              "rmse": 0.04031528385088554,
+              "mase": 1.0297025135604794,
+              "directional_accuracy": 0.5277777777777778,
+              "ic": -0.05945311473594124,
+              "rank_ic": -0.061003861003861015,
+              "crps": 0.022491759576926586,
+              "crps_approximate": false,
+              "coverage": {
+                "0.5": {
+                  "achieved": 0.5833333333333334,
+                  "mean_width": 0.03808870746654396
+                },
+                "0.8": {
+                  "achieved": 0.7222222222222222,
+                  "mean_width": 0.07084806940725984
+                },
+                "0.9": {
+                  "achieved": 0.7222222222222222,
+                  "mean_width": 0.08900294769948308
+                }
+              },
+              "qlike": 1.7882392840079058,
+              "diebold_mariano_vs_random_walk": {
+                "squared_error": {
+                  "statistic": 0.8973815119565098,
+                  "p_two_sided": 0.3756469933074839,
+                  "p_model_better": 0.812176503346258,
+                  "mean_diff": 4.59668464645875e-05,
+                  "n": 36,
+                  "lags": 0
+                },
+                "crps": {
+                  "statistic": 0.8324890413953585,
+                  "p_two_sided": 0.41077759300588723,
+                  "p_model_better": 0.7946112034970564,
+                  "mean_diff": 0.0003623256575092072,
+                  "n": 36,
+                  "lags": 0
+                }
+              },
+              "verdict": "indistinguishable from the random walk",
+              "is_benchmark": false
+            }
+          },
+          "leakage_controls": {
+            "guard_checks": 108,
+            "refits": 9
+          },
+          "n_samples": 100,
+          "max_history": 500,
+          "seconds": 0.97,
+          "strategy": {
+            "gross_mean": 0.0005653371599180675,
+            "net_mean": 0.00046904086362177115,
+            "turnover_per_period": 0.4537037037037037,
+            "hit_rate": 0.49074074074074076,
+            "note": "naive sign strategy; research diagnostic, not a recommendation"
+          }
+        },
+        "seasonal-naive": {
+          "pooled": {
+            "model_id": "seasonal-naive",
+            "n_origins": 108,
+            "horizon": 5,
+            "mae": 0.02367881215556708,
+            "rmse": 0.032440922256558966,
+            "mase": 1.0116449567920565,
+            "directional_accuracy": 0.4537037037037037,
+            "ic": -0.004343013829931535,
+            "rank_ic": -0.03313422313679537,
+            "crps": 0.01737933816763642,
+            "crps_approximate": false,
+            "coverage": {
+              "0.5": {
+                "achieved": 0.5925925925925926,
+                "mean_width": 0.039214218645925274
+              },
+              "0.8": {
+                "achieved": 0.8055555555555556,
+                "mean_width": 0.07322209142026415
+              },
+              "0.9": {
+                "achieved": 0.8518518518518519,
+                "mean_width": 0.09342422556728874
+              }
+            },
+            "qlike": 0.5806711635057746,
+            "diebold_mariano_vs_random_walk": {
+              "squared_error": {
+                "statistic": 0.29992436684365975,
+                "p_two_sided": 0.7648167274960459,
+                "p_model_better": 0.6175916362519771,
+                "mean_diff": 9.669257463420358e-06,
+                "n": 108,
+                "lags": 0
+              },
+              "crps": {
+                "statistic": -0.6165746870388721,
+                "p_two_sided": 0.5388249354300442,
+                "p_model_better": 0.2694124677150221,
+                "mean_diff": -0.00013672769668856224,
+                "n": 108,
+                "lags": 0
+              }
+            },
+            "verdict": "indistinguishable from the random walk",
+            "is_benchmark": false
+          },
+          "by_series": {
+            "SYN-GBM": {
+              "model_id": "seasonal-naive",
+              "n_origins": 36,
+              "horizon": 5,
+              "mae": 0.020863794111416294,
+              "rmse": 0.02782819934327047,
+              "mase": 1.040862383797662,
+              "directional_accuracy": 0.4722222222222222,
+              "ic": -0.2452943380392975,
+              "rank_ic": -0.1958815958815959,
+              "crps": 0.015171043991511137,
+              "crps_approximate": false,
+              "coverage": {
+                "0.5": {
+                  "achieved": 0.6111111111111112,
+                  "mean_width": 0.03739080569118755
+                },
+                "0.8": {
+                  "achieved": 0.8611111111111112,
+                  "mean_width": 0.0698144998008552
+                },
+                "0.9": {
+                  "achieved": 0.8888888888888888,
+                  "mean_width": 0.08910699501336745
+                }
+              },
+              "qlike": 0.22423939787984615,
+              "diebold_mariano_vs_random_walk": {
+                "squared_error": {
+                  "statistic": 1.3336779309419713,
+                  "p_two_sided": 0.19092415753508193,
+                  "p_model_better": 0.904537921232459,
+                  "mean_diff": 5.8100850810368104e-05,
+                  "n": 36,
+                  "lags": 0
+                },
+                "crps": {
+                  "statistic": 1.841114309739208,
+                  "p_two_sided": 0.07409402670190453,
+                  "p_model_better": 0.9629529866490477,
+                  "mean_diff": 0.0006019656173095685,
+                  "n": 36,
+                  "lags": 0
+                }
+              },
+              "verdict": "indistinguishable from the random walk",
+              "is_benchmark": false
+            },
+            "SYN-GARCH": {
+              "model_id": "seasonal-naive",
+              "n_origins": 36,
+              "horizon": 5,
+              "mae": 0.022112695308784517,
+              "rmse": 0.028303811019697003,
+              "mase": 0.9950962178420398,
+              "directional_accuracy": 0.4722222222222222,
+              "ic": 0.03514649713080513,
+              "rank_ic": -0.0380952380952381,
+              "crps": 0.015738850961418235,
+              "crps_approximate": false,
+              "coverage": {
+                "0.5": {
+                  "achieved": 0.5833333333333334,
+                  "mean_width": 0.03747326464499782
+                },
+                "0.8": {
+                  "achieved": 0.8055555555555556,
+                  "mean_width": 0.06999590049631997
+                },
+                "0.9": {
+                  "achieved": 0.8611111111111112,
+                  "mean_width": 0.08934181610479777
+                }
+              },
+              "qlike": 0.3482389293824271,
+              "diebold_mariano_vs_random_walk": {
+                "squared_error": {
+                  "statistic": -0.7057272895557996,
+                  "p_two_sided": 0.4850288380028902,
+                  "p_model_better": 0.2425144190014451,
+                  "mean_diff": -3.146372654801011e-05,
+                  "n": 36,
+                  "lags": 0
+                },
+                "crps": {
+                  "statistic": -0.30716019022054675,
+                  "p_two_sided": 0.7605416580057821,
+                  "p_model_better": 0.38027082900289105,
+                  "mean_diff": -0.00011083433793775706,
+                  "n": 36,
+                  "lags": 0
+                }
+              },
+              "verdict": "indistinguishable from the random walk",
+              "is_benchmark": false
+            },
+            "SYN-REGIME": {
+              "model_id": "seasonal-naive",
+              "n_origins": 36,
+              "horizon": 5,
+              "mae": 0.028059947046500444,
+              "rmse": 0.03977091793812142,
+              "mase": 1.0038490284986403,
+              "directional_accuracy": 0.4166666666666667,
+              "ic": 0.11507441576590384,
+              "rank_ic": 0.0725868725868726,
+              "crps": 0.021228119549979888,
+              "crps_approximate": false,
+              "coverage": {
+                "0.5": {
+                  "achieved": 0.5833333333333334,
+                  "mean_width": 0.04277858560159043
+                },
+                "0.8": {
+                  "achieved": 0.75,
+                  "mean_width": 0.07985587396361724
+                },
+                "0.9": {
+                  "achieved": 0.8055555555555556,
+                  "mean_width": 0.10182386558370098
+                }
+              },
+              "qlike": 1.1695351632550506,
+              "diebold_mariano_vs_random_walk": {
+                "squared_error": {
+                  "statistic": 0.031879192833253155,
+                  "p_two_sided": 0.9747494966670495,
+                  "p_model_better": 0.5126252516664753,
+                  "mean_diff": 2.3706481279030557e-06,
+                  "n": 36,
+                  "lags": 0
+                },
+                "crps": {
+                  "statistic": -2.1151178571825224,
+                  "p_two_sided": 0.041611290468615524,
+                  "p_model_better": 0.020805645234307762,
+                  "mean_diff": -0.000901314369437498,
+                  "n": 36,
+                  "lags": 0
+                }
+              },
+              "verdict": "indistinguishable from the random walk",
+              "is_benchmark": false
+            }
+          },
+          "leakage_controls": {
+            "guard_checks": 108,
+            "refits": 9
+          },
+          "n_samples": 100,
+          "max_history": 500,
+          "seconds": 1.16,
+          "strategy": {
+            "gross_mean": -0.005020350090952926,
+            "net_mean": -0.00525368342428626,
+            "turnover_per_period": 1.1388888888888888,
+            "hit_rate": 0.4537037037037037,
+            "note": "naive sign strategy; research diagnostic, not a recommendation"
+          }
+        },
+        "garch": {
+          "pooled": {
+            "model_id": "garch",
+            "n_origins": 108,
+            "horizon": 5,
+            "mae": 0.02405493547681415,
+            "rmse": 0.0326733646209883,
+            "mase": 1.027714312745033,
+            "directional_accuracy": 0.4444444444444444,
+            "ic": -0.05709995207997697,
+            "rank_ic": -0.08524583916850058,
+            "crps": 0.017338396696033265,
+            "crps_approximate": false,
+            "coverage": {
+              "0.5": {
+                "achieved": 0.5092592592592593,
+                "mean_width": 0.036561806815622426
+              },
+              "0.8": {
+                "achieved": 0.7685185185185185,
+                "mean_width": 0.06989243205847152
+              },
+              "0.9": {
+                "achieved": 0.8333333333333334,
+                "mean_width": 0.08832122785406436
+              }
+            },
+            "qlike": 0.35934408763764203,
+            "diebold_mariano_vs_random_walk": {
+              "squared_error": {
+                "statistic": 1.479110701754347,
+                "p_two_sided": 0.14204877755161077,
+                "p_model_better": 0.9289756112241946,
+                "mean_diff": 2.4804576263367288e-05,
+                "n": 108,
+                "lags": 0
+              },
+              "crps": {
+                "statistic": -0.6512593977070552,
+                "p_two_sided": 0.5162753156018652,
+                "p_model_better": 0.2581376578009326,
+                "mean_diff": -0.0001776691682917162,
+                "n": 108,
+                "lags": 0
+              }
+            },
+            "verdict": "indistinguishable from the random walk",
+            "is_benchmark": false
+          },
+          "by_series": {
+            "SYN-GBM": {
+              "model_id": "garch",
+              "n_origins": 36,
+              "horizon": 5,
+              "mae": 0.02041103622683882,
+              "rmse": 0.027076152658187108,
+              "mase": 1.0182749939630091,
+              "directional_accuracy": 0.5555555555555556,
+              "ic": 0.01649510278107109,
+              "rank_ic": 0.0362934362934363,
+              "crps": 0.014776101911208074,
+              "crps_approximate": false,
+              "coverage": {
+                "0.5": {
+                  "achieved": 0.5833333333333334,
+                  "mean_width": 0.03646977081235631
+                },
+                "0.8": {
+                  "achieved": 0.8055555555555556,
+                  "mean_width": 0.06809990958217454
+                },
+                "0.9": {
+                  "achieved": 0.8611111111111112,
+                  "mean_width": 0.08492862168957462
+                }
+              },
+              "qlike": 0.21892172837636475,
+              "diebold_mariano_vs_random_walk": {
+                "squared_error": {
+                  "statistic": 1.4555085635118326,
+                  "p_two_sided": 0.1544401688590719,
+                  "p_model_better": 0.922779915570464,
+                  "mean_diff": 1.6810214891021752e-05,
+                  "n": 36,
+                  "lags": 0
+                },
+                "crps": {
+                  "statistic": 1.8451632812244991,
+                  "p_two_sided": 0.0734886515870752,
+                  "p_model_better": 0.9632556742064624,
+                  "mean_diff": 0.00020702353700650524,
+                  "n": 36,
+                  "lags": 0
+                }
+              },
+              "verdict": "indistinguishable from the random walk",
+              "is_benchmark": false
+            },
+            "SYN-GARCH": {
+              "model_id": "garch",
+              "n_origins": 36,
+              "horizon": 5,
+              "mae": 0.022808073025058148,
+              "rmse": 0.029040827547086506,
+              "mase": 1.026388999014701,
+              "directional_accuracy": 0.4444444444444444,
+              "ic": -0.17047306187668054,
+              "rank_ic": -0.1861003861003861,
+              "crps": 0.016010560568551328,
+              "crps_approximate": false,
+              "coverage": {
+                "0.5": {
+                  "achieved": 0.5,
+                  "mean_width": 0.03235913509916814
+                },
+                "0.8": {
+                  "achieved": 0.6944444444444444,
+                  "mean_width": 0.061634799046717724
+                },
+                "0.9": {
+                  "achieved": 0.7777777777777778,
+                  "mean_width": 0.07776812779099701
+                }
+              },
+              "qlike": 0.26125418187128113,
+              "diebold_mariano_vs_random_walk": {
+                "squared_error": {
+                  "statistic": 0.6847234883602411,
+                  "p_two_sided": 0.498028039260334,
+                  "p_model_better": 0.750985980369833,
+                  "mean_diff": 1.080021983288695e-05,
+                  "n": 36,
+                  "lags": 0
+                },
+                "crps": {
+                  "statistic": 1.2073569174240522,
+                  "p_two_sided": 0.23539089000342978,
+                  "p_model_better": 0.8823045549982851,
+                  "mean_diff": 0.00016087526919533713,
+                  "n": 36,
+                  "lags": 0
+                }
+              },
+              "verdict": "indistinguishable from the random walk",
+              "is_benchmark": false
+            },
+            "SYN-REGIME": {
+              "model_id": "garch",
+              "n_origins": 36,
+              "horizon": 5,
+              "mae": 0.028945697178545497,
+              "rmse": 0.040325656344058165,
+              "mase": 1.0355368790876835,
+              "directional_accuracy": 0.3333333333333333,
+              "ic": -0.051190173392522346,
+              "rank_ic": -0.13436293436293437,
+              "crps": 0.02122852760834039,
+              "crps_approximate": false,
+              "coverage": {
+                "0.5": {
+                  "achieved": 0.4444444444444444,
+                  "mean_width": 0.04085651453534283
+                },
+                "0.8": {
+                  "achieved": 0.8055555555555556,
+                  "mean_width": 0.0799425875465223
+                },
+                "0.9": {
+                  "achieved": 0.8611111111111112,
+                  "mean_width": 0.10226693408162149
+                }
+              },
+              "qlike": 0.5978563526652804,
+              "diebold_mariano_vs_random_walk": {
+                "squared_error": {
+                  "statistic": 1.0033721580614117,
+                  "p_two_sided": 0.3225681659083102,
+                  "p_model_better": 0.8387159170458449,
+                  "mean_diff": 4.680329406619317e-05,
+                  "n": 36,
+                  "lags": 0
+                },
+                "crps": {
+                  "statistic": -1.1352256671709917,
+                  "p_two_sided": 0.2639953792257103,
+                  "p_model_better": 0.13199768961285516,
+                  "mean_diff": -0.0009009063110769905,
+                  "n": 36,
+                  "lags": 0
+                }
+              },
+              "verdict": "indistinguishable from the random walk",
+              "is_benchmark": false
+            }
+          },
+          "leakage_controls": {
+            "guard_checks": 108,
+            "refits": 9
+          },
+          "n_samples": 100,
+          "max_history": 500,
+          "seconds": 3.68,
+          "strategy": {
+            "gross_mean": -0.002975680658203415,
+            "net_mean": -0.003164569547092304,
+            "turnover_per_period": 0.9166666666666666,
+            "hit_rate": 0.4444444444444444,
+            "note": "naive sign strategy; research diagnostic, not a recommendation"
+          }
+        },
+        "kronos-mini": {
+          "pooled": {
+            "model_id": "kronos-mini",
+            "n_origins": 108,
+            "horizon": 5,
+            "mae": 0.02398214264276928,
+            "rmse": 0.03305880122624099,
+            "mase": 1.0246043381834595,
+            "directional_accuracy": 0.5740740740740741,
+            "ic": 0.16787526725726912,
+            "rank_ic": 0.1959187173111549,
+            "crps": 0.01818734022472302,
+            "crps_approximate": false,
+            "coverage": {
+              "0.5": {
+                "achieved": 0.3333333333333333,
+                "mean_width": 0.02049755704375676
+              },
+              "0.8": {
+                "achieved": 0.5370370370370371,
+                "mean_width": 0.03905946684335856
+              },
+              "0.9": {
+                "achieved": 0.5740740740740741,
+                "mean_width": 0.048976743754751084
+              }
+            },
+            "qlike": 1.6188110847881723,
+            "diebold_mariano_vs_random_walk": {
+              "squared_error": {
+                "statistic": 0.4826915970908585,
+                "p_two_sided": 0.6303008036199109,
+                "p_model_better": 0.6848495981900445,
+                "mean_diff": 5.014015912343043e-05,
+                "n": 108,
+                "lags": 0
+              },
+              "crps": {
+                "statistic": 0.6956348452628519,
+                "p_two_sided": 0.4881656558510671,
+                "p_model_better": 0.7559171720744664,
+                "mean_diff": 0.0006712743603980403,
+                "n": 108,
+                "lags": 0
+              }
+            },
+            "verdict": "indistinguishable from the random walk",
+            "is_benchmark": false
+          },
+          "by_series": {
+            "SYN-GBM": {
+              "model_id": "kronos-mini",
+              "n_origins": 36,
+              "horizon": 5,
+              "mae": 0.02014933919405662,
+              "rmse": 0.026401933497773276,
+              "mase": 1.0052193341956706,
+              "directional_accuracy": 0.5555555555555556,
+              "ic": 0.28448909282974527,
+              "rank_ic": 0.32458172458172463,
+              "crps": 0.014668439141904209,
+              "crps_approximate": false,
+              "coverage": {
+                "0.5": {
+                  "achieved": 0.3888888888888889,
+                  "mean_width": 0.021748745729966486
+                },
+                "0.8": {
+                  "achieved": 0.5833333333333334,
+                  "mean_width": 0.04257756153967038
+                },
+                "0.9": {
+                  "achieved": 0.6944444444444444,
+                  "mean_width": 0.05596393323303585
+                }
+              },
+              "qlike": 0.6393210187879383,
+              "diebold_mariano_vs_random_walk": {
+                "squared_error": {
+                  "statistic": -0.17768524945664332,
+                  "p_two_sided": 0.8599945579077073,
+                  "p_model_better": 0.42999727895385365,
+                  "mean_diff": -1.9245735457588337e-05,
+                  "n": 36,
+                  "lags": 0
+                },
+                "crps": {
+                  "statistic": 0.07997616170678325,
+                  "p_two_sided": 0.9367117666750847,
+                  "p_model_better": 0.5316441166624577,
+                  "mean_diff": 9.936076770264126e-05,
+                  "n": 36,
+                  "lags": 0
+                }
+              },
+              "verdict": "indistinguishable from the random walk",
+              "is_benchmark": false
+            },
+            "SYN-GARCH": {
+              "model_id": "kronos-mini",
+              "n_origins": 36,
+              "horizon": 5,
+              "mae": 0.021788721108006802,
+              "rmse": 0.029297750800843445,
+              "mase": 0.9805170135718019,
+              "directional_accuracy": 0.6388888888888888,
+              "ic": 0.14063508116758192,
+              "rank_ic": 0.17606177606177606,
+              "crps": 0.01693953918602191,
+              "crps_approximate": false,
+              "coverage": {
+                "0.5": {
+                  "achieved": 0.3055555555555556,
+                  "mean_width": 0.01722057428844784
+                },
+                "0.8": {
+                  "achieved": 0.5,
+                  "mean_width": 0.03350923657098967
+                },
+                "0.9": {
+                  "achieved": 0.5,
+                  "mean_width": 0.042045332304492984
+                }
+              },
+              "qlike": 1.4970811955632126,
+              "diebold_mariano_vs_random_walk": {
+                "squared_error": {
+                  "statistic": 0.19540289155545554,
+                  "p_two_sided": 0.8462075440842034,
+                  "p_model_better": 0.5768962279578983,
+                  "mean_diff": 2.578875720159135e-05,
+                  "n": 36,
+                  "lags": 0
+                },
+                "crps": {
+                  "statistic": 0.6434372079576548,
+                  "p_two_sided": 0.5241342842004862,
+                  "p_model_better": 0.7379328578997568,
+                  "mean_diff": 0.0010898538866659147,
+                  "n": 36,
+                  "lags": 0
+                }
+              },
+              "verdict": "indistinguishable from the random walk",
+              "is_benchmark": false
+            },
+            "SYN-REGIME": {
+              "model_id": "kronos-mini",
+              "n_origins": 36,
+              "horizon": 5,
+              "mae": 0.03000836762624442,
+              "rmse": 0.04151183832521963,
+              "mase": 1.0735540818560623,
+              "directional_accuracy": 0.5277777777777778,
+              "ic": 0.10254838766812306,
+              "rank_ic": 0.047876447876447875,
+              "crps": 0.02295404234624295,
+              "crps_approximate": false,
+              "coverage": {
+                "0.5": {
+                  "achieved": 0.3055555555555556,
+                  "mean_width": 0.022523351112855968
+                },
+                "0.8": {
+                  "achieved": 0.5277777777777778,
+                  "mean_width": 0.041091602419415646
+                },
+                "0.9": {
+                  "achieved": 0.5277777777777778,
+                  "mean_width": 0.04892096572672443
+                }
+              },
+              "qlike": 2.720031040013366,
+              "diebold_mariano_vs_random_walk": {
+                "squared_error": {
+                  "statistic": 0.5461250151826982,
+                  "p_two_sided": 0.5884445520994257,
+                  "p_model_better": 0.7057777239502872,
+                  "mean_diff": 0.00014387745562628826,
+                  "n": 36,
+                  "lags": 0
+                },
+                "crps": {
+                  "statistic": 0.4066090149082342,
+                  "p_two_sided": 0.6867709360419112,
+                  "p_model_better": 0.6566145319790444,
+                  "mean_diff": 0.0008246084268255652,
+                  "n": 36,
+                  "lags": 0
+                }
+              },
+              "verdict": "indistinguishable from the random walk",
+              "is_benchmark": false
+            }
+          },
+          "leakage_controls": {
+            "guard_checks": 108,
+            "refits": 9
+          },
+          "n_samples": 20,
+          "max_history": 256,
+          "seconds": 612.64,
+          "strategy": {
+            "gross_mean": 0.004838858699122113,
+            "net_mean": 0.004638858699122114,
+            "turnover_per_period": 0.9722222222222223,
+            "hit_rate": 0.5740740740740741,
+            "note": "naive sign strategy; research diagnostic, not a recommendation"
+          }
+        },
+        "tycheon-ensemble": {
+          "pooled": {
+            "model_id": "tycheon-ensemble",
+            "n_origins": 108,
+            "horizon": 5,
+            "mae": 0.024359090931458906,
+            "rmse": 0.03297754171690824,
+            "mase": 1.04070893974535,
+            "directional_accuracy": 0.42592592592592593,
+            "ic": -0.08352702940934978,
+            "rank_ic": -0.1291453504434727,
+            "crps": 0.01743712632908219,
+            "crps_approximate": false,
+            "coverage": {
+              "0.5": {
+                "achieved": 0.5185185185185185,
+                "mean_width": 0.0345770599037538
+              },
+              "0.8": {
+                "achieved": 0.7685185185185185,
+                "mean_width": 0.0664350221053363
+              },
+              "0.9": {
+                "achieved": 0.8333333333333334,
+                "mean_width": 0.08662371072632563
+              }
+            },
+            "qlike": 0.44065870176348765,
+            "diebold_mariano_vs_random_walk": {
+              "squared_error": {
+                "statistic": 2.3873779554748675,
+                "p_two_sided": 0.018723231250110262,
+                "p_model_better": 0.9906383843749449,
+                "mean_diff": 4.477407829774097e-05,
+                "n": 108,
+                "lags": 0
+              },
+              "crps": {
+                "statistic": -0.4045886116916805,
+                "p_two_sided": 0.686587569250037,
+                "p_model_better": 0.3432937846250185,
+                "mean_diff": -7.893953524279271e-05,
+                "n": 108,
+                "lags": 0
+              }
+            },
+            "verdict": "indistinguishable from the random walk",
+            "is_benchmark": false
+          },
+          "by_series": {
+            "SYN-GBM": {
+              "model_id": "tycheon-ensemble",
+              "n_origins": 36,
+              "horizon": 5,
+              "mae": 0.02054937347269166,
+              "rmse": 0.0273529138590084,
+              "mase": 1.025176424964363,
+              "directional_accuracy": 0.5,
+              "ic": 0.02154998239173916,
+              "rank_ic": -0.008751608751608752,
+              "crps": 0.014899732159885723,
+              "crps_approximate": false,
+              "coverage": {
+                "0.5": {
+                  "achieved": 0.6388888888888888,
+                  "mean_width": 0.036937035222839615
+                },
+                "0.8": {
+                  "achieved": 0.8333333333333334,
+                  "mean_width": 0.0686444954095156
+                },
+                "0.9": {
+                  "achieved": 0.8611111111111112,
+                  "mean_width": 0.08557574426682737
+                }
+              },
+              "qlike": 0.24014510356787888,
+              "diebold_mariano_vs_random_walk": {
+                "squared_error": {
+                  "statistic": 1.0054529231867593,
+                  "p_two_sided": 0.3215797928573922,
+                  "p_model_better": 0.8392101035713039,
+                  "mean_diff": 3.1874068699902775e-05,
+                  "n": 36,
+                  "lags": 0
+                },
+                "crps": {
+                  "statistic": 0.9813613804076496,
+                  "p_two_sided": 0.3331499042034629,
+                  "p_model_better": 0.8334250478982685,
+                  "mean_diff": 0.00033065378568415487,
+                  "n": 36,
+                  "lags": 0
+                }
+              },
+              "verdict": "indistinguishable from the random walk",
+              "is_benchmark": false
+            },
+            "SYN-GARCH": {
+              "model_id": "tycheon-ensemble",
+              "n_origins": 36,
+              "horizon": 5,
+              "mae": 0.023234487117579312,
+              "rmse": 0.029585054226768354,
+              "mase": 1.0455781138999312,
+              "directional_accuracy": 0.4444444444444444,
+              "ic": -0.1910617025363625,
+              "rank_ic": -0.2136422136422137,
+              "crps": 0.01598119733459343,
+              "crps_approximate": false,
+              "coverage": {
+                "0.5": {
+                  "achieved": 0.4166666666666667,
+                  "mean_width": 0.03251114083970067
+                },
+                "0.8": {
+                  "achieved": 0.7222222222222222,
+                  "mean_width": 0.062421203102238434
+                },
+                "0.9": {
+                  "achieved": 0.7777777777777778,
+                  "mean_width": 0.08018634578517737
+                }
+              },
+              "qlike": 0.28081727832152203,
+              "diebold_mariano_vs_random_walk": {
+                "squared_error": {
+                  "statistic": 1.6500950402130579,
+                  "p_two_sided": 0.10787079743052627,
+                  "p_model_better": 0.9460646012847369,
+                  "mean_diff": 4.270598881409268e-05,
+                  "n": 36,
+                  "lags": 0
+                },
+                "crps": {
+                  "statistic": 0.642368592808533,
+                  "p_two_sided": 0.5248195893433345,
+                  "p_model_better": 0.7375902053283327,
+                  "mean_diff": 0.0001315120352374386,
+                  "n": 36,
+                  "lags": 0
+                }
+              },
+              "verdict": "indistinguishable from the random walk",
+              "is_benchmark": false
+            },
+            "SYN-REGIME": {
+              "model_id": "tycheon-ensemble",
+              "n_origins": 36,
+              "horizon": 5,
+              "mae": 0.029293412204105758,
+              "rmse": 0.04048576839942787,
+              "mase": 1.0479764389351987,
+              "directional_accuracy": 0.3333333333333333,
+              "ic": -0.09254872319646593,
+              "rank_ic": -0.19819819819819823,
+              "crps": 0.02143044949276741,
+              "crps_approximate": false,
+              "coverage": {
+                "0.5": {
+                  "achieved": 0.5,
+                  "mean_width": 0.0342830036487211
+                },
+                "0.8": {
+                  "achieved": 0.75,
+                  "mean_width": 0.06823936780425488
+                },
+                "0.9": {
+                  "achieved": 0.8611111111111112,
+                  "mean_width": 0.09410904212697219
+                }
+              },
+              "qlike": 0.801013723401062,
+              "diebold_mariano_vs_random_walk": {
+                "squared_error": {
+                  "statistic": 1.5224649598242863,
+                  "p_two_sided": 0.13687741065009776,
+                  "p_model_better": 0.9315612946749511,
+                  "mean_diff": 5.9742177379227454e-05,
+                  "n": 36,
+                  "lags": 0
+                },
+                "crps": {
+                  "statistic": -1.6630353992958018,
+                  "p_two_sided": 0.10523623296798415,
+                  "p_model_better": 0.052618116483992075,
+                  "mean_diff": -0.0006989844266499716,
+                  "n": 36,
+                  "lags": 0
+                }
+              },
+              "verdict": "indistinguishable from the random walk",
+              "is_benchmark": false
+            }
+          },
+          "leakage_controls": {
+            "guard_checks": 108,
+            "refits": 9
+          },
+          "n_samples": 100,
+          "max_history": 500,
+          "seconds": 62.56,
+          "strategy": {
+            "gross_mean": -0.003004019794895616,
+            "net_mean": -0.003181797572673393,
+            "turnover_per_period": 0.861111111111111,
+            "hit_rate": 0.4259259259259259,
+            "note": "naive sign strategy; research diagnostic, not a recommendation"
+          }
+        },
+        "tycheon-calibrated": {
+          "pooled": {
+            "model_id": "tycheon-calibrated",
+            "n_origins": 108,
+            "horizon": 5,
+            "mae": 0.02432291526293746,
+            "rmse": 0.032808048411322774,
+            "mase": 1.0391633836432168,
+            "directional_accuracy": 0.39814814814814814,
+            "ic": 0.0034351737013617596,
+            "rank_ic": -0.050568273838444464,
+            "crps": 0.017812391183434,
+            "crps_approximate": false,
+            "coverage": {
+              "0.5": {
+                "achieved": 0.5,
+                "mean_width": 0.034545035605860065
+              },
+              "0.8": {
+                "achieved": 0.7685185185185185,
+                "mean_width": 0.07287786956767733
+              },
+              "0.9": {
+                "achieved": 0.8611111111111112,
+                "mean_width": 0.09935173973904031
+              }
+            },
+            "qlike": 0.5769001749252197,
+            "diebold_mariano_vs_random_walk": {
+              "squared_error": {
+                "statistic": 0.7974671336625151,
+                "p_two_sided": 0.426945938722841,
+                "p_model_better": 0.7865270306385795,
+                "mean_diff": 3.36238611670162e-05,
+                "n": 108,
+                "lags": 0
+              },
+              "crps": {
+                "statistic": 0.8333417824459992,
+                "p_two_sided": 0.40650836726857,
+                "p_model_better": 0.7967458163657151,
+                "mean_diff": 0.0002963253191090191,
+                "n": 108,
+                "lags": 0
+              }
+            },
+            "verdict": "indistinguishable from the random walk",
+            "is_benchmark": false
+          },
+          "by_series": {
+            "SYN-GBM": {
+              "model_id": "tycheon-calibrated",
+              "n_origins": 36,
+              "horizon": 5,
+              "mae": 0.021227700217403805,
+              "rmse": 0.02837338699740876,
+              "mase": 1.0590170959719654,
+              "directional_accuracy": 0.4166666666666667,
+              "ic": -0.020533055362034418,
+              "rank_ic": -0.011325611325611325,
+              "crps": 0.015117784626225459,
+              "crps_approximate": false,
+              "coverage": {
+                "0.5": {
+                  "achieved": 0.5555555555555556,
+                  "mean_width": 0.03385125072199708
+                },
+                "0.8": {
+                  "achieved": 0.7777777777777778,
+                  "mean_width": 0.07192076459747415
+                },
+                "0.9": {
+                  "achieved": 0.9166666666666666,
+                  "mean_width": 0.10018885324800192
+                }
+              },
+              "qlike": 0.25272431683815205,
+              "diebold_mariano_vs_random_walk": {
+                "squared_error": {
+                  "statistic": 1.277023673175636,
+                  "p_two_sided": 0.21000118667679923,
+                  "p_model_better": 0.8949994066616004,
+                  "mean_diff": 8.874126182629353e-05,
+                  "n": 36,
+                  "lags": 0
+                },
+                "crps": {
+                  "statistic": 0.7429800462952325,
+                  "p_two_sided": 0.4624518774590832,
+                  "p_model_better": 0.7687740612704583,
+                  "mean_diff": 0.0005487062520238918,
+                  "n": 36,
+                  "lags": 0
+                }
+              },
+              "verdict": "indistinguishable from the random walk",
+              "is_benchmark": false
+            },
+            "SYN-GARCH": {
+              "model_id": "tycheon-calibrated",
+              "n_origins": 36,
+              "horizon": 5,
+              "mae": 0.02291634440690328,
+              "rmse": 0.029010670326563116,
+              "mase": 1.031261333258452,
+              "directional_accuracy": 0.4166666666666667,
+              "ic": -0.18318723311701818,
+              "rank_ic": -0.1456885456885457,
+              "crps": 0.016011311920438927,
+              "crps_approximate": false,
+              "coverage": {
+                "0.5": {
+                  "achieved": 0.5,
+                  "mean_width": 0.036828199858219064
+                },
+                "0.8": {
+                  "achieved": 0.8055555555555556,
+                  "mean_width": 0.07617872276559678
+                },
+                "0.9": {
+                  "achieved": 0.8888888888888888,
+                  "mean_width": 0.09910399084542186
+                }
+              },
+              "qlike": 0.4215020639573512,
+              "diebold_mariano_vs_random_walk": {
+                "squared_error": {
+                  "statistic": 0.2531602458111853,
+                  "p_two_sided": 0.8016254929068939,
+                  "p_model_better": 0.599187253546553,
+                  "mean_diff": 9.049548009798169e-06,
+                  "n": 36,
+                  "lags": 0
+                },
+                "crps": {
+                  "statistic": 0.38572580765969183,
+                  "p_two_sided": 0.7020343797721494,
+                  "p_model_better": 0.6489828101139252,
+                  "mean_diff": 0.00016162662108293245,
+                  "n": 36,
+                  "lags": 0
+                }
+              },
+              "verdict": "indistinguishable from the random walk",
+              "is_benchmark": false
+            },
+            "SYN-REGIME": {
+              "model_id": "tycheon-calibrated",
+              "n_origins": 36,
+              "horizon": 5,
+              "mae": 0.028824701164505306,
+              "rmse": 0.03977984463491332,
+              "mase": 1.0312082276135675,
+              "directional_accuracy": 0.3611111111111111,
+              "ic": 0.10255644523630324,
+              "rank_ic": 0.0015444015444015446,
+              "crps": 0.022308077003637614,
+              "crps_approximate": false,
+              "coverage": {
+                "0.5": {
+                  "achieved": 0.4444444444444444,
+                  "mean_width": 0.03295565623736406
+                },
+                "0.8": {
+                  "achieved": 0.7222222222222222,
+                  "mean_width": 0.07053412133996106
+                },
+                "0.9": {
+                  "achieved": 0.7777777777777778,
+                  "mean_width": 0.09876237512369711
+                }
+              },
+              "qlike": 1.056474143980156,
+              "diebold_mariano_vs_random_walk": {
+                "squared_error": {
+                  "statistic": 0.030705041113813763,
+                  "p_two_sided": 0.9756791988925482,
+                  "p_model_better": 0.5121604005537259,
+                  "mean_diff": 3.080773664956895e-06,
+                  "n": 36,
+                  "lags": 0
+                },
+                "crps": {
+                  "statistic": 0.2705691655228526,
+                  "p_two_sided": 0.7883116303863866,
+                  "p_model_better": 0.6058441848068067,
+                  "mean_diff": 0.0001786430842202332,
+                  "n": 36,
+                  "lags": 0
+                }
+              },
+              "verdict": "indistinguishable from the random walk",
+              "is_benchmark": false
+            }
+          },
+          "leakage_controls": {
+            "guard_checks": 108,
+            "refits": 9
+          },
+          "n_samples": 100,
+          "max_history": 500,
+          "seconds": 61.25,
+          "strategy": {
+            "gross_mean": -0.00230494712054226,
+            "net_mean": -0.002464206379801519,
+            "turnover_per_period": 0.7685185185185185,
+            "hit_rate": 0.39814814814814814,
+            "note": "naive sign strategy; research diagnostic, not a recommendation"
+          }
+        }
+      },
+      "n_origins_per_series": 36
+    }
+  ],
+  "runtime_seconds": 743.6,
+  "disclaimer": "For research and risk analytics. Not investment advice."
+}

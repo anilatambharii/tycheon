@@ -159,7 +159,9 @@ def write_result(result: dict[str, Any], out_dir: Path) -> Path:
     """Write ``<out_dir>/<benchmark>/<tycheon version>.json`` and return its path."""
     target = out_dir / result["benchmark"] / f"{result['tycheon_version']}.json"
     target.parent.mkdir(parents=True, exist_ok=True)
-    target.write_text(json.dumps(result, indent=2, allow_nan=False) + "\n", encoding="utf-8")
+    target.write_text(
+        json.dumps(result, indent=2, allow_nan=False) + "\n", encoding="utf-8", newline="\n"
+    )
     return target
 
 

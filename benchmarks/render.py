@@ -298,7 +298,7 @@ def render_leaderboard(results_dir: Path = RESULTS_DIR, out: Path = DEFAULT_OUT)
         parts.append("No published results yet. Run `make benchmark-small`.")
     parts += [_section(d) for d in docs]
     out.parent.mkdir(parents=True, exist_ok=True)
-    out.write_text("\n".join(parts).rstrip("\n") + "\n", encoding="utf-8")
+    out.write_text("\n".join(parts).rstrip("\n") + "\n", encoding="utf-8", newline="\n")
     return out
 
 
