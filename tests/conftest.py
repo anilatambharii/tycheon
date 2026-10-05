@@ -190,3 +190,64 @@ def tiny_kronos():
         learn_te=True,
     ).eval()
     return tokenizer, model, TINY_CONTEXT
+
+
+# ------------------------------------------------------ calibration test support
+from tycheon.models.base import BaseForecaster, RawForecast  # noqa: E402
+
+TRUE_SIGMA = 0.012
+
+
+class GaussianForecaster(BaseForecaster):
+    """A Gaussian log-price walk with *chosen* sigma and drift, ignoring the history.
+
+    Used where the truth is known: against data generated with sigma ``TRUE_SIGMA`` and zero
+    drift, a forecaster built with a different sigma or a nonzero drift is misspecified by an
+    exactly known amount, so calibration can be checked against a ground truth.
+    """
+
+    model_card = "docs/models/random-walk.md"
+    min_history = 2
+
+    def __init__(self, name: str, sigma: float, drift: float = 0.0, seed: int = 0) -> None:
+        super().__init__(seed=seed)
+        self.model_id, self.sigma, self.drift = name, sigma, drift
+
+    def _forecast(self, prepared, horizon, n_samples, seed):
+        rng = np.random.default_rng(seed)
+        steps = self.drift + self.sigma * rng.standard_normal((n_samples, horizon))
+        paths = prepared.last_close * np.exp(np.cumsum(steps, axis=1))
+        return RawForecast(samples=paths, model_version="1", context_length_used=2)
+
+
+@pytest.fixture(scope="session")
+def gaussian_cls():
+    return GaussianForecaster
+
+
+@pytest.fixture(scope="session")
+def known_bars() -> pd.DataFrame:
+    """9000 daily bars whose log returns are exactly N(0, TRUE_SIGMA^2): a known truth."""
+    from tycheon.data.sample import SyntheticSpec, make_synthetic_bars
+
+    spec = SyntheticSpec(
+        "KNOWN", "gbm", seed=5, periods=9000, start="2000-01-03", sigma=TRUE_SIGMA, drift=0.0
+    )
+    return make_synthetic_bars(spec)
+
+
+@pytest.fixture(scope="session")
+def bars_from_returns():
+    """Bars frame from an array of log returns (for engineered regimes and shifts)."""
+
+    def make(returns: np.ndarray, start: str = "2000-01-03") -> pd.DataFrame:
+        close = 100.0 * np.exp(np.cumsum(returns))
+        index = pd.bdate_range(start, periods=len(close), tz="UTC")
+        frame = pd.DataFrame(
+            {"open": close, "high": close * 1.001, "low": close * 0.999, "close": close,
+             "volume": 1e6, "amount": 1e6 * close},
+            index=index,
+        )  # fmt: skip
+        return normalize_bars(frame, bar_duration=pd.Timedelta("1D"))
+
+    return make
