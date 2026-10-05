@@ -1,0 +1,66 @@
+# Fast, local-only hooks. `make check` remains the real gate; these stop the
+# obvious mistakes (and any committed secret) before they reach a branch.
+#   make setup   installs them
+#   make hooks   runs them over the whole tree
+# No `default_language_version`: pinning `python3.11` breaks any environment
+# where the interpreter is uv-managed and not on PATH under that name (CI).
+# Hook environments use the Python pre-commit itself runs under.
+exclude: |
+  (?x)^(
+    \.secrets\.baseline|
+    uv\.lock|
+    LICENSE|
+    ee/LICENSE
+  )$
+
+repos:
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v6.0.0
+    hooks:
+      - id: trailing-whitespace
+      - id: end-of-file-fixer
+      - id: mixed-line-ending
+        args: [--fix=lf]
+      - id: check-added-large-files
+        # Model weights and market-data dumps do not belong in git.
+        args: [--maxkb=512]
+      - id: check-yaml
+        # mkdocs.yml carries a `!!python/name:` tag for the Mermaid fence,
+        # which a safe loader cannot construct. `mkdocs build --strict` in CI
+        # is what validates that file.
+        exclude: ^mkdocs\.yml$
+      - id: check-toml
+      - id: check-json
+      - id: check-merge-conflict
+      - id: check-case-conflict
+      - id: check-symlinks
+      - id: detect-private-key
+      - id: debug-statements
+      - id: no-commit-to-branch
+        # One phase per branch; main only moves through a reviewed PR.
+        args: [--branch, main]
+
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.16.10
+    hooks:
+      - id: ruff-check
+        args: [--fix]
+      - id: ruff-format
+
+  - repo: https://github.com/pre-commit/mirrors-mypy
+    rev: v2.4.0
+    hooks:
+      - id: mypy
+        # Mirror `make types`: strict, src/ only, with the stubs mypy needs.
+        files: ^src/
+        args: [--strict, --ignore-missing-imports]
+        additional_dependencies:
+          - pydantic>=2.11
+          - pandas-stubs
+          - types-pyyaml
+
+  - repo: https://github.com/Yelp/detect-secrets
+    rev: v1.5.0
+    hooks:
+      - id: detect-secrets
+        args: [--baseline, .secrets.baseline]

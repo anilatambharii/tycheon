@@ -1,0 +1,69 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.eggs/
+build/
+dist/
+*.so
+
+# Environments
+.venv/
+venv/
+.python-version
+
+# Secrets — never commit real values; see .env.example
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+secrets/
+
+# Tooling caches
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.hypothesis/
+.coverage
+.coverage.*
+coverage.xml
+htmlcov/
+
+# Docs
+site/
+
+# Local data and model caches — market data is licensed; never commit it
+/data/
+*.parquet
+*.csv
+!benchmarks/**/*.csv
+*.duckdb
+*.sqlite
+*.sqlite3
+*.db
+.tycheon/
+models_cache/
+hf_cache/
+*.ckpt
+*.safetensors
+
+# Benchmark output (results are published deliberately, not incidentally)
+benchmarks/results/local/
+
+# Editors / OS
+.idea/
+.vscode/
+.DS_Store
+Thumbs.db
+
+# Terraform
+.terraform/
+*.tfstate
+*.tfstate.*
+*.tfvars
+!*.tfvars.example
+
+# Node (ee/dashboard)
+node_modules/
+.next/

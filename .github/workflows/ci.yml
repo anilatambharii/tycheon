@@ -1,0 +1,137 @@
+# The gate. This runs exactly what `make check` runs, on every push and PR.
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  # Never let a stray credential or a licensed-data provider into CI.
+  TYCHEON_ENV: ci
+  TYCHEON_DATA_PROVIDER: sample
+  TYCHEON_ALLOW_YFINANCE: "false"
+  TYCHEON_ALLOW_LIVE_EXECUTION: "false"
+
+jobs:
+  check:
+    name: check (py${{ matrix.python-version }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.11", "3.12"]
+    env:
+      UV_PYTHON: ${{ matrix.python-version }}
+      UV_FROZEN: "1"
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v4
+        with:
+          enable-cache: true
+          cache-dependency-glob: uv.lock
+
+      - name: Install Python ${{ matrix.python-version }}
+        run: uv python install ${{ matrix.python-version }}
+
+      - name: Sync dependencies
+        run: uv sync
+
+      - name: Lint
+        run: uv run ruff check --output-format=github .
+
+      - name: Format check
+        run: uv run ruff format --check .
+
+      - name: Type check (mypy --strict on src/)
+        run: uv run mypy
+
+      - name: Fast tests
+        run: uv run pytest -m "not slow"
+
+      - name: Import smoke test
+        run: uv run python -c "import tycheon; print(tycheon.__version__)"
+
+      - name: Validate the smoke benchmark config
+        run: uv run python -m benchmarks.run --config benchmarks/configs/small.yaml
+
+      - name: Upload coverage
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-py${{ matrix.python-version }}
+          path: coverage.xml
+          if-no-files-found: ignore
+
+  make-gate:
+    # The Makefile is the documented entrypoint, so something has to run it.
+    # GitHub runners ship make; most developer machines on Windows do not.
+    name: make check
+    runs-on: ubuntu-latest
+    env:
+      UV_FROZEN: "1"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v4
+        with:
+          enable-cache: true
+          cache-dependency-glob: uv.lock
+      - run: make check
+      - run: make benchmark-small
+
+  hooks:
+    name: pre-commit
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v4
+        with:
+          enable-cache: true
+          cache-dependency-glob: uv.lock
+      - run: uv sync --frozen
+      - run: uv run pre-commit run --all-files --show-diff-on-failure
+        env:
+          # `no-commit-to-branch` is a local guard; it has nothing to check here.
+          SKIP: no-commit-to-branch
+
+  docs:
+    name: docs build (strict)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v4
+        with:
+          enable-cache: true
+          cache-dependency-glob: uv.lock
+      - run: uv sync --frozen --group docs
+      - run: uv run --frozen --group docs mkdocs build --strict
+
+  package:
+    name: build distributions
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v4
+        with:
+          enable-cache: true
+          cache-dependency-glob: uv.lock
+      - run: uv build
+      - name: Check the wheel imports in a clean environment
+        run: |
+          uv venv /tmp/clean
+          VIRTUAL_ENV=/tmp/clean uv pip install dist/*.whl
+          VIRTUAL_ENV=/tmp/clean uv run --no-project python -c "import tycheon; print(tycheon.__version__)"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: dist
+          path: dist/

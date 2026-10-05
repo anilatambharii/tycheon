@@ -1,0 +1,51 @@
+# The slow suite: model downloads, long walk-forward runs, anything marked
+# `slow`. Too expensive for every PR, too important to never run.
+name: Nightly (slow tests)
+
+on:
+  schedule:
+    # 03:17 UTC daily. Off the hour so we are not queued with everyone else.
+    - cron: "17 3 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  TYCHEON_ENV: ci
+  TYCHEON_DATA_PROVIDER: sample
+  TYCHEON_ALLOW_YFINANCE: "false"
+  TYCHEON_ALLOW_LIVE_EXECUTION: "false"
+
+jobs:
+  slow:
+    name: slow tests (py${{ matrix.python-version }})
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.11", "3.12"]
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: astral-sh/setup-uv@v4
+        with:
+          enable-cache: true
+          cache-dependency-glob: uv.lock
+
+      - run: uv python install ${{ matrix.python-version }}
+
+      - name: Sync with every extra
+        run: uv sync --frozen --all-extras --python ${{ matrix.python-version }}
+
+      - name: Full test suite (including slow)
+        run: uv run pytest
+
+      - name: Upload coverage
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-slow-py${{ matrix.python-version }}
+          path: coverage.xml
+          if-no-files-found: ignore

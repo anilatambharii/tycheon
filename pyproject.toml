@@ -1,0 +1,226 @@
+[build-system]
+requires = ["hatchling>=1.32"]
+build-backend = "hatchling.build"
+
+[project]
+name = "tycheon"
+version = "0.1.0"
+description = "Calibrated financial forecasting and risk. Kronos forecasts the path; Tycheon tells you how much to trust it."
+readme = "README.md"
+requires-python = ">=3.11"
+license = "Apache-2.0"
+license-files = ["LICENSE"]
+authors = [{ name = "The Tycheon Authors" }]
+keywords = [
+    "forecasting", "time-series", "conformal-prediction", "calibration",
+    "risk", "value-at-risk", "expected-shortfall", "backtesting", "quant",
+    "kronos", "fintech",
+]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Developers",
+    "Intended Audience :: Financial and Insurance Industry",
+    "Intended Audience :: Science/Research",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Office/Business :: Financial :: Investment",
+    "Topic :: Scientific/Engineering :: Information Analysis",
+    "Typing :: Typed",
+]
+# Core stays installable without a GPU, a foundation model or a web stack:
+# arrays, columnar storage, a local query engine, validation, and the honest
+# baselines that every evaluation is required to report against.
+dependencies = [
+    "numpy>=2.1,<3",
+    "pandas>=2.2,<4",
+    "pyarrow>=18,<24",
+    "duckdb>=1.1,<2",
+    "scipy>=1.14,<2",
+    "statsmodels>=0.14,<1",
+    "arch>=7.2,<8",
+    "lightgbm>=4.5,<5",
+    "pydantic>=2.11,<3",
+]
+
+[project.urls]
+Homepage = "https://github.com/anilatambharii/tycheon"
+Repository = "https://github.com/anilatambharii/tycheon"
+Issues = "https://github.com/anilatambharii/tycheon/issues"
+Documentation = "https://github.com/anilatambharii/tycheon/tree/main/docs"
+
+# Heavy and optional pieces. AGENTS.md: heavy models live behind extras, so a
+# `pip install tycheon` never drags in a multi-gigabyte torch build.
+[project.optional-dependencies]
+kronos = [
+    "torch>=2.5,<3",
+    "huggingface-hub>=0.26,<1",
+    "safetensors>=0.4,<1",
+    "einops>=0.8,<1",
+]
+timesfm = [
+    "timesfm>=1.2,<3",
+]
+chronos = [
+    "chronos-forecasting>=1.4,<2",
+]
+# CUDA wheels are not on PyPI proper. This extra installs the accelerator-side
+# libraries; point your resolver at the PyTorch index for the CUDA build, e.g.
+#   uv pip install "tycheon[gpu]" --torch-backend=cu124
+gpu = [
+    "torch>=2.5,<3",
+    "accelerate>=1.1,<2",
+]
+serve = [
+    "fastapi>=0.115,<1",
+    "uvicorn[standard]>=0.32,<1",
+    "mcp>=1.2,<2",
+    "psycopg[binary,pool]>=3.2,<4",
+    "redis>=5.2,<9",
+    "boto3>=1.35,<2",
+]
+# The governed agentic workflow. In Phase T4 this extra also pulls
+# `keelgate>=0.1,<0.2`; phases T0-T3 must not depend on Keelgate at all, so it
+# is deliberately absent here. See src/tycheon/governance/README.md.
+agents = [
+    "tycheon[serve]",
+]
+
+[dependency-groups]
+dev = [
+    "pytest>=9.1",
+    "pytest-cov>=7.1",
+    "hypothesis>=6.168",
+    "mypy>=2.4",
+    "ruff>=0.16",
+    "pre-commit>=4.6",
+    "detect-secrets>=1.5",
+    "pyyaml>=6.0",
+]
+docs = [
+    "mkdocs-material>=9.7",
+    "mkdocstrings[python]>=1.0",
+]
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/tycheon"]
+
+[tool.hatch.build.targets.sdist]
+include = ["src/tycheon", "tests", "benchmarks", "README.md", "LICENSE"]
+
+# --------------------------------------------------------------------- ruff
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+src = ["src", "tests"]
+extend-exclude = ["ee/dashboard", "deploy"]
+
+[tool.ruff.lint]
+select = [
+    "E", "W",     # pycodestyle
+    "F",          # pyflakes
+    "I",          # isort
+    "N",          # pep8-naming
+    "UP",         # pyupgrade
+    "B",          # bugbear
+    "A",          # builtins shadowing
+    "C4",         # comprehensions
+    "DTZ",        # timezone-aware datetimes — as_of correctness depends on this
+    "T20",        # no print() in library code
+    "SIM",        # simplify
+    "TC",         # type-checking imports
+    "PTH",        # pathlib
+    "RUF",
+    "S",          # bandit — security lint
+    "ASYNC",
+    "LOG", "G",   # logging correctness
+    "PL",         # pylint subset
+    "TRY",        # exception antipatterns
+    "ARG",        # unused arguments
+    "PGH",        # no blanket type: ignore
+    "ERA",        # commented-out code
+    "NPY",        # numpy legacy API
+    "PD",         # pandas antipatterns (inplace, chained assignment, .values)
+]
+ignore = [
+    "ISC001",     # conflicts with the formatter
+    "TRY003",     # long messages outside exception class — we want readable errors
+    "PLR0913",    # many arguments; model and risk signatures are wide by nature
+]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/**" = ["S101", "PLR2004", "ARG", "ERA001"]
+# The leaderboard harness is a CLI: it reports to stdout by design.
+"benchmarks/**" = ["T20"]
+
+[tool.ruff.lint.isort]
+known-first-party = ["tycheon", "benchmarks"]
+
+[tool.ruff.lint.flake8-tidy-imports]
+ban-relative-imports = "parents"
+
+[tool.ruff.format]
+docstring-code-format = true
+
+# -------------------------------------------------------------------- mypy
+# AGENTS.md: `mypy --strict` on src/.
+[tool.mypy]
+python_version = "3.11"
+files = ["src"]
+strict = true
+warn_unreachable = true
+warn_no_return = true
+enable_error_code = [
+    "redundant-expr",
+    "truthy-bool",
+    "ignore-without-code",
+    "possibly-undefined",
+]
+pretty = true
+
+[[tool.mypy.overrides]]
+# Optional extras and untyped scientific packages are not installed in the
+# default dev env.
+module = [
+    "accelerate.*", "arch.*", "chronos.*", "duckdb.*", "einops.*",
+    "huggingface_hub.*", "kronos.*", "lightgbm.*", "mcp.*", "safetensors.*",
+    "statsmodels.*", "timesfm.*", "torch.*", "yfinance.*",
+]
+ignore_missing_imports = true
+
+# ------------------------------------------------------------------ pytest
+[tool.pytest.ini_options]
+minversion = "9.0"
+testpaths = ["tests"]
+addopts = [
+    "-ra",
+    "--strict-markers",
+    "--strict-config",
+    "--import-mode=importlib",
+    "--cov=tycheon",
+    "--cov-report=term-missing",
+    "--cov-report=xml",
+    "--cov-fail-under=85",
+]
+markers = [
+    "slow: long-running tests (model downloads, full backtests); deselect with -m 'not slow'",
+    "integration: needs `make up` services (Postgres/Redis/MinIO)",
+    "leakage: point-in-time correctness guards; every data path must have one",
+]
+filterwarnings = ["error"]
+
+# ---------------------------------------------------------------- coverage
+[tool.coverage.run]
+source = ["src/tycheon"]
+branch = true
+
+[tool.coverage.report]
+show_missing = true
+exclude_also = [
+    "if TYPE_CHECKING:",
+    "raise NotImplementedError",
+    '@(abc\.)?abstractmethod',
+    "@overload",
+    "if __name__ == .__main__.:",
+]
