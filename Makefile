@@ -12,7 +12,7 @@ RUN     ?= $(UV) run $(EXTRAS)
 
 .PHONY: help setup setup-all lock fmt lint format-check types test test-slow \
         check up down restart logs health hooks secrets-baseline \
-        benchmark-small example docs docs-build build clean
+        benchmark-small benchmark benchmark-render example docs docs-build build clean
 
 help: ## Show this help
 	@awk 'BEGIN{FS=":.*?## "} /^[a-zA-Z_-]+:.*?## /{printf "  \033[36m%-16s\033[0m %s\n",$$1,$$2}' $(MAKEFILE_LIST)
@@ -74,8 +74,14 @@ health: ## Probe each dev service from the host
 	@curl -fsS -o /dev/null http://localhost:14269/ && echo "jaeger admin :14269 ok" || echo "jaeger admin :14269 UNREACHABLE"
 
 # --------------------------------------------------------------- benchmarks
-benchmark-small: ## Validate the smallest leaderboard config (runs it from Phase T3)
-	$(RUN) python -m benchmarks.run --config benchmarks/configs/small.yaml
+benchmark-small: ## Run the small benchmark on CPU (sample data) and render the leaderboard
+	$(RUN) python -m benchmarks.run --config benchmarks/configs/small.yaml --execute
+
+benchmark: ## Run the full benchmark (needs the timesfm/chronos extras and model downloads)
+	$(UV) run $(EXTRAS) --extra timesfm --extra chronos python -m benchmarks.run --config benchmarks/configs/full.yaml --execute
+
+benchmark-render: ## Re-render docs/leaderboard from the published results
+	$(RUN) python -m benchmarks.render
 
 example: ## Kronos-small forecast beside the random walk; saves examples/output/forecast.png
 	$(UV) run $(EXTRAS) --group examples python examples/forecast.py

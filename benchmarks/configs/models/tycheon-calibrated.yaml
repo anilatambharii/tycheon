@@ -1,0 +1,8 @@
+id: tycheon-calibrated
+kind: tycheon
+# The ensemble above, calibrated with adaptive conformal prediction on its own online replay.
+members: [random-walk, drift, garch]
+n_origins: 60
+n_samples: 100
+max_history: 500
+calibration: {method: adaptive}

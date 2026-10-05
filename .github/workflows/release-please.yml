@@ -1,0 +1,22 @@
+# Opens (and keeps updated) a release PR from Conventional Commits: it bumps the version in
+# pyproject.toml and updates CHANGELOG.md. Merging that PR creates the tag and GitHub release;
+# the tag then triggers publish.yml. v0.1.0 itself is tagged by hand (see docs/releasing.md);
+# the manifest starts at 0.1.0 so release-please manages everything after it.
+name: Release PR
+
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  release-please:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: googleapis/release-please-action@v4
+        with:
+          config-file: release-please-config.json
+          manifest-file: .release-please-manifest.json

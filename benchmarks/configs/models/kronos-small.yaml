@@ -1,0 +1,6 @@
+id: kronos-small
+kind: foundation
+class: KronosForecaster
+extra: kronos
+options: {variant: small, device: auto}
+walk_forward: {n_samples: 20, max_history: 256}

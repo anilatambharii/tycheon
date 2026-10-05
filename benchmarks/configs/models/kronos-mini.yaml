@@ -1,0 +1,7 @@
+id: kronos-mini
+kind: foundation
+class: KronosForecaster
+extra: kronos
+options: {variant: mini, device: auto}
+# Kronos samples autoregressively, so it is the expensive model: fewer paths, shorter context.
+walk_forward: {n_samples: 20, max_history: 256}

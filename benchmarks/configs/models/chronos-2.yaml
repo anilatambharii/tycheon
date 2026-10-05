@@ -1,0 +1,6 @@
+id: chronos-2
+kind: foundation
+class: ChronosForecaster
+extra: chronos
+options: {device: auto, max_context: 512}
+walk_forward: {max_history: 512}

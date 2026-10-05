@@ -1,0 +1,9 @@
+id: tycheon-ensemble
+kind: tycheon
+# Regime-weighted ensemble. The random walk is always a member (enforced in code). Each
+# refit scores every member at past origins of the training history, so members must be cheap
+# enough to replay; put a foundation model here only if you accept the cost.
+members: [random-walk, drift, garch]
+n_origins: 60
+n_samples: 60
+max_history: 500

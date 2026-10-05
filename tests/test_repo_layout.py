@@ -72,7 +72,20 @@ MODEL_CARDS = [
     "residual-corrected",
     "regime-ensemble",
 ]
-REQUIRED_FILES += ["docs/calibration.md", "docs/risk.md"]
+REQUIRED_FILES += [
+    "docs/calibration.md",
+    "docs/risk.md",
+    "docs/benchmark-methodology.md",
+    "docs/releasing.md",
+    "CHANGELOG.md",
+    "release-please-config.json",
+    ".release-please-manifest.json",
+    ".github/workflows/publish.yml",
+    ".github/workflows/docs.yml",
+    ".github/workflows/release-please.yml",
+    "benchmarks/datasets/manifest.yaml",
+    "benchmarks/configs/full.yaml",
+]
 REQUIRED_FILES += [f"docs/models/{name}.md" for name in MODEL_CARDS]
 
 

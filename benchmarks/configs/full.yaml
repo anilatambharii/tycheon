@@ -1,0 +1,42 @@
+# Every model, on all synthetic series, at two horizons. Needs the optional extras:
+#   uv sync --extra kronos --extra timesfm --extra chronos
+# and downloads model weights from Hugging Face. Hours on CPU, minutes on a GPU. A model whose
+# extra is missing is reported as skipped (with the reason), not dropped.
+name: full
+description: All supported models on the synthetic sample series.
+
+dataset: sample-synthetic-daily
+universe_kind: static
+universe: [SYN-GBM, SYN-GARCH, SYN-REGIME, SYN-JUMP]
+
+horizons: [5, 20]
+
+models:
+  - kronos-mini
+  - kronos-small
+  - kronos-base
+  - timesfm-2.5-200m
+  - chronos-2
+  - tycheon-ensemble
+  - tycheon-calibrated
+
+baselines:
+  - random-walk
+  - drift
+  - seasonal-naive
+  - arima
+  - garch
+
+walk_forward:
+  folds: 4
+  train_window: 756
+  test_window: 126
+  embargo: 20            # at least the largest horizon
+  refit: fold
+  n_samples: 100
+  max_history: 500
+  seed: 0
+
+costs:
+  spread_bps: 2
+  slippage_bps: 1
