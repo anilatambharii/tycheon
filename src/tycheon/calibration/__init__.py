@@ -14,11 +14,13 @@ from tycheon.calibration.conformal import (
     calibrate,
 )
 from tycheon.calibration.diagnostics import CalibrationReport, CoverageResult, evaluate_calibration
+from tycheon.calibration.forecaster import CalibratedForecaster
 from tycheon.calibration.scores import DEFAULT_LEVELS, ScoreSet, collect_scores
 
 __all__ = [
     "DEFAULT_LEVELS",
     "AdaptiveConformal",
+    "CalibratedForecaster",
     "CalibrationReport",
     "ConformalCalibrator",
     "CoverageResult",

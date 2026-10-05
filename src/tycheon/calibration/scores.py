@@ -216,10 +216,42 @@ def collect_scores(
         dist = forecaster.predict(history, horizon, n_samples, available[i], seed=seed + k)
         records.append((i, dist))
 
+    return scoreset_from_forecasts(
+        forecaster.model_id,
+        records,
+        close=close,
+        available_ns=available_ns,
+        available=available,
+        horizon=horizon,
+        levels=levels,
+        n_samples=n_samples,
+        step=step,
+    )
+
+
+def scoreset_from_forecasts(
+    model_id: str,
+    records: list[tuple[int, ForecastDistribution]],
+    *,
+    close: Floats,
+    available_ns: NDArray[np.int64],
+    available: pd.DatetimeIndex,
+    horizon: int,
+    levels: tuple[float, ...],
+    n_samples: int,
+    step: int,
+    extra_notes: tuple[str, ...] = (),
+) -> ScoreSet:
+    """Pair forecasts made at bar positions ``i`` with what happened in the next ``horizon`` bars.
+
+    ``records`` holds ``(position of the origin bar, forecast)`` in chronological order.
+    Shared by :func:`collect_scores` and the walk-forward engine so both build the record
+    the same way.
+    """
     first = records[0][1]
     usable = _supported_levels(first, levels)
     if not usable:
-        raise ModelError(f"{forecaster.model_id} supports none of the requested levels")
+        raise ModelError(f"{model_id} supports none of the requested levels")
 
     n = len(records)
     base = np.empty((n, len(usable), horizon))
@@ -242,7 +274,7 @@ def collect_scores(
             f"effective n is about {n * step / horizon:.0f}"
         )
     return ScoreSet(
-        model_id=forecaster.model_id,
+        model_id=model_id,
         horizon=horizon,
         levels=usable,
         origin_times=pd.DatetimeIndex([available[i] for i, _ in records]),
@@ -252,5 +284,5 @@ def collect_scores(
         samples=np.stack(samples) if len(samples) == n else None,
         n_samples=n_samples,
         stride=step,
-        notes=tuple(notes),
+        notes=(*extra_notes, *notes),
     )
