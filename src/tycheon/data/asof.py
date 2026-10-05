@@ -11,6 +11,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
+import numpy as np
 import pandas as pd
 
 from tycheon.errors import DataValidationError, LookaheadError
@@ -18,7 +19,23 @@ from tycheon.errors import DataValidationError, LookaheadError
 if TYPE_CHECKING:
     from datetime import datetime
 
+    from numpy.typing import NDArray
+
 AVAILABLE_AT = "available_at"
+
+
+def to_ns(index: pd.DatetimeIndex) -> NDArray[np.int64]:
+    """Nanoseconds since the epoch (UTC) for each timestamp, whatever the index resolution.
+
+    pandas 3 indexes can be in seconds, milliseconds, microseconds or nanoseconds depending on
+    how they were built, while ``Timestamp.value`` is always nanoseconds. Comparing the raw
+    integers of an index with ``Timestamp.value`` would silently misorder knowledge times, so
+    every integer comparison of times goes through here.
+    """
+    utc = index.tz_convert("UTC") if index.tz is not None else index
+    return np.asarray(
+        utc.tz_localize(None).as_unit("ns").to_numpy(dtype="datetime64[ns]").astype(np.int64)
+    )
 
 
 def as_utc(value: datetime | pd.Timestamp | str, name: str = "as_of") -> pd.Timestamp:
