@@ -55,7 +55,7 @@ repos:
         # Runs in the project environment, not an isolated mirror one, so it sees
         # numpy, pandas-stubs and torch exactly as `make types` does. A mirrored
         # environment without them type-checks a different program and disagrees.
-        entry: uv run --extra kronos mypy
+        entry: uv run --extra kronos --extra report mypy
         language: system
         types: [python]
         files: ^(src/|pyproject\.toml$)

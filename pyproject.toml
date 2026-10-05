@@ -89,6 +89,10 @@ serve = [
     "redis>=5.2,<9",
     "boto3>=1.35,<2",
 ]
+# Diagnostic plots and the HTML risk report (inline SVG, no external resources).
+report = [
+    "matplotlib>=3.9,<4",
+]
 # The governed agentic workflow. In Phase T4 this extra also pulls
 # `keelgate>=0.1,<0.2`; phases T0-T3 must not depend on Keelgate at all, so it
 # is deliberately absent here. See src/tycheon/governance/README.md.
@@ -176,11 +180,15 @@ ignore = [
 [tool.ruff.lint.per-file-ignores]
 # Tests import optional extras inside functions (after importorskip) and dispatch
 # fixtures with a long if-chain on purpose.
-"tests/**" = ["S101", "ARG", "ERA001", "PLC0415", "PLR0911"]
+"tests/**" = ["S101", "ARG", "ERA001", "PLC0415", "PLR0911", "PLR0917"]
 # Foundation models are optional extras: importing torch, timesfm or chronos at
 # module level would make `import tycheon.models` require them, so those imports are
 # deliberately inside functions.
 "src/tycheon/models/**" = ["PLC0415"]
+# Plotting needs the optional matplotlib extra, imported lazily.
+"src/tycheon/_svg.py" = ["PLC0415"]
+"src/tycheon/**/plots.py" = ["PLC0415"]
+"src/tycheon/risk/report.py" = ["PLC0415"]
 # The leaderboard harness and the examples are CLIs: they report to stdout by design.
 "benchmarks/**" = ["T20"]
 "examples/**" = ["T20", "PLC0415"]
@@ -215,7 +223,7 @@ pretty = true
 # default dev env.
 module = [
     "accelerate.*", "arch.*", "chronos.*", "duckdb.*", "einops.*",
-    "huggingface_hub.*", "kronos.*", "lightgbm.*", "mcp.*", "safetensors.*",
+    "huggingface_hub.*", "kronos.*", "lightgbm.*", "mcp.*", "safetensors.*", "scipy", "scipy.*",
     "statsmodels.*", "timesfm.*", "torch.*", "yfinance.*",
 ]
 ignore_missing_imports = true

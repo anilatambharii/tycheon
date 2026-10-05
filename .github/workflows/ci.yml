@@ -45,7 +45,7 @@ jobs:
         run: uv python install ${{ matrix.python-version }}
 
       - name: Sync dependencies (with CPU torch for the Kronos tests and mypy)
-        run: uv sync --extra kronos
+        run: uv sync --extra kronos --extra report
 
       - name: Lint
         run: uv run ruff check --output-format=github .
@@ -98,7 +98,7 @@ jobs:
         with:
           enable-cache: true
           cache-dependency-glob: uv.lock
-      - run: uv sync --frozen --extra kronos
+      - run: uv sync --frozen --extra kronos --extra report
       - run: uv run pre-commit run --all-files --show-diff-on-failure
         env:
           # `no-commit-to-branch` is a local guard; it has nothing to check here.
