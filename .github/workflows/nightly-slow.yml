@@ -36,8 +36,15 @@ jobs:
 
       - run: uv python install ${{ matrix.python-version }}
 
-      - name: Sync with every extra
-        run: uv sync --frozen --all-extras --python ${{ matrix.python-version }}
+      - name: Cache Hugging Face weights
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/huggingface
+          # Weights are pinned to commit SHAs in these files, so a change invalidates the cache.
+          key: hf-${{ hashFiles('src/tycheon/models/kronos/specs.py', 'src/tycheon/models/timesfm/forecaster.py', 'src/tycheon/models/chronos/forecaster.py') }}
+
+      - name: Sync with every extra (CPU torch on Linux, via the uv index)
+        run: uv sync --frozen --all-extras --group examples --python ${{ matrix.python-version }}
 
       - name: Full test suite (including slow)
         run: uv run pytest

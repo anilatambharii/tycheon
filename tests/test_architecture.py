@@ -89,6 +89,53 @@ def test_no_keelgate_dependency_before_phase_t4(pyproject: dict[str, Any]) -> No
         assert not found, f"phases T0-T3 must not depend on keelgate; found {found}"
 
 
+# Heavy or optional packages. Importing any of these at module level would make
+# `import tycheon.models` require an extra the base install does not have.
+OPTIONAL_HEAVY = {"torch", "timesfm", "chronos", "transformers", "accelerate", "einops"}
+
+
+def _module_level_imports(path: Path) -> set[str]:
+    """Roots of imports executed when the module loads (not inside functions or TYPE_CHECKING)."""
+    tree = ast.parse(path.read_text(encoding="utf-8"), filename=str(path))
+    roots: set[str] = set()
+    for node in tree.body:
+        if isinstance(node, ast.Import):
+            roots.update(alias.name.split(".")[0] for alias in node.names)
+        elif isinstance(node, ast.ImportFrom) and node.level == 0 and node.module:
+            roots.add(node.module.split(".")[0])
+    return roots
+
+
+def test_optional_heavy_packages_are_only_imported_lazily() -> None:
+    """The base install must import without torch, TimesFM or Chronos (tested for real in
+    test_kronos_vendor.py by importing in a clean subprocess)."""
+    offenders = {
+        str(path.relative_to(PROJECT_ROOT)): sorted(_module_level_imports(path) & OPTIONAL_HEAVY)
+        for path in _python_files()
+        if _module_level_imports(path) & OPTIONAL_HEAVY
+    }
+    assert not offenders, f"optional dependencies imported at module level: {offenders}"
+
+
+def test_yfinance_is_only_imported_lazily_by_its_own_provider() -> None:
+    importers = [
+        str(path.relative_to(PROJECT_ROOT))
+        for path in _python_files()
+        if "yfinance" in _module_level_imports(path)
+    ]
+    assert not importers, f"yfinance must never be a module-level import: {importers}"
+
+
+def test_the_vendored_tree_is_loaded_by_path_never_imported_by_name() -> None:
+    """third_party/kronos is excluded from the package namespace on purpose."""
+    offenders = [
+        str(path.relative_to(PROJECT_ROOT))
+        for path in _python_files()
+        if _imported_roots(path) & {"third_party", "model"}
+    ]
+    assert not offenders, f"import vendored code through tycheon.models.kronos.vendor: {offenders}"
+
+
 def test_governance_and_agents_are_declared_placeholders() -> None:
     """Both placeholders explain themselves, so nobody fills them in early."""
     for package in ("governance", "agents"):

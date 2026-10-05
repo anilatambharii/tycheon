@@ -4,22 +4,27 @@
 
 UV      ?= uv
 COMPOSE ?= docker compose -f docker-compose.dev.yml
+# The dev environment includes the `kronos` extra (CPU torch): the fast tests run
+# the real Kronos code path on a tiny randomly-initialised model, and mypy needs
+# torch installed to give the same answer locally and in CI.
+EXTRAS  ?= --extra kronos
+RUN     ?= $(UV) run $(EXTRAS)
 
 .PHONY: help setup setup-all lock fmt lint format-check types test test-slow \
         check up down restart logs health hooks secrets-baseline \
-        benchmark-small docs docs-build build clean
+        benchmark-small example docs docs-build build clean
 
 help: ## Show this help
 	@awk 'BEGIN{FS=":.*?## "} /^[a-zA-Z_-]+:.*?## /{printf "  \033[36m%-16s\033[0m %s\n",$$1,$$2}' $(MAKEFILE_LIST)
 
 # ------------------------------------------------------------------- setup
-setup: ## Create the dev venv and install git hooks
-	$(UV) sync
+setup: ## Create the dev venv (with CPU torch for Kronos) and install git hooks
+	$(UV) sync $(EXTRAS)
 	$(UV) run pre-commit install
 	@echo "ready — run 'make check'"
 
-setup-all: ## Install every optional extra as well (torch, TimesFM, Chronos, serve)
-	$(UV) sync --all-extras
+setup-all: ## Install every optional extra and the example/doc groups
+	$(UV) sync --all-extras --group examples --group docs
 	$(UV) run pre-commit install
 
 lock: ## Refresh uv.lock (resolves base deps, all extras and all groups)
@@ -27,22 +32,22 @@ lock: ## Refresh uv.lock (resolves base deps, all extras and all groups)
 
 # -------------------------------------------------------------------- gate
 fmt: ## Format the codebase
-	$(UV) run ruff format .
+	$(RUN) ruff format .
 
 lint: ## Lint (ruff check)
-	$(UV) run ruff check .
+	$(RUN) ruff check .
 
 format-check: ## Verify formatting without writing
-	$(UV) run ruff format --check .
+	$(RUN) ruff format --check .
 
 types: ## Type-check src/ with mypy --strict
-	$(UV) run mypy
+	$(RUN) mypy
 
 test: ## Run the fast test suite with coverage
-	$(UV) run pytest -m "not slow"
+	$(RUN) pytest -m "not slow"
 
-test-slow: ## Run the slow suite too (model downloads, full walk-forward backtests)
-	$(UV) run pytest
+test-slow: ## Run the slow suite too (downloads Kronos-mini weights from Hugging Face)
+	$(RUN) pytest
 
 check: lint format-check types test ## Lint, format-check, type-check and fast tests
 	@echo "make check: PASS"
@@ -69,12 +74,15 @@ health: ## Probe each dev service from the host
 	@curl -fsS -o /dev/null http://localhost:14269/ && echo "jaeger admin :14269 ok" || echo "jaeger admin :14269 UNREACHABLE"
 
 # --------------------------------------------------------------- benchmarks
-benchmark-small: ## Run the smallest leaderboard config end to end
-	$(UV) run python -m benchmarks.run --config benchmarks/configs/small.yaml
+benchmark-small: ## Validate the smallest leaderboard config (runs it from Phase T3)
+	$(RUN) python -m benchmarks.run --config benchmarks/configs/small.yaml
+
+example: ## Kronos-small forecast beside the random walk; saves examples/output/forecast.png
+	$(UV) run $(EXTRAS) --group examples python examples/forecast.py
 
 # -------------------------------------------------------------- hygiene
 hooks: ## Run every pre-commit hook over all files
-	$(UV) run pre-commit run --all-files
+	$(RUN) pre-commit run --all-files
 
 secrets-baseline: ## Regenerate the detect-secrets baseline
 	$(UV) run detect-secrets scan --baseline .secrets.baseline

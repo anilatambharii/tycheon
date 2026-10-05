@@ -44,8 +44,8 @@ jobs:
       - name: Install Python ${{ matrix.python-version }}
         run: uv python install ${{ matrix.python-version }}
 
-      - name: Sync dependencies
-        run: uv sync
+      - name: Sync dependencies (with CPU torch for the Kronos tests and mypy)
+        run: uv sync --extra kronos
 
       - name: Lint
         run: uv run ruff check --output-format=github .
@@ -98,7 +98,7 @@ jobs:
         with:
           enable-cache: true
           cache-dependency-glob: uv.lock
-      - run: uv sync --frozen
+      - run: uv sync --frozen --extra kronos
       - run: uv run pre-commit run --all-files --show-diff-on-failure
         env:
           # `no-commit-to-branch` is a local guard; it has nothing to check here.
@@ -126,11 +126,33 @@ jobs:
           enable-cache: true
           cache-dependency-glob: uv.lock
       - run: uv build
-      - name: Check the wheel imports in a clean environment
+      - name: The wheel ships the vendored Kronos and its MIT licence
+        run: |
+          python - <<'PY'
+          import glob, zipfile
+          names = zipfile.ZipFile(glob.glob("dist/*.whl")[0]).namelist()
+          need = [
+              "tycheon/_vendor/kronos/model/kronos.py",
+              "tycheon/_vendor/kronos/model/module.py",
+              "tycheon/_vendor/kronos/LICENSE",
+              "tycheon/_vendor/kronos/UPSTREAM.json",
+          ]
+          missing = [n for n in need if n not in names]
+          assert not missing, f"wheel is missing {missing}"
+          assert any(n.endswith("licenses/third_party/kronos/LICENSE") for n in names), "Kronos licence not in dist-info"
+          print("vendored Kronos and its licence are in the wheel")
+          PY
+      - name: Check the wheel imports in a clean environment, without torch
         run: |
           uv venv /tmp/clean
           VIRTUAL_ENV=/tmp/clean uv pip install dist/*.whl
-          VIRTUAL_ENV=/tmp/clean uv run --no-project python -c "import tycheon; print(tycheon.__version__)"
+          VIRTUAL_ENV=/tmp/clean uv run --no-project python - <<'PY'
+          import sys
+          import tycheon, tycheon.models.kronos, tycheon.models.timesfm, tycheon.models.chronos
+          from tycheon.models.kronos.vendor import verify_vendored
+          print("tycheon", tycheon.__version__, "| vendored Kronos commit", verify_vendored()["commit"][:7])
+          assert "torch" not in sys.modules, "importing the model packages must not import torch"
+          PY
       - uses: actions/upload-artifact@v4
         with:
           name: dist

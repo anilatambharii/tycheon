@@ -48,6 +48,9 @@ hf_cache/
 *.ckpt
 *.safetensors
 
+# Generated example output (the plot is rebuilt by `make example`)
+examples/output/
+
 # Benchmark output (results are published deliberately, not incidentally)
 benchmarks/results/local/
 

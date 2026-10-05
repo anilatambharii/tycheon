@@ -34,7 +34,7 @@ def test_small_config_is_valid() -> None:
 
 def test_small_config_is_described_without_running_anything() -> None:
     text = describe(load_config(SMALL))
-    assert "random_walk" in text
+    assert "random-walk" in text
     assert "embargo" in text
 
 
@@ -59,7 +59,20 @@ def test_missing_keys_are_reported(tmp_path: Path, valid_config: dict[str, Any])
 def test_random_walk_baseline_is_mandatory(tmp_path: Path, valid_config: dict[str, Any]) -> None:
     """Every published result is read against doing nothing."""
     valid_config["baselines"] = ["drift"]
-    with pytest.raises(ConfigError, match="random_walk"):
+    with pytest.raises(ConfigError, match="random-walk"):
+        load_config(_write(tmp_path, valid_config))
+
+
+def test_models_and_baselines_must_exist_in_the_registry(
+    tmp_path: Path, valid_config: dict[str, Any]
+) -> None:
+    """A config naming a forecaster that does not exist could never be reproduced."""
+    valid_config["models"] = ["kronos-large"]  # not an open model
+    with pytest.raises(ConfigError, match="unknown models"):
+        load_config(_write(tmp_path, valid_config))
+    valid_config["models"] = ["kronos-small"]
+    valid_config["baselines"] = ["random-walk", "buy-and-hold"]
+    with pytest.raises(ConfigError, match="unknown baselines"):
         load_config(_write(tmp_path, valid_config))
 
 

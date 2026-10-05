@@ -6,7 +6,7 @@ someone who does not trust us.
 ## Rules
 
 - **The random-walk baseline is mandatory.** Every config must list
-  `random_walk` in `baselines`, and every published result reports it alongside
+  `random-walk` in `baselines`, and every published result reports it alongside
   a Diebold-Mariano test. `benchmarks/run.py` rejects configs that skip it.
 - **An embargo is mandatory.** `walk_forward.embargo` separates train from test
   so labels cannot leak backwards across a fold boundary.
@@ -22,9 +22,11 @@ make benchmark-small                                   # validate the smoke conf
 python -m benchmarks.run --config benchmarks/configs/small.yaml
 ```
 
-In Phase T0 the runner validates configs and prints the plan. It refuses
-`--execute`: there are no models registered yet. Model adapters arrive in T1 and
-the leakage-proof walk-forward engine in T3.
+Today the runner validates configs (model and baseline names are checked against the
+real forecaster registry) and prints the plan. It refuses `--execute`: the
+forecasters exist, but the leakage-proof walk-forward engine that would score them
+arrives in Phase T3, and a runner that printed numbers without it would be
+measuring nothing.
 
 ## Layout
 

@@ -11,3 +11,6 @@
 
 LICENSE    text eol=lf linguist-vendored
 ee/LICENSE text eol=lf
+
+# Vendored upstream: keep byte-identical and out of language stats.
+third_party/** linguist-vendored
