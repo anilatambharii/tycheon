@@ -37,6 +37,8 @@ def test_release_please_agrees_with_the_package_version() -> None:
     config = json.loads(_text("release-please-config.json"))
     assert manifest["."] == _version()
     assert config["release-type"] == "python" and config["include-v-in-tag"] is True
+    # plain `v0.1.0` tags, so they match the `v*` trigger and the version check in publish.yml
+    assert config["include-component-in-tag"] is False
     assert config["packages"]["."]["changelog-path"] == "CHANGELOG.md"
 
 
