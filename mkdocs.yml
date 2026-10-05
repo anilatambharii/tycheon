@@ -47,11 +47,21 @@ markdown_extensions:
           class: mermaid
           format: !!python/name:pymdownx.superfences.fence_code_format
 
+# The launch post is a draft for the maintainers, not part of the published site.
+exclude_docs: |
+  blog/
+
 nav:
   - Home: index.md
   - Methodology: methodology.md
+  - Tutorials:
+      - Calibrated forecasts with Kronos: tutorials/calibrated-kronos.md
+      - Run the benchmark: tutorials/run-the-benchmark.md
   - Calibration: calibration.md
   - Risk: risk.md
+  - Leaderboard: leaderboard/index.md
+  - Benchmark methodology: benchmark-methodology.md
+  - Releasing: releasing.md
   - Safety and compliance: safety.md
   - Model cards:
       - Overview: models/index.md
@@ -73,6 +83,7 @@ nav:
       - 0003 Point-in-time data and the forecast contract: adr/0003-point-in-time-data-and-forecast-contract.md
       - 0004 Conformal calibration design: adr/0004-conformal-calibration-design.md
       - 0005 Risk and portfolio dependence: adr/0005-risk-and-portfolio-dependence.md
+      - 0006 Walk-forward evaluation: adr/0006-walk-forward-evaluation.md
 
 watch:
   - src/tycheon

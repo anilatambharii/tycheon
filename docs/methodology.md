@@ -5,8 +5,8 @@ refuses to claim. It was written before the implementation, in Phase T0, so that
 later phases can be held to it, and it is updated as they land. Phase T1 built the
 point-in-time data layer and the forecasters; Phase T2 built calibration, the covariate
 residual corrector, routing and the risk layer (see [calibration](calibration.md) and
-[risk](risk.md)); evaluation (T3) is still to come, and every section below says which is
-which.
+[risk](risk.md)); Phase T3 built the walk-forward evaluation and the leaderboard (see the
+[benchmark methodology](benchmark-methodology.md)). Every section below says which is which.
 
 ## Why this layer exists
 
@@ -103,6 +103,11 @@ Walk-forward, with:
 
 We publish results when the baseline wins. A leaderboard that only shows wins
 is marketing, not evaluation.
+
+**Status (v0.1.0):** all of the above is implemented except the multiple-comparison
+discount: p-values are not adjusted for how many models and configurations were tried, and the
+[benchmark methodology](benchmark-methodology.md) lists that as a limitation. Read isolated
+wins with suspicion.
 
 ## What Tycheon does not claim
 

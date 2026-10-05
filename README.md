@@ -11,12 +11,13 @@ desk actually uses. Tycheon is that missing layer.
 [![License](https://img.shields.io/badge/license-Apache--2.0-blue.svg)](LICENSE)
 [![Python](https://img.shields.io/badge/python-3.11%20%7C%203.12-blue.svg)](pyproject.toml)
 
-> **Status: Phase T2 — calibration and risk.** On top of the T1 data layer and
-> forecasters there is now conformal calibration (split and adaptive) with measured
-> holdout coverage, a covariate residual corrector, a regime-weighted ensemble that always
-> includes the random walk, and a risk layer (VaR, Expected Shortfall, drawdown, stress)
-> with a JSON and HTML report: `uv run python examples/risk_report.py`. Evaluation against
-> baselines with Diebold-Mariano tests (T3) is not built yet, so no claim of skill is made.
+> **Status: v0.1.0 (alpha).** Point-in-time data, forecasters (Kronos, TimesFM, Chronos and
+> honest baselines), conformal calibration with measured holdout coverage, a regime-weighted
+> ensemble that always includes the random walk, a risk layer (VaR, Expected Shortfall,
+> drawdown, stress) with a JSON and HTML report, and a leakage-guarded walk-forward
+> evaluation that reads every model against the random walk with Diebold-Mariano tests.
+> **The evidence so far is synthetic: on the bundled series no model is distinguishable from
+> the random walk, and we publish that.** See the [leaderboard](docs/leaderboard/index.md).
 > Multi-asset portfolio risk is always labelled **uncalibrated**: dependence is assumed.
 
 ![Kronos-small beside the random-walk baseline on a synthetic series, from examples/forecast.py](docs/assets/forecast-example.png)
@@ -165,11 +166,15 @@ Every forecaster returns a `ForecastDistribution` and ships a
 Kronos is vendored from upstream at a pinned commit ([ADR 0002](docs/adr/0002-kronos-integration.md)),
 with its sampler replaced so the sample paths are kept rather than averaged away.
 
-Validate the smoke benchmark config:
+Run the small benchmark (CPU, synthetic data, a few minutes) and render the leaderboard:
 
 ```bash
 make benchmark-small
 ```
+
+Tutorials: [calibrated forecasts with Kronos](docs/tutorials/calibrated-kronos.md) and
+[run the benchmark](docs/tutorials/run-the-benchmark.md). How the leaderboard stays honest:
+[benchmark methodology](docs/benchmark-methodology.md).
 
 > **No `make` on Windows?** Every target is a one-line `uv` command; open the
 > [`Makefile`](Makefile) and run them directly, e.g. `uv sync` then

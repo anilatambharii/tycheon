@@ -9,12 +9,13 @@ honest baselines, translation of forecasts into VaR, Expected Shortfall and
 drawdown probabilities, and leakage-proof walk-forward evaluation with a public
 leaderboard.
 
-!!! warning "Phase T2 - calibration and risk"
-    Conformal calibration with measured holdout coverage, a regime-weighted ensemble and a
-    risk layer (VaR, ES, drawdown, stress, JSON and HTML report) are built on top of the T1
-    foundations. Leakage-proof evaluation against baselines (T3) is not, so no claim of
-    forecasting skill is made. Multi-asset portfolio risk is always uncalibrated.
-    See [calibration](calibration.md) and [risk](risk.md).
+!!! warning "v0.1.0 - evidence so far is synthetic"
+    Conformal calibration with measured holdout coverage, a regime-weighted ensemble, a risk
+    layer and a leakage-guarded walk-forward evaluation are built. On the bundled synthetic
+    series no model is distinguishable from the random walk, and the
+    [leaderboard](leaderboard/index.md) says so. Multi-asset portfolio risk is always
+    uncalibrated. See [calibration](calibration.md), [risk](risk.md) and the
+    [benchmark methodology](benchmark-methodology.md).
 
 ![Kronos-small beside the random-walk baseline](assets/forecast-example.png)
 
