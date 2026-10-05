@@ -11,11 +11,13 @@ desk actually uses. Tycheon is that missing layer.
 [![License](https://img.shields.io/badge/license-Apache--2.0-blue.svg)](LICENSE)
 [![Python](https://img.shields.io/badge/python-3.11%20%7C%203.12-blue.svg)](pyproject.toml)
 
-> **Status: Phase T1 — foundations.** Point-in-time data, five honest baselines and
-> Kronos / TimesFM / Chronos behind one forecaster contract are built. Forecasts are
-> **uncalibrated**: conformal calibration (T2), the risk layer and leakage-proof
-> evaluation (T3) come next, so nothing here yet tells you *how much to trust* a
-> forecast, which is the whole point of the project.
+> **Status: Phase T2 — calibration and risk.** On top of the T1 data layer and
+> forecasters there is now conformal calibration (split and adaptive) with measured
+> holdout coverage, a covariate residual corrector, a regime-weighted ensemble that always
+> includes the random walk, and a risk layer (VaR, Expected Shortfall, drawdown, stress)
+> with a JSON and HTML report: `uv run python examples/risk_report.py`. Evaluation against
+> baselines with Diebold-Mariano tests (T3) is not built yet, so no claim of skill is made.
+> Multi-asset portfolio risk is always labelled **uncalibrated**: dependence is assumed.
 
 ![Kronos-small beside the random-walk baseline on a synthetic series, from examples/forecast.py](docs/assets/forecast-example.png)
 

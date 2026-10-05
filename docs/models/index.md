@@ -18,6 +18,8 @@ contract test fails if a forecaster's card is missing or lacks a required sectio
 | `seasonal-naive` | Seasonal random walk | yes | [Seasonal naive](seasonal-naive.md) |
 | `arima` | ARIMA on log returns | yes | [ARIMA](arima.md) |
 | `garch` | GARCH(1,1) on log returns | yes | [GARCH](garch.md) |
+| `residual(<base id>)` | A base forecaster plus a LightGBM correction from covariates | as the base | [Residual-corrected](residual-corrected.md) |
+| `regime-ensemble` | Members weighted by recent per-regime performance | pool mode: yes | [Regime ensemble](regime-ensemble.md) |
 
 `Kronos-large` (499.2M parameters) is listed upstream as not publicly available, so it is
 not supported and has no card.

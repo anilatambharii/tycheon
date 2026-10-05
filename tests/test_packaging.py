@@ -15,7 +15,7 @@ PROJECT_ROOT = Path(__file__).resolve().parents[1]
 # Extras promised by the T0 brief: the three foundation models, the accelerator
 # libraries, the API surface, and the governed workflow (which also pulls
 # keelgate from T4).
-EXPECTED_EXTRAS = {"kronos", "timesfm", "chronos", "gpu", "serve", "agents"}
+EXPECTED_EXTRAS = {"kronos", "timesfm", "chronos", "gpu", "serve", "report", "agents"}
 
 # Torch is a multi-gigabyte install. AGENTS.md puts heavy models behind extras,
 # so none of these may appear in the base dependency set.

@@ -50,6 +50,8 @@ markdown_extensions:
 nav:
   - Home: index.md
   - Methodology: methodology.md
+  - Calibration: calibration.md
+  - Risk: risk.md
   - Safety and compliance: safety.md
   - Model cards:
       - Overview: models/index.md
@@ -63,10 +65,14 @@ nav:
       - Seasonal naive: models/seasonal-naive.md
       - ARIMA: models/arima.md
       - GARCH: models/garch.md
+      - Residual-corrected: models/residual-corrected.md
+      - Regime ensemble: models/regime-ensemble.md
   - Decisions:
       - 0001 Licensing and open core: adr/0001-licensing-and-open-core.md
       - 0002 Kronos integration: adr/0002-kronos-integration.md
       - 0003 Point-in-time data and the forecast contract: adr/0003-point-in-time-data-and-forecast-contract.md
+      - 0004 Conformal calibration design: adr/0004-conformal-calibration-design.md
+      - 0005 Risk and portfolio dependence: adr/0005-risk-and-portfolio-dependence.md
 
 watch:
   - src/tycheon

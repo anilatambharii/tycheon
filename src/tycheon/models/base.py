@@ -62,6 +62,46 @@ class ForecastMetadata:
     diagnostics: Mapping[str, Any] = field(default_factory=dict)
 
 
+@dataclass(frozen=True)
+class CalibrationInfo:
+    """The evidence behind a ``calibrated`` forecast.
+
+    A forecast may only claim ``calibrated`` if this is attached, so the claim always
+    travels with what supports it: how the calibration was done, how much data it used,
+    what it was checked against, and how that check came out.
+
+    ``holdout_coverage`` maps each nominal central coverage (for example ``0.9``) to the
+    coverage the *calibrated* intervals achieved on the most recent holdout origins;
+    ``raw_holdout_coverage`` is the same for the uncalibrated forecast on the same origins,
+    so the improvement is visible. ``tolerance`` is the half-width within which achieved
+    coverage counts as on target, and ``scores_as_of`` is the latest moment any outcome
+    used for calibration became known (never after the forecast's own ``as_of``).
+    """
+
+    method: str
+    n_scores: int
+    scores_as_of: pd.Timestamp
+    holdout_n: int
+    holdout_coverage: Mapping[float, float]
+    raw_holdout_coverage: Mapping[float, float]
+    tolerance: float
+    calibrated_levels: tuple[float, ...]
+    notes: tuple[str, ...] = ()
+
+    def to_dict(self) -> dict[str, Any]:
+        return {
+            "method": self.method,
+            "n_scores": self.n_scores,
+            "scores_as_of": self.scores_as_of.isoformat(),
+            "holdout_n": self.holdout_n,
+            "holdout_coverage": {f"{k:g}": v for k, v in self.holdout_coverage.items()},
+            "raw_holdout_coverage": {f"{k:g}": v for k, v in self.raw_holdout_coverage.items()},
+            "tolerance": self.tolerance,
+            "calibrated_levels": list(self.calibrated_levels),
+            "notes": list(self.notes),
+        }
+
+
 def _frozen(array: NDArray[Any]) -> NDArray[Any]:
     out = np.array(array, dtype=np.float64, copy=True)
     out.flags.writeable = False
@@ -91,6 +131,7 @@ class ForecastDistribution:
     calibration_status: CalibrationStatus = "uncalibrated"
     target: str = "close"
     extras: Mapping[str, Floats] = field(default_factory=dict)
+    calibration: CalibrationInfo | None = None
 
     def __post_init__(self) -> None:
         self._check_time_axis()
@@ -139,6 +180,16 @@ class ForecastDistribution:
             raise DataValidationError("every forecast must reference a model card")
         if not self.model_mix or not math.isclose(sum(self.model_mix.values()), 1.0, abs_tol=1e-9):
             raise DataValidationError("model_mix must be non-empty and sum to 1")
+        if self.calibration_status != "uncalibrated" and self.calibration is None:
+            raise DataValidationError(
+                f"calibration_status={self.calibration_status!r} needs the CalibrationInfo "
+                "that supports it; a calibration claim without evidence is not allowed"
+            )
+        if self.calibration is not None and self.calibration.scores_as_of > self.as_of:
+            raise LookaheadError(
+                "calibration used outcomes published after this forecast's as_of "
+                f"({self.calibration.scores_as_of.isoformat()} > {self.as_of.isoformat()})"
+            )
 
     # --------------------------------------------------------------- accessors
     @property
@@ -230,6 +281,7 @@ class ForecastDistribution:
             "as_of": self.as_of.isoformat(),
             "last_observation": self.last_observation.isoformat(),
             "calibration_status": self.calibration_status,
+            "calibration": None if self.calibration is None else self.calibration.to_dict(),
             "model_mix": dict(self.model_mix),
             "model_card": self.model_card,
             "metadata": {
@@ -253,8 +305,13 @@ class ForecastDistribution:
         lo, hi = self.interval(coverage)
         mid = self.quantile(0.5)
         paths = "sample paths" if self.has_paths else "quantiles only"
+        evidence = ""
+        if self.calibration is not None and self.calibration.holdout_coverage:
+            nominal = max(self.calibration.holdout_coverage, key=lambda c: abs(c - 0.9))
+            achieved = self.calibration.holdout_coverage[nominal]
+            evidence = f", holdout {achieved:.0%} at nominal {nominal:.0%}"
         return (
-            f"{self.metadata.model_id} [{self.calibration_status}, {paths}] as_of "
+            f"{self.metadata.model_id} [{self.calibration_status}{evidence}, {paths}] as_of "
             f"{self.as_of.isoformat()}: last close {self.last_close:.4g}; "
             f"step {self.horizon} median {mid[-1]:.4g}, {coverage:.0%} interval "
             f"[{lo[-1]:.4g}, {hi[-1]:.4g}]. {DISCLAIMER}"

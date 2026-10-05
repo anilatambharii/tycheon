@@ -408,3 +408,50 @@ def test_the_base_class_refuses_lookahead_before_any_model_code_runs(bars_factor
     with pytest.raises(LookaheadError):
         model.predict(bars, 3, 4, pd.Timestamp(bars["available_at"].iloc[10]))
     assert not hasattr(model, "seen"), "the model must not run when the history leaks"
+
+
+# --------------------------------------------------- calibration evidence (T2)
+def _info(scores_as_of=None, **overrides):
+    from tycheon.models.base import CalibrationInfo
+
+    kwargs = {
+        "method": "split-conformal",
+        "n_scores": 100,
+        "scores_as_of": scores_as_of if scores_as_of is not None else LAST - pd.Timedelta("1D"),
+        "holdout_n": 25,
+        "holdout_coverage": {0.9: 0.91},
+        "raw_holdout_coverage": {0.9: 0.6},
+        "tolerance": 0.05,
+        "calibrated_levels": (0.1, 0.5, 0.9),
+    }
+    kwargs.update(overrides)
+    return CalibrationInfo(**kwargs)
+
+
+def test_a_calibration_claim_needs_its_evidence() -> None:
+    """'calibrated' without evidence is exactly the dishonest output the contract exists to stop."""
+    with pytest.raises(DataValidationError, match="evidence"):
+        _dist(calibration_status="calibrated")
+    with pytest.raises(DataValidationError, match="evidence"):
+        _dist(calibration_status="stale")
+    _dist(calibration_status="calibrated", calibration=_info())
+    _dist(calibration_status="stale", calibration=_info())
+    _dist()  # uncalibrated needs nothing
+
+
+@pytest.mark.leakage
+def test_calibration_that_used_outcomes_after_as_of_is_refused() -> None:
+    late = _info(scores_as_of=LAST + pd.Timedelta("1D"))
+    with pytest.raises(LookaheadError, match="after this forecast's as_of"):
+        _dist(calibration_status="calibrated", calibration=late)
+
+
+def test_calibration_info_serialises_and_shows_in_the_summary() -> None:
+    d = _dist(calibration_status="calibrated", calibration=_info())
+    record = d.to_dict()
+    assert record["calibration"]["holdout_coverage"] == {"0.9": 0.91}
+    assert record["calibration"]["raw_holdout_coverage"] == {"0.9": 0.6}
+    assert record["calibration"]["method"] == "split-conformal"
+    json.dumps(record)
+    assert "holdout 91% at nominal 90%" in d.summary()
+    assert _dist().to_dict()["calibration"] is None
