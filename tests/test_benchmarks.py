@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import importlib.util
 import json
 from pathlib import Path
 from typing import Any
@@ -231,7 +232,17 @@ def tiny_result() -> dict[str, Any]:
         }
     )
     config["walk_forward"].update({"folds": 2, "test_window": 20, "train_window": 500})
-    return execute(config, say=lambda _msg: None)
+    # Hermetic: pretend the timesfm extra is not installed, whatever this environment has. The
+    # nightly job installs every extra, and without this the test would try to download the
+    # real TimesFM weights (hundreds of MB) instead of exercising the "skipped" path.
+    real_find_spec = importlib.util.find_spec
+
+    def find_spec(name: str, *args: Any, **kwargs: Any) -> Any:
+        return None if name == "timesfm" else real_find_spec(name, *args, **kwargs)
+
+    with pytest.MonkeyPatch.context() as patch:
+        patch.setattr(importlib.util, "find_spec", find_spec)
+        return execute(config, say=lambda _msg: None)
 
 
 def test_a_run_has_the_random_walk_row_and_diebold_mariano_for_every_model(tiny_result) -> None:
@@ -254,12 +265,9 @@ def test_the_result_document_carries_provenance(tiny_result) -> None:
 
 
 def test_a_model_that_cannot_run_is_reported_not_dropped(tiny_result) -> None:
-    import importlib.util
-
     status = tiny_result["model_status"]["timesfm-2.5-200m"]
-    if importlib.util.find_spec("timesfm") is None:
-        assert status["status"] == "skipped" and "tycheon[timesfm]" in status["reason"]
-        assert "timesfm-2.5-200m" not in tiny_result["results"][0]["models"]
+    assert status["status"] == "skipped" and "tycheon[timesfm]" in status["reason"]
+    assert "timesfm-2.5-200m" not in tiny_result["results"][0]["models"]
 
 
 def test_the_leaderboard_is_rendered_from_the_json(tiny_result, tmp_path: Path) -> None:
