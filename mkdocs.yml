@@ -59,6 +59,9 @@ nav:
       - Run the benchmark: tutorials/run-the-benchmark.md
   - Calibration: calibration.md
   - Risk: risk.md
+  - Agents: agents.md
+  - Governance: governance.md
+  - Serving: serving.md
   - Leaderboard: leaderboard/index.md
   - Benchmark methodology: benchmark-methodology.md
   - Releasing: releasing.md
@@ -84,6 +87,8 @@ nav:
       - 0004 Conformal calibration design: adr/0004-conformal-calibration-design.md
       - 0005 Risk and portfolio dependence: adr/0005-risk-and-portfolio-dependence.md
       - 0006 Walk-forward evaluation: adr/0006-walk-forward-evaluation.md
+      - 0007 Keelgate integration: adr/0007-keelgate-integration.md
+      - 0008 Agent architecture and the verifier: adr/0008-agent-architecture-and-the-verifier.md
 
 watch:
   - src/tycheon

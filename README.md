@@ -11,14 +11,13 @@ desk actually uses. Tycheon is that missing layer.
 [![License](https://img.shields.io/badge/license-Apache--2.0-blue.svg)](LICENSE)
 [![Python](https://img.shields.io/badge/python-3.11%20%7C%203.12-blue.svg)](pyproject.toml)
 
-> **Status: v0.1.0 (alpha).** Point-in-time data, forecasters (Kronos, TimesFM, Chronos and
-> honest baselines), conformal calibration with measured holdout coverage, a regime-weighted
-> ensemble that always includes the random walk, a risk layer (VaR, Expected Shortfall,
-> drawdown, stress) with a JSON and HTML report, and a leakage-guarded walk-forward
-> evaluation that reads every model against the random walk with Diebold-Mariano tests.
-> **The evidence so far is synthetic: on the bundled series no model is distinguishable from
-> the random walk, and we publish that.** See the [leaderboard](docs/leaderboard/index.md).
-> Multi-asset portfolio risk is always labelled **uncalibrated**: dependence is assumed.
+> **Status: v0.2.0 (alpha, in development).** Everything in v0.1.0, plus a governed agentic risk
+> review (planner, specialist agents, an independent verifier, paper-trade proposals that always
+> wait for a human), a REST API with async jobs, and an MCP server, all through Keelgate's
+> gateway. **The evidence so far is synthetic: on the bundled series no model is
+> distinguishable from the random walk, and we publish that.** See the
+> [leaderboard](docs/leaderboard/index.md). Multi-asset portfolio risk is always labelled
+> **uncalibrated**: dependence is assumed.
 
 ![Kronos-small beside the random-walk baseline on a synthetic series, from examples/forecast.py](docs/assets/forecast-example.png)
 
@@ -70,8 +69,8 @@ flowchart TB
     bt["tycheon.backtest<br/>walk-forward · embargo · costs · leakage guards"]
     serve["tycheon.serve<br/>REST + MCP"]
 
-    gov["tycheon.governance<br/>the only place Keelgate is imported (T4)"]
-    agents["tycheon.agents<br/>planner · specialists · verifier (T4)"]
+    gov["tycheon.governance<br/>the only place Keelgate is imported"]
+    agents["tycheon.agents<br/>planner · specialists · verifier"]
 
     md --> asof
     news --> asof
@@ -150,6 +149,27 @@ uv sync --extra serve       # FastAPI + MCP server
 uv sync --all-extras        # everything
 ```
 
+## Governed agents and serving
+
+A model can plan and draft; it cannot call a tool, pick the date, or approve anything. Specialist
+agents gather evidence through **governed tool calls** (a grant per agent, a deterministic policy,
+a tamper-evident audit chain); an **independent verifier** checks every number in the draft against
+the evidence it cites; a report no draft can verify is **withheld**; a paper trade is only ever a
+**proposal** that waits for a human.
+
+```bash
+uv sync --extra agents --extra report
+uv run python examples/agentic_risk_review.py     # offline, scripted model: shows a rejection,
+                                                  # a revision, and a human approval request
+tycheon-serve --insecure-dev                      # REST + OpenAPI at http://127.0.0.1:8080/docs
+tycheon-mcp                                       # the same tools over MCP (stdio)
+make evals                                        # trajectory, planted-error and injection evals
+```
+
+See [agents](docs/agents.md), [governance](docs/governance.md) and [serving](docs/serving.md).
+The evidence is still synthetic, and Keelgate's own eval and telemetry modules are not built yet
+(the governance page lists exactly what was substituted).
+
 ## Models
 
 Every forecaster returns a `ForecastDistribution` and ships a
@@ -191,9 +211,10 @@ src/tycheon/
   routing/       regime detection, ensemble weighting
   risk/          VaR, ES, drawdown prob, stress, portfolio aggregation
   backtest/      walk-forward, metrics, cost model, leakage guards
-  governance/    the only place Keelgate is imported (from T4)
-  agents/        planner, specialists, verifier (from T4)
-  serve/         FastAPI + MCP server
+  services/      typed analytics (forecast, calibrate, risk, backtest, news, fundamentals)
+  governance/    the only place Keelgate is imported: grants, policy, approvals, audit, loop
+  agents/        planner, specialists, independent verifier, composer (pure Python)
+  serve/         FastAPI REST API and MCP server (over the same governed tools)
 benchmarks/      leaderboard harness, configs, results
 third_party/     vendored upstream Kronos (MIT), byte-identical, hash-checked
 docs/            methodology, ADRs, model cards
@@ -225,9 +246,11 @@ More in [`docs/safety.md`](docs/safety.md) and [`SECURITY.md`](SECURITY.md).
 
 [Keelgate](https://github.com/anilatambharii/keelgate) is the safety harness —
 policy gates, capabilities, approvals, audit, durable loops, telemetry and
-evals. Tycheon depends on it as a library from Phase T4, and every Keelgate
-import is confined to
-[`src/tycheon/governance/`](src/tycheon/governance/README.md).
+evals. Tycheon depends on it as a library (the `agents` and `serve` extras), and every
+Keelgate import is confined to
+[`src/tycheon/governance/`](src/tycheon/governance/README.md). Keelgate is not on
+PyPI yet, so those extras are installed from a pinned commit for now; see
+[governance](docs/governance.md).
 
 ## Open core
 
