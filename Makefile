@@ -7,7 +7,7 @@ COMPOSE ?= docker compose -f docker-compose.dev.yml
 # The dev environment includes the `kronos` extra (CPU torch): the fast tests run
 # the real Kronos code path on a tiny randomly-initialised model, and mypy needs
 # torch installed to give the same answer locally and in CI.
-EXTRAS  ?= --extra kronos --extra report
+EXTRAS  ?= --extra kronos --extra report --extra agents
 RUN     ?= $(UV) run $(EXTRAS)
 
 .PHONY: help setup setup-all lock fmt lint format-check types test test-slow \

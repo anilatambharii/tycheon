@@ -19,10 +19,10 @@ PROJECT_ROOT = Path(__file__).resolve().parents[1]
 SRC = PROJECT_ROOT / "src" / "tycheon"
 GOVERNANCE = SRC / "governance"
 
-# Phases T0-T3 are a pure library: no harness anywhere. In T4 this flips to
-# allow `keelgate>=0.1,<0.2` in the `agents` extra only, and the import rule
-# below starts to matter for real.
-KEELGATE_ALLOWED_IN_DEPENDENCIES = False
+# Phases T0-T3 were a pure library. From T4 Keelgate may appear, but only in the `agents` and
+# `serve` extras, bounded to the 0.1 series, and never in the base install.
+KEELGATE_ALLOWED_IN_DEPENDENCIES = True
+KEELGATE_EXTRAS = {"agents", "serve"}
 
 
 def _python_files() -> list[Path]:
@@ -73,20 +73,27 @@ def test_nothing_imports_keelgate_internals() -> None:
     assert not offenders, f"keelgate._internal is off limits; offenders: {offenders}"
 
 
-def test_no_keelgate_dependency_before_phase_t4(pyproject: dict[str, Any]) -> None:
-    """T0-T3 build forecasting, calibration, risk and evaluation as a pure library."""
+def test_keelgate_is_only_a_bounded_optional_dependency(pyproject: dict[str, Any]) -> None:
+    """The base install never needs the harness; only agents and serve do, pinned to 0.1.x."""
     project = pyproject["project"]
-    declared = list(project["dependencies"])
-    for deps in project["optional-dependencies"].values():
-        declared.extend(deps)
-    for deps in pyproject.get("dependency-groups", {}).values():
-        declared.extend(d for d in deps if isinstance(d, str))
+    assert not [d for d in project["dependencies"] if "keelgate" in d.lower()]
+    for group, deps in pyproject.get("dependency-groups", {}).items():
+        found = [d for d in deps if isinstance(d, str) and "keelgate" in d.lower()]
+        assert not found, f"dependency group {group!r} must not require keelgate: {found}"
 
-    found = [d for d in declared if "keelgate" in d.lower()]
+    declared = {
+        name: [d for d in deps if "keelgate" in d.lower()]
+        for name, deps in project["optional-dependencies"].items()
+    }
+    holders = {name for name, found in declared.items() if found}
     if KEELGATE_ALLOWED_IN_DEPENDENCIES:
-        assert found, "T4 onward must pin keelgate explicitly"
+        assert holders == KEELGATE_EXTRAS, (
+            f"keelgate must be in exactly {KEELGATE_EXTRAS}: {holders}"
+        )
+        for name in holders:
+            assert all(">=0.1,<0.2" in d.replace(" ", "") for d in declared[name]), declared[name]
     else:
-        assert not found, f"phases T0-T3 must not depend on keelgate; found {found}"
+        assert not holders
 
 
 # Heavy or optional packages. Importing any of these at module level would make
@@ -136,13 +143,67 @@ def test_the_vendored_tree_is_loaded_by_path_never_imported_by_name() -> None:
     assert not offenders, f"import vendored code through tycheon.models.kronos.vendor: {offenders}"
 
 
-def test_governance_and_agents_are_declared_placeholders() -> None:
-    """Both placeholders explain themselves, so nobody fills them in early."""
+def test_governance_and_agents_are_documented_packages() -> None:
+    """Both packages explain themselves and state the rules they live under."""
     for package in ("governance", "agents"):
         readme = SRC / package / "README.md"
-        text = readme.read_text(encoding="utf-8")
-        assert "T4" in text, f"{readme} must say when it arrives"
+        assert readme.is_file() and len(readme.read_text(encoding="utf-8")) > 400, readme
         assert (SRC / package / "__init__.py").is_file()
+
+
+def _imports_keelgate(node: ast.AST) -> bool:
+    for child in ast.walk(node):
+        if isinstance(child, ast.Import) and any(
+            a.name.split(".")[0] == "keelgate" for a in child.names
+        ):
+            return True
+        if isinstance(child, ast.ImportFrom) and (child.module or "").split(".")[0] == "keelgate":
+            return True
+    return False
+
+
+def test_there_is_no_governance_bypass_fallback_when_keelgate_is_missing() -> None:
+    """AGENTS.md: never write a fallback like "if keelgate is missing, execute anyway"."""
+    offenders = []
+    for path in sorted(GOVERNANCE.rglob("*.py")):
+        tree = ast.parse(path.read_text(encoding="utf-8"), filename=str(path))
+        for node in ast.walk(tree):
+            if not isinstance(node, ast.Try) or not any(_imports_keelgate(s) for s in node.body):
+                continue
+            for handler in node.handlers:
+                caught = ast.dump(handler.type) if handler.type is not None else "bare"
+                if any(
+                    n in caught for n in ("ImportError", "ModuleNotFoundError", "Exception", "bare")
+                ):
+                    offenders.append(f"{path.relative_to(PROJECT_ROOT)}:{node.lineno}")
+    assert not offenders, f"keelgate imports must fail loudly, not fall back: {offenders}"
+
+
+RAW_SERVICE_CALLS = {
+    "run_forecast", "run_calibration", "run_risk", "run_backtest", "news_signals",
+}  # fmt: skip
+
+
+def test_serve_and_agents_reach_the_analytics_only_through_governance() -> None:
+    """The structural half of "no bypass": nothing outside governance calls the raw services.
+
+    The governed tools wrap these functions; the REST API and the agents must call the tools
+    (grant, policy, audit), never the functions underneath.
+    """
+    offenders = []
+    for package in ("serve", "agents"):
+        for path in sorted((SRC / package).rglob("*.py")):
+            tree = ast.parse(path.read_text(encoding="utf-8"), filename=str(path))
+            for node in ast.walk(tree):
+                if isinstance(node, ast.ImportFrom) and (node.module or "").startswith(
+                    "tycheon.services"
+                ):
+                    names = {a.name for a in node.names}
+                    if names & RAW_SERVICE_CALLS:
+                        offenders.append(
+                            f"{path.relative_to(PROJECT_ROOT)}: {sorted(names & RAW_SERVICE_CALLS)}"
+                        )
+    assert not offenders, f"call governed tools, not the raw services: {offenders}"
 
 
 def test_governance_readme_forbids_the_bypass() -> None:
