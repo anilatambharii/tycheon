@@ -1,12 +1,12 @@
 [build-system]
-requires = ["hatchling>=1.32"]
+requires = ["hatchling>=1.32", "hatch-fancy-pypi-readme>=24.1"]
 build-backend = "hatchling.build"
 
 [project]
 name = "tycheon"
 version = "0.1.0"
 description = "Calibrated financial forecasting and risk. Kronos forecasts the path; Tycheon tells you how much to trust it."
-readme = "README.md"
+dynamic = ["readme"]
 requires-python = ">=3.11"
 license = "Apache-2.0"
 license-files = ["LICENSE", "third_party/kronos/LICENSE"]
@@ -43,6 +43,23 @@ dependencies = [
     "lightgbm>=4.5,<5",
     "pydantic>=2.11,<3",
 ]
+
+# The README uses repo-relative links and images (good on GitHub, broken on PyPI, which does not
+# resolve repo paths). At build time only, rewrite them to absolute GitHub URLs; the README in the
+# repository is not touched. Images go to raw.githubusercontent.com, other links to blob/main.
+[tool.hatch.metadata.hooks.fancy-pypi-readme]
+content-type = "text/markdown"
+
+[[tool.hatch.metadata.hooks.fancy-pypi-readme.fragments]]
+path = "README.md"
+
+[[tool.hatch.metadata.hooks.fancy-pypi-readme.substitutions]]
+pattern = '(!\[[^\]]*\])\((?!https?://)([^)\s]+)\)'
+replacement = '\1(https://raw.githubusercontent.com/anilatambharii/tycheon/main/\2)'
+
+[[tool.hatch.metadata.hooks.fancy-pypi-readme.substitutions]]
+pattern = '\]\((?!https?://|#|mailto:)([^)\s]+)\)'
+replacement = '](https://github.com/anilatambharii/tycheon/blob/main/\1)'
 
 [project.urls]
 Homepage = "https://github.com/anilatambharii/tycheon"

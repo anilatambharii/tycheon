@@ -7,7 +7,7 @@ All notable changes to Tycheon are recorded here. The format follows
 
 For research and risk analytics. Not investment advice.
 
-## [0.1.0] - Unreleased
+## [0.1.0] - 2026-10-06
 
 First public release: a calibrated forecasting and risk layer on Kronos, with an evaluation
 harness that publishes results whichever way they fall.
