@@ -104,3 +104,23 @@ def test_the_launch_draft_is_marked_as_a_draft_and_carries_the_disclaimer() -> N
     assert post.lstrip().lower().startswith("<!-- draft")
     assert "Kronos forecasts the path; Tycheon tells you how much to trust it" in post
     assert "Not investment advice" in post
+
+
+def test_the_pypi_readme_has_no_repo_relative_links_after_the_build_rewrite() -> None:
+    """PyPI does not resolve repo paths: the build must rewrite every relative link and image."""
+    config = tomllib.loads(_text("pyproject.toml"))
+    assert "readme" in config["project"]["dynamic"] and "readme" not in config["project"]
+    hook = config["tool"]["hatch"]["metadata"]["hooks"]["fancy-pypi-readme"]
+    assert hook["content-type"] == "text/markdown"
+    assert hook["fragments"] == [{"path": "README.md"}]
+    assert "hatch-fancy-pypi-readme" in " ".join(config["build-system"]["requires"])
+
+    text = _text("README.md")
+    for sub in hook["substitutions"]:
+        text = re.sub(sub["pattern"], sub["replacement"], text)
+    targets = re.findall(r"\]\(([^)\s]+)\)", text)
+    relative = [t for t in targets if not t.startswith(("http://", "https://", "#", "mailto:"))]
+    assert targets and not relative, relative
+    # images must point at the raw file, not at the HTML page that wraps it
+    for image in re.findall(r"!\[[^\]]*\]\(([^)\s]+)\)", text):
+        assert "/blob/" not in image
