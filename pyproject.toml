@@ -226,6 +226,7 @@ ignore = [
 "src/tycheon/risk/report.py" = ["PLC0415"]
 "src/tycheon/services/analytics.py" = ["PLC0415"]  # kronos and matplotlib are optional
 "src/tycheon/governance/_llm.py" = ["PLC0415"]  # provider SDKs are optional
+"src/tycheon/serve/cli.py" = ["PLC0415"]  # uvicorn is imported only when serving
 "src/tycheon/governance/_telemetry.py" = ["PLC0415"]  # the OTel SDK is only needed to export
 # The leaderboard harness and the examples are CLIs: they report to stdout by design.
 "benchmarks/**" = ["T20", "PLC0415"]
