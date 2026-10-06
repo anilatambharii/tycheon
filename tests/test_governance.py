@@ -75,6 +75,7 @@ def test_the_registry_has_exactly_the_documented_tools(rt) -> None:
             "forecast_distribution",
             "calibration_report",
             "portfolio_risk",
+            "risk_report",
             "backtest_summary",
             "news_signals",
             "fundamentals_snapshot",
@@ -407,6 +408,52 @@ def test_each_tenant_has_its_own_audit_chain_and_paper_book(rt) -> None:
 
 def test_a_grant_for_one_tenant_is_not_valid_in_another(rt) -> None:
     assert rt.grant_for("news-agent", "acme") != rt.grant_for("news-agent", "globex")
+
+
+# ----------------------------------------------------------- long-running processes
+def test_grants_are_reissued_before_they_expire_with_a_fresh_budget(tmp_path) -> None:
+    import time
+    from datetime import timedelta
+
+    runtime = GovernedRuntime(
+        RuntimeConfig(state_dir=tmp_path / "s", tenant_id="acme", grant_ttl=timedelta(seconds=2))
+    )
+    try:
+        first = runtime.grant_for("news-agent", "acme")
+        assert runtime.grant_for("news-agent", "acme") == first  # cached while fresh
+        time.sleep(1.2)  # past half the lifetime, before expiry
+        second = runtime.grant_for("news-agent", "acme")
+        assert second != first
+        ok = run(runtime.call("news-agent", "news_signals", {"symbol": "SYN-GBM"}, as_of=AS_OF))
+        assert ok.status == "OK"
+    finally:
+        runtime.close()
+
+
+def test_a_grants_spend_cap_is_enforced_and_service_principals_get_a_larger_window(
+    tmp_path,
+) -> None:
+    runtime = GovernedRuntime(
+        RuntimeConfig(
+            state_dir=tmp_path / "s",
+            tenant_id="acme",
+            max_cost_per_grant=0.5,
+            service_max_cost=50.0,
+        )
+    )
+    try:
+        # news_signals costs 0.2: two calls fit in 0.5, the third does not
+        codes = [
+            run(runtime.call("news-agent", "news_signals", {"symbol": "SYN-GBM"}, as_of=AS_OF))
+            for _ in range(3)
+        ]
+        assert [c.status for c in codes] == ["OK", "OK", "DENIED"]
+        assert codes[2].error_code == "budget_exceeded"
+        for _ in range(5):  # the REST principal has a much larger window
+            r = run(runtime.call("api-reader", "news_signals", {"symbol": "SYN-GBM"}, as_of=AS_OF))
+            assert r.status == "OK"
+    finally:
+        runtime.close()
 
 
 # ---------------------------------------------------------------------------- reports

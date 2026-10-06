@@ -15,12 +15,14 @@ Two details that matter:
 
 from __future__ import annotations
 
+import json
 import re
 from pathlib import Path
 
 from keelgate.tools import SideEffect, Tool, ToolRefusedError, tool
 
 from tycheon.services import (
+    ARTIFACTS,
     PaperBlotter,
     current,
     news_signals,
@@ -43,6 +45,8 @@ from tycheon.services.schemas import (
     NewsOut,
     PaperTradeIn,
     PaperTradeOut,
+    ReportIn,
+    ReportOut,
     RiskIn,
     RiskOut,
     SaveReportIn,
@@ -87,6 +91,23 @@ def build_tools(*, blotter: PaperBlotter, report_dir: Path) -> list[Tool]:
     def portfolio_risk(args: RiskIn) -> RiskOut:
         """VaR, Expected Shortfall, drawdown, volatility and stress for a long-only portfolio."""
         return run_risk(args)
+
+    @tool(
+        capability="risk:compute",
+        side_effect=SideEffect.READ,
+        name="risk_report",
+        timeout_s=30.0,
+        cost_estimate=0.2,
+    )
+    def risk_report(args: ReportIn) -> ReportOut:
+        """The full JSON and HTML report behind an earlier portfolio_risk result (same tenant)."""
+        ctx = current()
+        found = ARTIFACTS.get(ctx.tenant_id, args.report_id)
+        if found is None:
+            raise ServiceError("no such report for this tenant")
+        return ReportOut(
+            report_id=args.report_id, report=json.loads(found.to_json()), html=found.to_html()
+        )
 
     @tool(
         capability="backtest:run",
@@ -170,6 +191,7 @@ def build_tools(*, blotter: PaperBlotter, report_dir: Path) -> list[Tool]:
         forecast_distribution,
         calibration_report,
         portfolio_risk,
+        risk_report,
         backtest_summary,
         news_signals_tool,
         fundamentals_snapshot,

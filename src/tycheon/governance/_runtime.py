@@ -111,6 +111,8 @@ class RuntimeConfig:
     approval_ttl: timedelta = timedelta(hours=24)
     grant_ttl: timedelta = timedelta(hours=12)
     max_cost_per_grant: float = 500.0
+    #: Spend cap per grant window for the long-lived service principals (REST, MCP).
+    service_max_cost: float = 5_000.0
     engine: PolicyEngine | None = None
     signer: GrantSigner | None = None
 
@@ -225,27 +227,40 @@ class GovernedRuntime:
             ledger=self._ledger,
             idempotency=self._idempotency,
         )
-        self._grants: dict[tuple[str, str], str] = {}
+        self._grants: dict[tuple[str, str], tuple[str, datetime]] = {}
 
     # ----------------------------------------------------------------- grants
     def grant_for(self, agent_id: str, tenant_id: str | None = None) -> str:
-        """The signed grant for ``agent_id`` in a tenant (issued once, then cached)."""
+        """The signed grant for ``agent_id`` in a tenant.
+
+        Grants expire and carry a spend cap, so a long-running process re-issues one once half
+        its lifetime has passed: a new grant (new id, fresh budget window) before the old expires.
+        """
         tenant = tenant_id or self.config.tenant_id
         if agent_id not in AGENT_CAPABILITIES:
             raise GovernanceError(
                 "unknown_agent", f"no capability grant is defined for {agent_id!r}"
             )
         key = (agent_id, tenant)
-        if key not in self._grants:
-            self._grants[key] = issue_grant(
+        now = datetime.now(UTC)
+        cached = self._grants.get(key)
+        if cached is None or now - cached[1] > self.config.grant_ttl / 2:
+            cap = (
+                self.config.service_max_cost
+                if agent_id in (AGENT_API, AGENT_MCP)
+                else self.config.max_cost_per_grant
+            )
+            token = issue_grant(
                 self.signer,
                 agent_id=agent_id,
                 tenant_id=tenant,
                 capabilities=list(AGENT_CAPABILITIES[agent_id]),
-                max_cost=self.config.max_cost_per_grant,
+                max_cost=cap,
                 ttl=self.config.grant_ttl,
             ).token
-        return self._grants[key]
+            self._grants[key] = (token, now)
+            return token
+        return cached[0]
 
     def tool_names(self) -> list[str]:
         return list(self.registry.names())

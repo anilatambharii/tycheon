@@ -11,7 +11,7 @@ For research and risk analytics. Not investment advice.
 
 from __future__ import annotations
 
-from typing import Annotated, Literal
+from typing import Annotated, Any, Literal
 
 from pydantic import BaseModel, ConfigDict, Field, StringConstraints
 
@@ -263,6 +263,17 @@ class FundamentalsOut(_Strict):
 
 
 # --------------------------------------------------------------------------- reporting
+class ReportIn(_Strict):
+    report_id: Annotated[str, StringConstraints(pattern=r"^[A-Za-z0-9][A-Za-z0-9._-]{0,63}$")]
+
+
+class ReportOut(_Strict):
+    report_id: str
+    report: dict[str, Any] = Field(description="the full JSON risk report")
+    html: str | None = Field(default=None, description="self-contained HTML (inline SVG)")
+    disclaimer: str = DISCLAIMER
+
+
 class SaveReportIn(_Strict):
     report_id: Annotated[str, StringConstraints(pattern=r"^[A-Za-z0-9][A-Za-z0-9._-]{0,63}$")]
     markdown: str = Field(min_length=1, max_length=100_000)
