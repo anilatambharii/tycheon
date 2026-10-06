@@ -285,6 +285,7 @@ markers = [
     "slow: long-running tests (model downloads, full backtests); deselect with -m 'not slow'",
     "integration: needs `make up` services (Postgres/Redis/MinIO)",
     "leakage: point-in-time correctness guards; every data path must have one",
+    "eval: agent evals (trajectory, planted verifier errors, injection); run with `make evals`",
 ]
 filterwarnings = [
     "error",

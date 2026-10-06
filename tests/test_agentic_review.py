@@ -34,6 +34,8 @@ from tycheon.services import (
     sample_news,
 )
 
+pytestmark = pytest.mark.eval
+
 AS_OF = datetime(2023, 10, 2, 14, 30, tzinfo=UTC)
 PORTFOLIO = {"SYN-GBM": 400_000.0, "SYN-GARCH": 350_000.0}
 SYMBOLS = list(PORTFOLIO)
