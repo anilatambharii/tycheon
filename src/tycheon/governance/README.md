@@ -1,37 +1,37 @@
-# `tycheon.governance` — arrives in Phase T4
+# `tycheon.governance`: the one place Tycheon touches Keelgate
 
-This package is an intentional placeholder. It is empty through phases T0–T3.
+[Keelgate](https://github.com/anilatambharii/keelgate) is the safety harness that governs
+anything with a side effect: capability-scoped tools, a deterministic policy gate, human
+approvals, a tamper-evident audit chain, and durable budgeted loops. Tycheon depends on it as a
+library, and **every `keelgate` import lives in this package**. `tests/test_architecture.py`
+enforces that, so a change to Keelgate's integration contract touches exactly one place.
 
-## Why it exists now
+## What is here
 
-Tycheon's sister project [Keelgate](https://github.com/anilatambharii/keelgate)
-is the safety harness that governs anything with a side effect: capability-scoped
-tools, deterministic policy gates, human approvals, tamper-evident audit logs and
-the agent eval framework. Tycheon will depend on it as a library.
-
-`AGENTS.md` makes this package the **single** place Keelgate may be imported.
-Declaring it in T0 means the boundary exists before there is any code to tempt
-us across it, and `tests/test_architecture.py` enforces it from day one.
+| Module | What it does |
+|---|---|
+| `_runtime.py` | Assembles Keelgate's gateway (registry, grant verifier, audit chain, approval queue, budget ledger, idempotency store, policy). Issues one **least-privilege grant per agent** and hands the agents a `ToolCaller`. |
+| `_tools.py` | The governed tools: forecast, calibration, risk, backtest, news, fundamentals (all `READ`), `save_report` and `propose_paper_trade` (`WRITE`). Tool bodies read `as_of`, tenant and data from a trusted context, never from their arguments. |
+| `_policy.py` | Keelgate's `finance_basic` pack plus a small fail-closed overlay: analytics are read-only, and a paper trade is **never** auto-approved. |
+| `_loop.py` | The draft, verify, revise cycle on Keelgate's `Loop` (budgets, revision limit, checkpoints, audit). |
+| `_llm.py` | Adapts Keelgate's `LLMClient` (real providers, or the scripted `FakeLLM` in CI) to the agents' `TextModel`. |
+| `_serving.py` | The MCP server (stdio only) and the approvals REST app, over the same runtime. |
+| `_telemetry.py` | OpenTelemetry spans following the GenAI conventions. Keelgate's own telemetry is not implemented yet. |
 
 ## Rules this package lives under
 
-- Phases **T0–T3 must not depend on Keelgate at all.** Forecasting, calibration,
-  risk and evaluation are built as a pure library with no harness in the loop.
-- From **T4**, Tycheon depends on `keelgate>=0.1,<0.2`, pulled in by the
-  `tycheon[agents]` extra.
-- **Nothing outside this package imports `keelgate`.** Everything else in
-  `src/tycheon/` talks to the thin wrappers defined here.
-- Only Keelgate's documented integration contract
-  (its `docs/integration-contract.md`) may be used. Never `keelgate._internal`.
-- Tycheon registers its financial metrics into Keelgate's eval suite through the
-  `keelgate.outcome_metrics` entry-point group.
-- **There is never a fallback that bypasses governance.** No "if keelgate is
-  missing, execute anyway" path will be accepted in review. If the harness is
-  unavailable, the governed operation fails closed.
+- **It fails closed. There is no bypass.** Nothing here falls back to running a tool when Keelgate
+  is missing or errors; a missing Keelgate makes the import fail. There is no `try/except
+  ImportError` around a Keelgate import (a test checks).
+- Only Keelgate's documented integration contract is used. Never `keelgate._internal`.
+- Paper and simulation only. The policy denies any other execution mode, and Keelgate's gateway
+  refuses it independently.
+- External text (news, filings) is untrusted data. It never reaches a prompt and never becomes an
+  instruction; see `tycheon.services.news`.
+- Everything outside this package reaches an analytic or a side effect only by calling a governed
+  tool, never the raw service function (a test checks that too).
 
-## What will land here in T4
+## Known gaps in what Keelgate provides today
 
-Thin, typed adapters over the contract — tool registration with side-effect
-tags, capability grants, policy decisions, approval requests, audit writes,
-`as_of` context construction and outcome-metric registration — so the rest of
-Tycheon depends on Tycheon types, not on Keelgate's.
+Keelgate's `telemetry` and `evals` modules are empty (listed as planned in its contract), its
+`OutcomeMetric` protocol is not defined, and it is not on PyPI yet. See `docs/governance.md`.
