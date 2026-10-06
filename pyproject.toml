@@ -276,6 +276,11 @@ addopts = [
     "--strict-markers",
     "--strict-config",
     "--import-mode=importlib",
+    # Keelgate ships a pytest11 plugin that pytest loads at startup, before any test imports
+    # duckdb; it imports regopy, and regopy-before-duckdb aborts the process on Linux. Tycheon
+    # uses keelgate.testing directly and none of the plugin's fixtures.
+    "-p",
+    "no:keelgate",
     "--cov=tycheon",
     "--cov-report=term-missing",
     "--cov-report=xml",

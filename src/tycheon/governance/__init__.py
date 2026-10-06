@@ -13,6 +13,12 @@ Rules this package lives under (AGENTS.md):
   telemetry are all configured here.
 """
 
+# Import order matters on Linux. Keelgate's in-process Rego engine loads the native library
+# ``regopy``; importing it BEFORE ``duckdb`` corrupts the heap and aborts the process
+# ("double free or corruption"), while duckdb first is fine. DuckDB is a core dependency (the
+# as-of store), so load it before any Keelgate import. Do not move this below them.
+import duckdb  # noqa: F401
+
 from tycheon.governance._llm import KeelgateTextModel, make_text_model, scripted_text_model
 from tycheon.governance._loop import KeelgateComposeRunner
 from tycheon.governance._policy import (

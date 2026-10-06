@@ -10,6 +10,9 @@ import sys
 from collections.abc import Callable
 from pathlib import Path
 
+# duckdb must be imported before Keelgate's regopy (heap corruption on Linux otherwise); see
+# src/tycheon/governance/__init__.py.
+import duckdb  # noqa: F401
 import numpy as np
 import pandas as pd
 import pytest
