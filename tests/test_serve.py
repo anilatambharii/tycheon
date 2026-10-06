@@ -410,6 +410,37 @@ def test_a_tenant_cannot_queue_unbounded_jobs(runtime) -> None:
     run(scenario())
 
 
+def test_simultaneous_analytics_are_bounded(runtime, monkeypatch) -> None:
+    """CPU-heavy analytics wait their turn: no more than max_concurrency run at once."""
+    from tycheon.agents.protocols import ToolResult
+
+    running = peak = 0
+
+    async def slow(agent, tool, arguments, **kwargs):
+        nonlocal running, peak
+        running += 1
+        peak = max(peak, running)
+        await asyncio.sleep(0.05)
+        running -= 1
+        return ToolResult("OK", tool, output={"ok": True})
+
+    monkeypatch.setattr(runtime, "call", slow)
+    app = create_app(runtime, KEYS, as_of=lambda: AS_OF, max_concurrency=2)
+
+    async def scenario() -> None:
+        async with client(app) as c:
+            replies = await asyncio.gather(
+                *[
+                    c.post("/v1/risk", json={"positions": {"SYN-GBM": 1.0}}, headers=HDR_A)
+                    for _ in range(8)
+                ]
+            )
+            assert all(r.status_code in (200, 500) for r in replies)
+
+    run(scenario())
+    assert peak == 2
+
+
 # ------------------------------------------------------------------------- OpenAPI
 def test_the_openapi_document_describes_the_api_and_hides_as_of(runtime) -> None:
     async def scenario() -> dict:

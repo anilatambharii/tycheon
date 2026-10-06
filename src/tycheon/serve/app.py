@@ -20,6 +20,7 @@ For research and risk analytics. Not investment advice.
 
 # NOTE: no ``from __future__ import annotations`` here: FastAPI reads the route annotations at
 # definition time, and the ``Tenant`` alias below is local to ``create_app``.
+import asyncio
 from collections.abc import Callable
 from datetime import datetime
 from typing import Annotated, Any, Literal
@@ -149,19 +150,23 @@ class _Service:
         manager: JobManager,
         as_of: Callable[[], datetime],
         authenticate: Callable[..., Any],
+        max_concurrency: int,
     ) -> None:
         self.runtime = runtime
         self.jobs = manager
         self.as_of = as_of
         self.authenticate = authenticate
+        #: Bounds simultaneous analytics (they are CPU-heavy): further requests wait their turn.
+        self.limit = asyncio.Semaphore(max_concurrency)
 
     async def call(
         self, tenant: str, tool: str, payload: BaseModel | dict[str, Any]
     ) -> dict[str, Any]:
         arguments = payload.model_dump(mode="json") if isinstance(payload, BaseModel) else payload
-        result = await self.runtime.call(
-            AGENT_API, tool, arguments, as_of=self.as_of(), tenant_id=tenant
-        )
+        async with self.limit:
+            result = await self.runtime.call(
+                AGENT_API, tool, arguments, as_of=self.as_of(), tenant_id=tenant
+            )
         if result.ok and result.output is not None:
             return result.output
         raise _fail(result)
@@ -301,7 +306,10 @@ def _register_jobs(app: FastAPI, svc: _Service) -> None:
         when = svc.as_of()  # fixed at submission, so a slow job still answers as of that moment
 
         async def work() -> ToolResult:
-            return await svc.runtime.call(AGENT_API, tool, arguments, as_of=when, tenant_id=tenant)
+            async with svc.limit:
+                return await svc.runtime.call(
+                    AGENT_API, tool, arguments, as_of=when, tenant_id=tenant
+                )
 
         try:
             job = svc.jobs.submit(tenant, body.kind, work)
@@ -333,6 +341,7 @@ def create_app(
     approvals_app: Any | None = None,
     jobs: JobManager | None = None,
     insecure_dev_tenant: str | None = None,
+    max_concurrency: int = 4,
 ) -> FastAPI:
     """Build the API over a governed runtime.
 
@@ -366,7 +375,7 @@ def create_app(
         redoc_url=None,
     )
     manager = jobs or JobManager()
-    service = _Service(runtime, manager, as_of, authenticate)
+    service = _Service(runtime, manager, as_of, authenticate, max_concurrency)
     _install_error_handling(app)
     _register_analytics(app, service)
     _register_jobs(app, service)
