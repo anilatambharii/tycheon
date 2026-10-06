@@ -264,7 +264,14 @@ markers = [
     "integration: needs `make up` services (Postgres/Redis/MinIO)",
     "leakage: point-in-time correctness guards; every data path must have one",
 ]
-filterwarnings = ["error"]
+filterwarnings = [
+    "error",
+    # huggingface_hub still calls hf_xet.download_files(), which hf_xet now deprecates. It is a
+    # third-party warning raised during a model download (the slow tests), not our code, and as
+    # an error it aborts the download (transformers then reports a misleading "Can't load the
+    # model"). Ignore exactly this message; every other warning stays an error.
+    'ignore:hf_xet\.download_files\(\) is deprecated:DeprecationWarning',
+]
 
 # ---------------------------------------------------------------- coverage
 [tool.coverage.run]
