@@ -16,6 +16,7 @@ The overlay is deliberately tiny and deterministic:
 
 from __future__ import annotations
 
+import functools
 from typing import Any
 
 from keelgate.approvals import ApprovalTier
@@ -25,8 +26,9 @@ from keelgate.policy import (
     PolicyDecision,
     PolicyEngine,
     PolicyInput,
-    RegoEngine,
 )
+
+from tycheon.governance._rego_process import OutOfProcessRegoEngine
 
 OVERLAY_VERSION = "tycheon-overlay-1"
 PAPER_MODES = frozenset({"paper", "simulation"})
@@ -58,13 +60,19 @@ DEFAULT_LIMITS: dict[str, Any] = {
 }
 
 
+@functools.lru_cache(maxsize=1)
+def _default_engine() -> PolicyEngine:
+    """One shared worker process for every default policy (see ``_rego_process``)."""
+    return OutOfProcessRegoEngine()
+
+
 class TycheonPolicy:
     """A :class:`~keelgate.policy.PolicyEngine`: ``finance_basic`` plus the overlay above."""
 
     name = "tycheon-policy"
 
     def __init__(self, inner: PolicyEngine | None = None) -> None:
-        self._inner: PolicyEngine = inner if inner is not None else RegoEngine()
+        self._inner: PolicyEngine = inner if inner is not None else _default_engine()
         self._inner_version = str(getattr(self._inner, "policy_version", "unknown"))
 
     @property

@@ -1,4 +1,4 @@
-"""Regression: importing Keelgate's regopy before duckdb corrupts the heap on Linux.
+"""Regression: DuckDB and Keelgate's regopy corrupt each other's heap on Linux.
 
 CI crashed with exit code 134 (and no output) because pytest auto-loaded Keelgate's plugin,
 which imports ``regopy`` before anything imported ``duckdb``. These tests pin the two defences
@@ -58,3 +58,27 @@ def test_the_governance_source_keeps_the_duckdb_import_ahead_of_the_keelgate_imp
     text = (ROOT / "src" / "tycheon" / "governance" / "__init__.py").read_text(encoding="utf-8")
     assert text.index("import duckdb") < text.index("from tycheon.governance._llm import")
     assert "double free" in text  # the reason is written next to the import
+
+
+def test_a_policy_decision_and_duckdb_coexist_in_one_process() -> None:
+    """The real conflict: use DuckDB and evaluate a Rego policy in the same interpreter."""
+    program = chr(10).join(
+        [
+            "import asyncio, duckdb",
+            "from datetime import UTC, datetime",
+            "from keelgate.policy import PolicyAction, PolicyActor, PolicyInput",
+            "from tycheon.governance._policy import TycheonPolicy, policy_context",
+            "con = duckdb.connect(); con.execute('select 1').fetchall()",
+            "pi = PolicyInput(",
+            "    action=PolicyAction(tool='t', side_effect='WRITE',",
+            "                        capability='trade:paper_execute', args={}),",
+            "    actor=PolicyActor(agent_id='a', tenant_id='acme', grant_id='g'),",
+            "    resource={'symbol': 'SYN-GBM', 'notional': 1.0},",
+            "    context=policy_context(datetime(2024, 3, 5, 15, tzinfo=UTC)))",
+            "print(asyncio.run(TycheonPolicy().decide(pi)).effect.value)",
+            "print(con.execute('select 2').fetchall())",
+        ]
+    )
+    done = run_python(program)
+    assert done.returncode == 0, done.stderr[-2000:]
+    assert "REQUIRE_APPROVAL" in done.stdout and "[(2,)]" in done.stdout

@@ -84,7 +84,7 @@ Written down because the brief for this phase assumed things Keelgate does not y
 
 ## Known limits
 
-- **A native-library conflict on Linux.** Keelgate's in-process Rego engine loads `regopy`; importing it before `duckdb` corrupts the heap and aborts the process, while the reverse order is fine (found when CI crashed with exit code 134). `tycheon.governance` imports `duckdb` first and pytest opts out of Keelgate's auto-loaded plugin (`-p no:keelgate`). Any application that imports `keelgate` itself before `duckdb` on Linux can hit it; this is worth reporting upstream.
+- **A native-library conflict on Linux.** Keelgate's in-process Rego engine loads `regopy`, and `regopy` and `duckdb` (Tycheon's as-of store) corrupt each other's heap when both are used in one process on Linux, in either import order (found when CI crashed with exit code 134). Tycheon therefore runs Keelgate's `RegoEngine` and `finance_basic` pack in a small worker process (`OutOfProcessRegoEngine`); any worker failure is a denial and the worker is restarted. `tycheon.governance` imports `duckdb` before `keelgate`, and pytest opts out of Keelgate's auto-loaded plugin (`-p no:keelgate`), which would load `regopy` in the test process. An application that creates a Keelgate `RegoEngine` in a process that also uses DuckDB can hit this on Linux; it is worth reporting upstream (to regopy / DuckDB).
 - The verifier is rule-based: it catches wrong numbers, bad citations and missing disclosures, not
   a subtly misleading but numerically correct sentence.
 - The signing key is generated per process unless one is supplied; multi-process deployments must
