@@ -39,6 +39,9 @@ def test_release_please_agrees_with_the_package_version() -> None:
     assert config["release-type"] == "python" and config["include-v-in-tag"] is True
     # plain `v0.1.0` tags, so they match the `v*` trigger and the version check in publish.yml
     assert config["include-component-in-tag"] is False
+    # below 1.0, a feat: is a minor bump (0.1 -> 0.2) and a fix: is a patch; breaking is minor too
+    assert config["bump-minor-pre-major"] is True
+    assert config["bump-patch-for-minor-pre-major"] is False
     assert config["packages"]["."]["changelog-path"] == "CHANGELOG.md"
 
 
