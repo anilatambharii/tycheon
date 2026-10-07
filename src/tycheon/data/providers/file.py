@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import os
 from pathlib import Path
 from typing import Literal
 
@@ -46,8 +47,13 @@ class FileProvider(ProviderBase):
 
     def _path(self, symbol: str, suffix: str = "") -> Path:
         validate_symbol(symbol)
-        path = (self.root / f"{symbol}{suffix}.{self.fmt}").resolve()
-        # validate_symbol already forbids separators; this is the belt to its braces.
+        # validate_symbol already forbids separators; the normalised-prefix check is the belt to
+        # its braces, and resolving afterwards refuses a symlink that leads out of the root.
+        name = f"{symbol}{suffix}.{self.fmt}"
+        candidate = os.path.normpath(os.path.join(str(self.root), name))  # noqa: PTH118
+        if not candidate.startswith(str(self.root) + os.sep):
+            raise ProviderError(f"{symbol!r} resolves outside the data root")
+        path = Path(candidate).resolve()
         if self.root not in path.parents:
             raise ProviderError(f"{symbol!r} resolves outside the data root")
         return path

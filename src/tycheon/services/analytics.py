@@ -77,11 +77,19 @@ def make_forecaster(name: str) -> Forecaster:
         return GARCHForecaster(window=MAX_HISTORY)
     if name == "kronos-mini":
         return _kronos_mini()
+    if name == "routed" or name.startswith("ft:"):
+        resolver = current().models
+        if resolver is None:
+            raise ServiceError("private models are not available here")
+        return resolver(name)
     raise ServiceError(f"unknown model {name!r}")
 
 
 def _history_cap(model: str) -> int:
-    return KRONOS_HISTORY if model.startswith("kronos") else MAX_HISTORY
+    # a private model is a fine-tuned Kronos; "routed" may pick one, so it gets the same cap
+    return (
+        KRONOS_HISTORY if model.startswith(("kronos", "ft:")) or model == "routed" else MAX_HISTORY
+    )
 
 
 def _key(value: float) -> str:

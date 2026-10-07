@@ -11,7 +11,7 @@ EXTRAS  ?= --extra kronos --extra report --extra agents
 RUN     ?= $(UV) run $(EXTRAS)
 
 .PHONY: help setup setup-all lock fmt lint format-check types test test-slow evals \
-        check up down restart logs health hooks secrets-baseline \
+        ee-types ee-test check up down restart logs health hooks secrets-baseline \
         benchmark-small benchmark benchmark-render example docs docs-build build clean
 
 help: ## Show this help
@@ -51,6 +51,14 @@ test-slow: ## Run the slow suite too (downloads Kronos-mini weights from Hugging
 
 evals: ## Run the agent evals (real Keelgate gateway, scripted model: no key or network)
 	$(RUN) pytest -m eval --no-cov
+
+EE_EXTRAS ?= --extra ee --extra kronos --extra report --extra agents
+
+ee-types: ## Type-check the proprietary ee/ code with mypy --strict (needs the ee extra)
+	$(UV) run $(EE_EXTRAS) mypy ee/control_plane ee/finetune
+
+ee-test: ## Run the Tycheon Cloud tests (needs TYCHEON_TEST_DATABASE_URL and TYCHEON_TEST_APP_URL)
+	$(UV) run $(EE_EXTRAS) pytest ee/tests --no-cov
 
 check: lint format-check types test ## Lint, format-check, type-check and fast tests
 	@echo "make check: PASS"

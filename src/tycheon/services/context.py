@@ -17,7 +17,7 @@ import contextlib
 from contextvars import ContextVar
 from dataclasses import dataclass
 from pathlib import Path
-from typing import TYPE_CHECKING, Literal
+from typing import TYPE_CHECKING, Literal, Protocol
 
 from tycheon.data.asof import as_utc
 from tycheon.data.providers.file import FileProvider
@@ -30,6 +30,7 @@ if TYPE_CHECKING:
 
     import pandas as pd
 
+    from tycheon.models.base import Forecaster
     from tycheon.services.fundamentals import FundamentalsStore
     from tycheon.services.news import NewsStore
 
@@ -68,6 +69,17 @@ class DataSource:
         )
 
 
+class ModelResolver(Protocol):
+    """Turns a private model name (``ft:<id>``, ``routed``) into a forecaster.
+
+    Supplied by a host that owns private models (Tycheon Cloud), bound by the harness with the
+    rest of the trusted context, and scoped to one tenant: a name that is not that tenant's own
+    resolves to an error, never to someone else's model.
+    """
+
+    def __call__(self, name: str) -> Forecaster: ...
+
+
 @dataclass(frozen=True)
 class ToolContext:
     """Trusted facts for one call. Built by the harness, never from model or client input."""
@@ -75,6 +87,7 @@ class ToolContext:
     as_of: datetime
     tenant_id: str
     data: DataSource
+    models: ModelResolver | None = None
 
     def __post_init__(self) -> None:
         as_utc(self.as_of)  # refuses a naive timestamp

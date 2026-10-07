@@ -18,7 +18,13 @@ from pydantic import BaseModel, ConfigDict, Field, StringConstraints
 from tycheon.models.base import DISCLAIMER
 
 Symbol = Annotated[str, StringConstraints(pattern=r"^[A-Za-z0-9][A-Za-z0-9._-]{0,23}$")]
-ModelName = Literal["random-walk", "drift", "garch", "kronos-mini"]
+#: ``ft:<id>`` is a tenant's private fine-tuned model and ``routed`` is the tenant's routing
+#: config: both resolve through the trusted context's model resolver, so they only exist where a
+#: host (Tycheon Cloud) supplies one. The OSS library never invents them.
+PrivateModelName = Annotated[
+    str, StringConstraints(pattern=r"^(ft:[A-Za-z0-9][A-Za-z0-9._-]{0,63}|routed)$")
+]
+ModelName = Literal["random-walk", "drift", "garch", "kronos-mini"] | PrivateModelName
 BaselineName = Literal["random-walk", "drift", "seasonal-naive", "garch"]
 CalibrationStatusName = Literal["calibrated", "stale", "uncalibrated"]
 

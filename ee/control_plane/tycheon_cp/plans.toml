@@ -1,0 +1,74 @@
+# Tycheon Cloud plans. Proprietary: see ee/LICENSE.
+#
+# Plans are configuration, not code: change a number here, not in a handler. Limits are per
+# calendar month (UTC) and per organisation; an absent limit means "not included" (0). A
+# subscription can carry per-organisation overrides (`subscriptions.limits_override`) for
+# negotiated Enterprise deals.
+#
+# Prices in `[plans.*.price]` become Stripe products/prices (test mode only until approved).
+# Numbers marked "default" are not in the product brief and are placeholders to confirm.
+
+[meters]
+# kind -> unit shown on invoices and in the dashboard
+forecast_calls = "calls"
+calibration_reports = "reports"
+risk_reports = "reports"
+backtest_compute_seconds = "seconds"
+gpu_seconds = "seconds"
+
+[plans.developer]
+name = "Developer"
+description = "Free: research use, end-of-day data."
+research_use_only = true
+data_frequencies = ["1D"]
+features = []                       # no MCP endpoint, no calibration reports, no fine-tuning
+rate_limit_per_minute = 30          # default
+retention_days = 30                 # default
+trial_days = 0
+
+[plans.developer.limits]
+forecast_calls = 1000               # from the brief: 1k forecasts/month
+risk_reports = 100                  # default
+backtest_compute_seconds = 600      # default
+
+[plans.startup]
+name = "Startup"
+description = "1M forecast calls, MCP endpoint, calibration reports."
+research_use_only = false
+data_frequencies = ["1D"]
+features = ["mcp", "calibration_reports"]
+rate_limit_per_minute = 600         # default
+retention_days = 365                # default
+trial_days = 14                     # default
+
+[plans.startup.limits]
+forecast_calls = 1_000_000          # from the brief
+calibration_reports = 10_000        # default
+risk_reports = 100_000              # default
+backtest_compute_seconds = 100_000  # default
+
+[plans.startup.price]
+amount_cents = 100_000              # from the brief: $1,000/month
+currency = "usd"
+interval = "month"
+lookup_key = "tycheon_startup_monthly"
+
+[plans.enterprise]
+name = "Enterprise"
+description = "Custom: fine-tuning on your data, dedicated GPUs, private deployment, SSO."
+research_use_only = false
+data_frequencies = ["1D", "1H", "1min"]
+features = ["mcp", "calibration_reports", "finetune", "dedicated_gpu", "sso", "private_deployment"]
+rate_limit_per_minute = 6000        # default
+retention_days = 2555               # default (7 years)
+trial_days = 0
+# Enterprise is sold by contract: limits come from the organisation's override, and it is invoiced
+# outside self-serve checkout (one-off invoices for custom build engagements are tracked in
+# `oneoff_invoices`). Without an override the limits below apply.
+
+[plans.enterprise.limits]
+forecast_calls = 50_000_000         # default
+calibration_reports = 1_000_000     # default
+risk_reports = 5_000_000            # default
+backtest_compute_seconds = 5_000_000  # default
+gpu_seconds = 360_000               # default (100 GPU-hours)

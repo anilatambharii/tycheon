@@ -5,9 +5,9 @@ license at the repository root.
 
 | Path | Status | Contents |
 |---|---|---|
-| `control_plane/` | planned | Tenancy, metered billing, API keys, usage limits. |
-| `dashboard/` | planned | Next.js + TypeScript + Tailwind operator and customer UI. |
-| `finetune/` | planned | Proprietary fine-tuning and private model registry. |
+| `control_plane/` | built (T5) | Multi-tenant API: orgs, users, API keys, OIDC SSO, Postgres RLS, rate limits, metering and quotas, BYO credentials under envelope encryption, Stripe (test mode), MCP endpoint. |
+| `dashboard/` | built (T5) | Next.js + TypeScript + Tailwind customer UI (a backend-for-frontend keeps the session out of the browser). |
+| `finetune/` | built (T5) | Per-tenant Kronos fine-tuning, promotion gate, private model registry and routing. |
 
 ## Why the boundary sits here
 
@@ -24,3 +24,6 @@ only ever points inward: Cloud depends on OSS, never the reverse.
 
 No market data is redistributed here. Cloud customers bring their own data
 license.
+
+See [`docs/cloud.md`](../docs/cloud.md) for the architecture, the local run book and, plainly, what is
+and is not verified.

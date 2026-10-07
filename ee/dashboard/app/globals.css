@@ -1,0 +1,108 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --bg: #f8fafc;
+  --surface: #ffffff;
+  --text: #0f172a;
+  --muted: #475569;
+  --border: #e2e8f0;
+  --accent: #4f46e5;
+  --accent-text: #ffffff;
+  --ok: #15803d;
+  --warn: #b45309;
+  --bad: #b91c1c;
+  --band90: rgba(79, 70, 229, 0.14);
+  --band50: rgba(79, 70, 229, 0.3);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0b1120;
+    --surface: #111a2e;
+    --text: #e5e7eb;
+    --muted: #9ca3af;
+    --border: #243049;
+    --accent: #818cf8;
+    --accent-text: #0b1120;
+    --ok: #4ade80;
+    --warn: #fbbf24;
+    --bad: #f87171;
+    --band90: rgba(129, 140, 248, 0.16);
+    --band50: rgba(129, 140, 248, 0.34);
+  }
+}
+
+html,
+body {
+  background: var(--bg);
+  color: var(--text);
+}
+
+@layer components {
+  .card {
+    @apply rounded-lg border p-4;
+    background: var(--surface);
+    border-color: var(--border);
+  }
+  .muted {
+    color: var(--muted);
+  }
+  .btn {
+    @apply inline-flex items-center justify-center rounded-md border px-3 py-1.5 text-sm font-medium disabled:cursor-not-allowed disabled:opacity-50;
+    border-color: var(--border);
+    background: var(--surface);
+    color: var(--text);
+  }
+  .btn:hover:not(:disabled) {
+    border-color: var(--accent);
+  }
+  .btn-primary {
+    background: var(--accent);
+    border-color: var(--accent);
+    color: var(--accent-text);
+  }
+  .btn-danger {
+    color: var(--bad);
+  }
+  .input {
+    @apply w-full rounded-md border px-2 py-1.5 text-sm;
+    background: var(--bg);
+    border-color: var(--border);
+    color: var(--text);
+  }
+  .label {
+    @apply mb-1 block text-sm font-medium;
+  }
+  .th {
+    @apply whitespace-nowrap px-2 py-1.5 text-left text-xs font-semibold uppercase tracking-wide;
+    color: var(--muted);
+  }
+  .td {
+    @apply px-2 py-1.5 align-top text-sm;
+  }
+  .badge {
+    @apply inline-block rounded-full border px-2 py-0.5 text-xs font-semibold;
+    border-color: var(--border);
+  }
+  .h1 {
+    @apply mb-4 text-2xl font-semibold;
+  }
+  .h2 {
+    @apply mb-2 text-lg font-semibold;
+  }
+}
+
+a {
+  color: var(--accent);
+}
+
+:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+tbody tr {
+  border-top: 1px solid var(--border);
+}

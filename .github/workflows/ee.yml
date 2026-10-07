@@ -1,0 +1,79 @@
+# Tycheon Cloud (the proprietary ee/ code): Postgres-backed tests, strict types and the dashboard.
+# Row-level security can only be tested on a real Postgres, so this job runs one as a service.
+name: Cloud (ee)
+
+on:
+  push:
+    branches: [main]
+    paths: ["ee/**", "src/tycheon/governance/**", "src/tycheon/services/**", "pyproject.toml", "uv.lock", ".github/workflows/ee.yml"]
+  pull_request:
+    paths: ["ee/**", "src/tycheon/governance/**", "src/tycheon/services/**", "pyproject.toml", "uv.lock", ".github/workflows/ee.yml"]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ee-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  TYCHEON_ENV: ci
+  TYCHEON_ALLOW_YFINANCE: "false"
+  TYCHEON_ALLOW_LIVE_EXECUTION: "false"
+
+jobs:
+  cloud-tests:
+    name: cloud tests (Postgres, py3.12)
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_PASSWORD: postgres-ci-only  # throwaway CI service, not a secret
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U postgres" --health-interval 5s --health-timeout 5s
+          --health-retries 12
+    env:
+      UV_PYTHON: "3.12"
+      UV_FROZEN: "1"
+      PGPASSWORD: postgres-ci-only
+      TYCHEON_TEST_DATABASE_URL: postgresql://tycheon_owner:owner-dev-pw@localhost:5432/tycheon_test?sslmode=disable
+      TYCHEON_TEST_APP_URL: postgresql://tycheon_app:app-dev-pw@localhost:5432/tycheon_test?sslmode=disable
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v4
+        with:
+          enable-cache: true
+          cache-dependency-glob: uv.lock
+      - run: uv python install 3.12
+      - name: Sync dependencies (the ee extra, plus CPU torch for the fine-tune tests)
+        run: uv sync --extra ee --extra kronos --extra report --extra agents
+      - name: Create the database roles
+        run: psql -h localhost -U postgres -f ee/scripts/create_roles.sql
+      - name: Type check ee/ (mypy --strict)
+        run: uv run mypy ee/control_plane ee/finetune
+      - name: Cloud tests
+        run: uv run pytest ee/tests --no-cov -p no:cacheprovider
+
+  dashboard:
+    name: dashboard (typecheck, lint, test, build)
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    defaults:
+      run:
+        working-directory: ee/dashboard
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: ee/dashboard/package-lock.json
+      - run: npm ci
+      - run: npm run typecheck
+      - run: npm run lint
+      - run: npm test
+      - run: npm run build
