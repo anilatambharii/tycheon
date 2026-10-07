@@ -1,0 +1,19 @@
+# Local Terraform working data (never commit)
+.terraform/
+*.tfstate
+*.tfstate.*
+crash.log
+crash.*.log
+*.tfplan
+tfplan
+override.tf
+override.tf.json
+*_override.tf
+*_override.tf.json
+
+# Real variable files may contain environment specifics; only *.example is committed
+*.tfvars
+*.tfvars.json
+!*.tfvars.example
+
+# NOTE: .terraform.lock.hcl IS committed on purpose (provider hashes only).

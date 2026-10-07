@@ -1,0 +1,25 @@
+# Example values only - no secrets belong in this file.
+# 123456789012 is the AWS documentation placeholder account; replace it with the customer account.
+
+region      = "eu-west-1"
+account_id  = "123456789012"
+environment = "prod"
+
+existing_vpc_id = "vpc-0123456789abcdef0"
+existing_private_subnet_ids = [
+  "subnet-0aaaaaaaaaaaaaaa1",
+  "subnet-0bbbbbbbbbbbbbbb2",
+  "subnet-0ccccccccccccccc3",
+]
+
+# Only the customer's own networks may reach the ALB.
+alb_ingress_cidrs = ["10.0.0.0/8"]
+
+eks_admin_role_arns = ["arn:aws:iam::123456789012:role/customer-platform-admins"]
+
+# Customer fronts the ALB with their own WAF/firewall.
+enable_waf = false
+
+tags = {
+  Owner = "customer-platform"
+}

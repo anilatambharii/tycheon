@@ -1,0 +1,62 @@
+# Labels used by .github/ISSUE_TEMPLATE/*, docs/launch/good-first-issues.yaml and the discussion
+# categories. Created (or updated, via --force) by docs/launch/create-issues.sh.
+- name: good first issue
+  color: 7057ff
+  description: Small, well-scoped, and a good place to start
+- name: help wanted
+  color: 008672
+  description: A maintainer would welcome a contribution
+- name: bug
+  color: d73a4a
+  description: Something is not working as documented
+- name: enhancement
+  color: a2eeef
+  description: New feature or improvement
+- name: documentation
+  color: 0075ca
+  description: Docs, docstrings, model cards, examples
+- name: tests
+  color: fbca04
+  description: Adds or improves tests
+- name: security
+  color: b60205
+  description: Hardening and supply chain (report vulnerabilities privately, see SECURITY.md)
+- name: leakage
+  color: e99695
+  description: Point-in-time, as_of or lookahead correctness
+- name: benchmark
+  color: 5319e7
+  description: Leaderboard, baselines or evaluation methodology
+- name: model request
+  color: c5def5
+  description: Request to add or evaluate a forecaster
+- name: needs triage
+  color: ededed
+  description: Not yet reviewed by a maintainer
+- name: "area: docs"
+  color: bfd4f2
+  description: docs/, README, examples
+- name: "area: models"
+  color: bfd4f2
+  description: Forecasters, baselines, model cards
+- name: "area: backtest"
+  color: bfd4f2
+  description: Walk-forward engine, metrics, guards, costs
+- name: "area: calibration"
+  color: bfd4f2
+  description: Conformal prediction and diagnostics
+- name: "area: risk"
+  color: bfd4f2
+  description: VaR, ES, drawdown, stress, portfolio aggregation
+- name: "area: data"
+  color: bfd4f2
+  description: Providers, as-of store, sample data
+- name: "area: serve"
+  color: bfd4f2
+  description: REST API and MCP server
+- name: "area: services"
+  color: bfd4f2
+  description: Typed analytics services
+- name: "area: ci"
+  color: bfd4f2
+  description: GitHub Actions and repository automation

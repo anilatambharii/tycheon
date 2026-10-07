@@ -47,9 +47,10 @@ markdown_extensions:
           class: mermaid
           format: !!python/name:pymdownx.superfences.fence_code_format
 
-# The launch post is a draft for the maintainers, not part of the published site.
+# The launch post and launch checklists are drafts for the maintainers, not part of the published site.
 exclude_docs: |
   blog/
+  launch/
 
 nav:
   - Home: index.md
@@ -63,6 +64,25 @@ nav:
   - Governance: governance.md
   - Serving: serving.md
   - Tycheon Cloud: cloud.md
+  - Examples gallery: gallery.md
+  - Operations:
+      - Overview: ops/index.md
+      - Deployment: ops/deployment.md
+      - CI/CD: ops/cicd.md
+      - SLOs and alerts: ops/slos.md
+      - Backup and restore: ops/backup-restore.md
+      - Incident response: ops/incident-response.md
+      - SOC 2 aligned controls: ops/soc2-controls.md
+      - Runbooks:
+          - Error budget burn: ops/runbooks/error-budget-burn.md
+          - High latency: ops/runbooks/high-latency.md
+          - Calibration decay: ops/runbooks/calibration-decay.md
+          - GPU under-utilised: ops/runbooks/gpu-underutilised.md
+          - Queue stuck: ops/runbooks/queue-stuck.md
+          - Cost anomaly: ops/runbooks/cost-anomaly.md
+          - Quota refusals: ops/runbooks/quota-lockout.md
+          - Bad migration: ops/runbooks/bad-migration.md
+          - Credentials leak: ops/runbooks/credentials-leak.md
   - Leaderboard: leaderboard/index.md
   - Benchmark methodology: benchmark-methodology.md
   - Releasing: releasing.md

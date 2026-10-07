@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Ask a question or share an idea (Discussions)
+    url: https://github.com/anilatambharii/tycheon/discussions
+    about: Usage questions, ideas, show-and-tell and benchmark discussion belong in Discussions, not issues.
+  - name: Report a security vulnerability (private)
+    url: https://github.com/anilatambharii/tycheon/security/policy
+    about: Do not open a public issue. Lookahead leakage, prompt injection via market text, governance bypass, uncertainty stripping and tenant crossing all count as vulnerabilities here. Read SECURITY.md and report through a private advisory.

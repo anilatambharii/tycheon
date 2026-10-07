@@ -1,0 +1,45 @@
+name: Feature request
+description: Suggest an improvement or a new capability
+title: "feat: "
+labels: ["enhancement", "needs triage"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Tycheon is B2B risk-analytics infrastructure: calibrated forecasts, risk numbers and honest evaluation. It is not a consumer trade-signal product, has no live brokerage execution, and does not give investment advice. Requests that need any of those will be declined.
+
+        For open-ended ideas, [Discussions](https://github.com/anilatambharii/tycheon/discussions) is usually a better first stop.
+  - type: textarea
+    id: problem
+    attributes:
+      label: The problem
+      description: What are you trying to do, and what gets in the way today?
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed change
+      description: What would you like to see? An API sketch helps.
+    validations:
+      required: true
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives considered
+  - type: checkboxes
+    id: rules
+    attributes:
+      label: Project rules this request must respect
+      description: These come from AGENTS.md and CONTRIBUTING.md. Tick what applies and say how in the proposal.
+      options:
+        - label: Any data read is point-in-time (takes `as_of`, refuses data published after it), with a leakage test.
+        - label: Any forecast output carries intervals or quantiles, calibration status, model mix, `as_of` and a model card reference.
+        - label: Any evaluation reports the random-walk baseline and a Diebold-Mariano test, including when the baseline wins.
+        - label: It adds no live execution and redistributes no licensed market data.
+  - type: checkboxes
+    id: contribute
+    attributes:
+      label: Contribution
+      options:
+        - label: I would be willing to work on this (see CONTRIBUTING.md).

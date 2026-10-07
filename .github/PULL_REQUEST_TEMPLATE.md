@@ -28,6 +28,8 @@ Tick what applies and say where it is tested.
       calibration status, model mix, `as_of` and a model card reference
 - [ ] **Baselines** — any new evaluation reports the random-walk baseline and a
       Diebold-Mariano test (state the result, including if the baseline won)
+- [ ] **Quoted numbers** — any benchmark number in docs, README or this PR is copied
+      from a file under `benchmarks/results/` and names that file (no hand-typed results)
 - [ ] **Untrusted text** — external text (news, filings, web) is treated as
       data, never as instructions
 - [ ] **Governance** — no Keelgate import outside `src/tycheon/governance/`,

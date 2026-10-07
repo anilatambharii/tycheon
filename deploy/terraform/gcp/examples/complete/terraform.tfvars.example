@@ -1,0 +1,27 @@
+# Example values only - no secrets belong in this file.
+# The project ID/number below are placeholders.
+
+project_id     = "tycheon-example-prod"
+project_number = "123456789012"
+region         = "us-central1"
+zones          = ["us-central1-a", "us-central1-b", "us-central1-c"]
+environment    = "prod"
+
+# Networks allowed to reach the (private) Kubernetes API, e.g. your VPN / bastion / CI runner range.
+master_authorized_networks = [
+  { cidr = "10.0.0.0/8", name = "corp-vpn" },
+]
+
+# Domains for the Google-managed certificate.
+lb_domains = ["api.example.com"]
+
+# GPU pool scales from zero. Check nvidia-l4 availability for your zones and your GPU quota.
+gpu_node_pool = {
+  min_nodes = 0
+  max_nodes = 4
+}
+
+labels = {
+  cost_center = "tycheon-cloud"
+  owner       = "platform"
+}

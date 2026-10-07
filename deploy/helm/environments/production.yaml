@@ -1,0 +1,31 @@
+# Environment overrides for PRODUCTION, layered after values-saas.yaml by .github/workflows/images.yml.
+# Fill the <placeholders> from the Terraform outputs (deploy/terraform). No secret belongs here.
+controlPlane:
+  replicas: 3
+  config:
+    TYCHEON_CP_PUBLIC_URL: https://api.example.com
+    TYCHEON_CP_DASHBOARD_URL: https://app.example.com
+    TYCHEON_CP_AWS_KMS_KEY_ID: <app_kms_key_arn>
+dashboard:
+  replicas: 3
+  config:
+    CONTROL_PLANE_PUBLIC_URL: https://api.example.com
+workers:
+  cpu: { replicas: 3 }
+  gpu: { enabled: true, replicas: 1 }
+ingress:
+  hosts:
+    controlPlane: api.example.com
+    dashboard: app.example.com
+  annotations:
+    alb.ingress.kubernetes.io/wafv2-acl-arn: <waf_web_acl_arn>
+    alb.ingress.kubernetes.io/certificate-arn: <acm_certificate_arn>
+networkPolicy:
+  egress:
+    postgresCIDRs: ["<database_subnet_cidr>"]
+    redisCIDRs: ["<cache_subnet_cidr>"]
+serviceAccount:
+  annotations:
+    controlPlane: { eks.amazonaws.com/role-arn: <control_plane_role_arn> }
+    mcp: { eks.amazonaws.com/role-arn: <control_plane_role_arn> }
+    workers: { eks.amazonaws.com/role-arn: <worker_role_arn> }

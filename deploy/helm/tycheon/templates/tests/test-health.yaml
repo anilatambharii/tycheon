@@ -1,0 +1,58 @@
+{{- /* `helm test`: every enabled service answers its health endpoint from inside the cluster. */ -}}
+{{- $full := include "tycheon.fullname" . -}}
+apiVersion: v1
+kind: Pod
+metadata:
+  name: {{ $full }}-test-health
+  labels: {{- include "tycheon.labels" . | nindent 4 }}
+  annotations:
+    helm.sh/hook: test
+    helm.sh/hook-delete-policy: before-hook-creation,hook-succeeded
+spec:
+  restartPolicy: Never
+  automountServiceAccountToken: false
+  securityContext: {{- include "tycheon.podSecurityContext" . | nindent 4 }}
+  {{- include "tycheon.pullSecrets" . | nindent 2 }}
+  containers:
+    - name: check
+      image: {{ include "tycheon.image" (dict "root" . "image" .Values.image.api) | quote }}
+      imagePullPolicy: {{ .Values.image.pullPolicy }}
+      command: ["python", "-c"]
+      args:
+        - |
+          import sys, urllib.request
+          targets = [
+          {{- if .Values.api.enabled }}
+            "http://{{ $full }}-api:8080/health",
+          {{- end }}
+          {{- if .Values.controlPlane.enabled }}
+            "http://{{ $full }}-control-plane:8080/health",
+          {{- if .Values.mcp.enabled }}
+            "http://{{ $full }}-mcp:8080/health",
+          {{- end }}
+          {{- end }}
+          {{- if .Values.dashboard.enabled }}
+            "http://{{ $full }}-dashboard:3000/login",
+          {{- end }}
+          ]
+          import time
+          def healthy(url):
+              # a service that just became Ready may still be warming up: retry for up to a minute
+              last = "no attempt"
+              for _ in range(20):
+                  try:
+                      if urllib.request.urlopen(url, timeout=10).status == 200:
+                          return True, ""
+                      last = "not 200"
+                  except Exception as exc:
+                      last = type(exc).__name__
+                  time.sleep(3)
+              return False, last
+          bad = 0
+          for url in targets:
+              ok, why = healthy(url)
+              print("ok  " if ok else "FAIL", url, why)
+              bad += not ok
+          sys.exit(1 if bad else 0)
+      securityContext: {{- include "tycheon.containerSecurityContext" . | nindent 8 }}
+      resources: { requests: { cpu: 50m, memory: 64Mi }, limits: { memory: 256Mi } }

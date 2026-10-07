@@ -42,6 +42,7 @@ if TYPE_CHECKING:
     from tycheon_cp.blob import BlobStore
     from tycheon_cp.db import Database
     from tycheon_cp.metering import Meter, Reservation
+    from tycheon_cp.metrics import Metrics
     from tycheon_cp.plans import Plans
     from tycheon_cp.ratelimit import RateLimiter
 
@@ -89,11 +90,13 @@ class AnalyticsGateway:
         runtime: GovernedRuntime,
         blobs: BlobStore,
         private_models: PrivateModels | None = None,
+        metrics: Metrics | None = None,
         max_concurrency: int = 4,
         clock: Callable[[], datetime] | None = None,
     ) -> None:
         self.db, self.plans, self.meter, self.limiter = db, plans, meter, limiter
         self.runtime, self.blobs, self.private_models = runtime, blobs, private_models
+        self.metrics = metrics
         self._clock = clock or (lambda: datetime.now(UTC))
         self._limit = asyncio.Semaphore(max_concurrency)
 
@@ -128,6 +131,10 @@ class AnalyticsGateway:
 
         return resolve  # type: ignore[return-value]
 
+    def _refused(self, reason: str) -> None:
+        if self.metrics is not None:
+            self.metrics.refusals.labels(reason).inc()
+
     async def _admit(
         self, principal: store.Principal, tool: str, *, via_mcp: bool
     ) -> tuple[store.OrgContext, Reservation | None]:
@@ -141,6 +148,7 @@ class AnalyticsGateway:
             if feature:
                 self.meter.require_feature(org.plan, feature)
         except RateLimitedError as exc:
+            self._refused("rate_limited")
             raise ApiProblem(
                 429,
                 "rate_limited",
@@ -148,6 +156,7 @@ class AnalyticsGateway:
                 headers={"Retry-After": str(max(1, round(exc.retry_after)))},
             ) from exc
         except FeatureNotIncludedError as exc:
+            self._refused("plan_feature")
             raise ApiProblem(
                 403, "plan_feature", f"Your {org.plan.name} plan does not include {exc.feature}."
             ) from exc
@@ -160,6 +169,7 @@ class AnalyticsGateway:
                     org.org_id, org.plan, kind, override=org.override
                 )
         except QuotaExceededError as exc:
+            self._refused("quota_exceeded")
             raise ApiProblem(
                 429, "quota_exceeded", f"Your monthly {exc.kind} quota is used up."
             ) from exc
@@ -213,6 +223,10 @@ class AnalyticsGateway:
             await self.meter.commit(
                 reservation, idempotency_key=idempotency_key, meta={"tool": tool}
             )
+            if self.metrics is not None and kind:
+                self.metrics.usage.labels(kind).inc()
+        if self.metrics is not None and tool == "forecast_distribution":
+            self.metrics.observe_forecast(result.output)
         elif kind and is_compute:
             seconds = max(1, round(time.perf_counter() - started))
             await self.meter.record_actual(

@@ -29,7 +29,9 @@ repos:
         # mkdocs.yml carries a `!!python/name:` tag for the Mermaid fence,
         # which a safe loader cannot construct. `mkdocs build --strict` in CI
         # is what validates that file.
-        exclude: ^mkdocs\.yml$
+        # Helm templates are Go templates, not YAML until rendered; `helm lint` and kubeconform
+        # (deploy/helm/verify.sh, run in CI) validate them.
+        exclude: ^(mkdocs\.yml|deploy/helm/tycheon/templates/.*)$
       - id: check-toml
       - id: check-json
       - id: check-merge-conflict

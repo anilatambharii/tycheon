@@ -1,0 +1,209 @@
+# Tycheon chart values. Safe defaults: everything runs as an unprivileged user on a read-only root
+# filesystem, nothing is exposed until you enable an Ingress, and NO secret value lives in this
+# file: workloads read credentials from Kubernetes Secrets you create (or sync) yourself.
+#
+# Profiles (layer one on top with -f):
+#   values-saas.yaml          Tycheon-operated SaaS: managed Postgres/Redis/KMS, GPU node pool, WAF
+#   values-customer-vpc.yaml  private deployment in a customer's VPC: no public ingress by default
+#   values-kind.yaml          CPU-only smoke test on kind: in-cluster dev Postgres (NOT for production)
+
+global:
+  imageRegistry: ghcr.io/anilatambharii
+  imagePullSecrets: []        # e.g. [{name: ghcr-pull}] for the proprietary images
+  # extra labels on every object
+  labels: {}
+
+image:
+  pullPolicy: IfNotPresent
+  # tag defaults to the chart's appVersion. Pin by digest in production (see values-saas.yaml).
+  api:       { repository: tycheon-api,       tag: "", digest: "" }
+  cloud:     { repository: tycheon-cloud,     tag: "", digest: "" }
+  # the CUDA variant of the cloud image (same code, GPU PyTorch); used by the GPU worker only
+  cloudCuda: { repository: tycheon-cloud,     tag: "", digest: "", tagSuffix: "-cuda" }
+  dashboard: { repository: tycheon-dashboard, tag: "", digest: "" }
+
+# --------------------------------------------------------------------- open-source API
+api:
+  enabled: true
+  replicas: 2
+  # TYCHEON_API_KEYS (tenant:key pairs) is read from this Secret. The server refuses to start
+  # without keys, so there is no unauthenticated mode in a cluster.
+  existingSecret: tycheon-api-keys
+  env:
+    TYCHEON_ENV: production
+  resources:
+    requests: { cpu: 500m, memory: 1Gi }
+    limits:   { memory: 3Gi }
+  autoscaling: { enabled: true, minReplicas: 2, maxReplicas: 8, targetCPUUtilizationPercentage: 70 }
+  pdb: { minAvailable: 1 }
+  persistence: { enabled: false, size: 5Gi, storageClass: "" }   # audit/approval state; emptyDir if off
+  nodeSelector: {}
+  tolerations: []
+  affinity: {}
+
+# ------------------------------------------------------------------------ Tycheon Cloud
+controlPlane:
+  enabled: false
+  replicas: 2
+  # Secret keys read as environment variables:
+  #   TYCHEON_CP_DATABASE_URL (application role), TYCHEON_CP_SESSION_SECRET,
+  #   TYCHEON_CP_OPERATOR_TOKEN (optional), STRIPE_SECRET_KEY, STRIPE_WEBHOOK_SECRET (test keys only),
+  #   TYCHEON_CP_LOCAL_KMS_KEY (dev/kind only: production uses TYCHEON_CP_KMS=aws)
+  existingSecret: tycheon-cloud
+  config:
+    TYCHEON_CP_ENV: production
+    TYCHEON_CP_KMS: aws
+    TYCHEON_CP_AWS_KMS_KEY_ID: ""
+    TYCHEON_CP_PUBLIC_URL: ""         # https://api.example.com
+    TYCHEON_CP_DASHBOARD_URL: ""      # https://app.example.com
+    TYCHEON_CP_DEDICATED_GPU_POOLS: "false"
+  resources:
+    requests: { cpu: 500m, memory: 1Gi }
+    limits:   { memory: 3Gi }
+  autoscaling: { enabled: true, minReplicas: 2, maxReplicas: 10, targetCPUUtilizationPercentage: 70 }
+  pdb: { minAvailable: 1 }
+  # uploads and fine-tune artifacts. Workers read what the control plane writes, so across pods
+  # this needs a ReadWriteMany volume (EFS/Filestore) until an S3 blob store exists (known gap).
+  storage: { persistence: { enabled: false, size: 50Gi, storageClass: "", accessModes: [ReadWriteMany] } }
+  nodeSelector: {}
+  tolerations: []
+  affinity: {}
+
+# Database migrations: a Job run before every install and upgrade, as the owner role.
+# Secret key read: TYCHEON_CP_MIGRATION_URL.
+migrations:
+  enabled: true
+  # run as a Helm pre-install/pre-upgrade hook (the default). Off only where the database is created
+  # by the same release (the kind smoke test), which a hook would run before.
+  hook: true
+  waitSeconds: 300      # keep retrying to connect this long (a database that is still starting)
+  existingSecret: tycheon-migrations
+  appRole: tycheon_app
+
+# The MCP endpoint is served by the control plane at /v1/mcp. A separate Deployment of the same
+# image lets it scale and be rate-limited independently of the management API.
+mcp:
+  enabled: true
+  replicas: 2
+  resources:
+    requests: { cpu: 250m, memory: 512Mi }
+    limits:   { memory: 2Gi }
+  autoscaling: { enabled: true, minReplicas: 2, maxReplicas: 10, targetCPUUtilizationPercentage: 70 }
+  pdb: { minAvailable: 1 }
+
+workers:
+  # fine-tune workers claim jobs from a pool; both pools run `python -m tycheon_ft.worker`
+  cpu:
+    enabled: false
+    replicas: 1
+    pool: shared
+    resources:
+      requests: { cpu: "2", memory: 4Gi }
+      limits:   { memory: 8Gi }
+    nodeSelector: {}
+    tolerations: []
+  gpu:
+    enabled: false
+    replicas: 1
+    pool: shared
+    resources:
+      requests: { cpu: "4", memory: 16Gi }
+      limits:   { memory: 32Gi, nvidia.com/gpu: 1 }
+    # land on the GPU node pool the Terraform modules create
+    nodeSelector: { tycheon.io/pool: gpu }
+    tolerations:
+      - { key: nvidia.com/gpu, operator: Equal, value: "true", effect: NoSchedule }
+
+dashboard:
+  enabled: false
+  replicas: 2
+  config:
+    NEXT_PUBLIC_LEADERBOARD_URL: https://anilatambharii.github.io/tycheon/leaderboard/
+    CONTROL_PLANE_PUBLIC_URL: ""      # browser-visible control plane URL (for the SSO redirect)
+  resources:
+    requests: { cpu: 100m, memory: 256Mi }
+    limits:   { memory: 512Mi }
+  autoscaling: { enabled: true, minReplicas: 2, maxReplicas: 6, targetCPUUtilizationPercentage: 70 }
+  pdb: { minAvailable: 1 }
+
+# Model weights (Kronos) are downloaded once into a shared volume, pinned by commit, and reused.
+modelCache:
+  enabled: true
+  persistence: { size: 10Gi, storageClass: "", accessModes: [ReadWriteOnce] }
+  # a Job that fills the cache before workloads need it. Disable in air-gapped clusters and
+  # pre-seed the volume instead.
+  prefetch: { enabled: true, variant: mini }
+
+# OpenTelemetry collector: receives OTLP from the workloads, exposes Prometheus metrics, and
+# forwards traces/metrics to your backend.
+otel:
+  enabled: true
+  image: { repository: otel/opentelemetry-collector-contrib, tag: "0.140.0", digest: "sha256:ffc818ee108d0b934fd14207fd87ff247c9b64f344ed349d0b66c166c18a2312" }
+  replicas: 1
+  # forward telemetry to a backend; empty means "keep only the Prometheus endpoint"
+  exporters: { otlpEndpoint: "", otlpInsecure: false }
+  resources:
+    requests: { cpu: 100m, memory: 256Mi }
+    limits:   { memory: 512Mi }
+  serviceMonitor: { enabled: false }
+
+# SLO and operational alerts (needs the Prometheus Operator). Thresholds are explained in
+# docs/ops/slos.md; change them there and here together.
+prometheusRule:
+  enabled: false
+  labels: {}                          # e.g. {release: kube-prometheus-stack} so the operator selects it
+  runbookBase: https://github.com/anilatambharii/tycheon/blob/main/docs/ops/runbooks
+  thresholds:
+    forecastP99Seconds: 2.5
+    uncalibratedShare: 0.2
+    coverageGap: 0.05
+    gpuIdlePercent: 10
+    gpuBusyPercent: 95
+    maxGpus: 4
+    trafficMultiple: 5
+    queueWaitSeconds: 1800
+    quotaRefusalsPerSecond: 1
+
+# Scrape the control plane /metrics endpoint. It needs the bearer token in the control-plane Secret
+# (key TYCHEON_CP_METRICS_TOKEN) and is never routed by the Ingress.
+metrics:
+  serviceMonitor: { enabled: false, labels: {} }
+
+# What the workloads call to export telemetry (set automatically when otel.enabled)
+telemetry:
+  serviceName: tycheon
+
+ingress:
+  enabled: false
+  className: ""                       # alb | nginx | ...
+  annotations: {}
+  tls: []
+  hosts:
+    api: ""                           # the open-source API, e.g. forecast.example.com
+    controlPlane: ""                  # the Cloud API and MCP endpoint, e.g. api.example.com
+    dashboard: ""                     # the dashboard, e.g. app.example.com
+
+networkPolicy:
+  enabled: true
+  # namespace and pod labels of your ingress controller (so it may reach the workloads)
+  ingressController:
+    namespaceSelector: { kubernetes.io/metadata.name: ingress-nginx }
+  # where the control plane and workers may connect besides the cluster itself
+  egress:
+    postgresCIDRs: []                 # e.g. ["10.20.0.0/16"] (the database subnets)
+    redisCIDRs: []
+    allowInternet443: true            # Stripe, identity providers, model downloads. Turn off to lock down.
+    dns: true
+
+serviceAccount:
+  # IRSA / Workload Identity annotations per component, e.g.
+  #   controlPlane: { eks.amazonaws.com/role-arn: arn:aws:iam::123456789012:role/tycheon-control-plane }
+  annotations: { api: {}, controlPlane: {}, mcp: {}, workers: {}, dashboard: {}, otel: {} }
+
+podAnnotations: {}
+
+# DEVELOPMENT ONLY: a single in-cluster Postgres for the kind smoke test. It has no backups, no
+# replication and weak throwaway credentials. Production uses RDS/Cloud SQL (see deploy/terraform).
+devPostgres:
+  enabled: false
+  image: { repository: postgres, tag: 16-alpine, digest: "sha256:721873c34ceb9f8d8fc265984940dc982404c105f19ad51be9fdc5970a6080ea" }

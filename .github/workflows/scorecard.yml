@@ -1,0 +1,44 @@
+# OpenSSF Scorecard: scores the repository's supply-chain practices and uploads the result to the
+# Security tab (code scanning) and, because publish_results is on, to the public Scorecard API
+# that backs the README badge. Every third-party action is pinned to a full commit SHA; the tag
+# each SHA was resolved from is in the trailing comment. Resolve new ones with:
+#   gh api repos/<owner>/<repo>/git/ref/tags/<tag>     (dereference if object.type is "tag")
+name: Scorecard
+
+on:
+  push:
+    branches: [main]
+  schedule:
+    - cron: "17 4 * * 1" # weekly, Monday 04:17 UTC
+  workflow_dispatch:
+
+# Nothing is granted by default; the single job asks for exactly what it needs.
+permissions: {}
+
+jobs:
+  analysis:
+    name: Scorecard analysis
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: read # read the repository
+      security-events: write # upload SARIF to code scanning
+      id-token: write # publish results (OIDC) for the badge
+    steps:
+      - name: Check out the repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Run Scorecard
+        uses: ossf/scorecard-action@2d1146689b8cda280b9bc96326124645441f03bc # v2.4.4
+        with:
+          results_file: results.sarif
+          results_format: sarif
+          publish_results: true
+
+      - name: Upload to code scanning
+        uses: github/codeql-action/upload-sarif@2892aa5e19bbd11bc0cff5427e3b750a04d9e3c2 # v4.38.2
+        with:
+          sarif_file: results.sarif
+          category: scorecard

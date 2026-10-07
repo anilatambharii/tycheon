@@ -4,7 +4,7 @@
 -- secrets management and never reuse these.
 DO $$ BEGIN
   IF NOT EXISTS (SELECT FROM pg_roles WHERE rolname = 'tycheon_owner') THEN
-    CREATE ROLE tycheon_owner LOGIN PASSWORD 'owner-dev-pw' CREATEROLE;  -- pragma: allowlist secret
+    CREATE ROLE tycheon_owner LOGIN PASSWORD 'owner-dev-pw' CREATEROLE CREATEDB;  -- pragma: allowlist secret
   END IF;
   IF NOT EXISTS (SELECT FROM pg_roles WHERE rolname = 'tycheon_app') THEN
     -- the application role: no superuser, no BYPASSRLS, owns nothing

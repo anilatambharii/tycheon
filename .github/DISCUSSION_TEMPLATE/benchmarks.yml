@@ -1,0 +1,32 @@
+title: "[Benchmark] "
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Discuss results, methodology and what the leaderboard can and cannot show. Read the [benchmark methodology](https://github.com/anilatambharii/tycheon/blob/main/docs/benchmark-methodology.md) first. For a defect in a published result, open a "Model or benchmark request" issue; for a suspected lookahead path, use a private security advisory instead (see SECURITY.md).
+  - type: dropdown
+    id: topic
+    attributes:
+      label: Topic
+      options:
+        - Interpreting a published result
+        - Methodology or metrics
+        - Reproducing a run
+        - Results on my own (licensed) data
+        - A model I would like measured
+        - Other
+    validations:
+      required: true
+  - type: textarea
+    id: body
+    attributes:
+      label: Details
+      description: Name the result file or command (`benchmarks/results/...`, `python -m benchmarks.run ...`) and your environment. Quote numbers from the file, not from memory.
+    validations:
+      required: true
+  - type: textarea
+    id: evidence
+    attributes:
+      label: Evidence
+      description: If you are sharing your own run, include the Diebold-Mariano outcome against the random walk and whether the baseline won. Say how many origins and which data (synthetic, or yours).
+      render: text

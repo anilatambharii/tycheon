@@ -1,0 +1,24 @@
+title: "[Q&A] "
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Ask how to use Tycheon. For a reproducible defect, open a [bug report](https://github.com/anilatambharii/tycheon/issues/new/choose) instead. Tycheon is for research and risk analytics; it is not investment advice and we cannot answer questions about what to buy or sell.
+  - type: textarea
+    id: question
+    attributes:
+      label: Your question
+      description: What are you trying to do?
+    validations:
+      required: true
+  - type: textarea
+    id: tried
+    attributes:
+      label: What you have tried
+      description: Code or commands, ideally on the bundled synthetic data. Remove secrets and do not paste licensed market data.
+      render: python
+  - type: input
+    id: version
+    attributes:
+      label: Tycheon version and environment
+      description: For example "0.3.0, Python 3.12, Windows 11".

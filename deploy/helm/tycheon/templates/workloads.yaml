@@ -1,0 +1,112 @@
+{{- /* The API, control plane, MCP, workers and dashboard. Each is the shared workload template. */ -}}
+{{- $full := include "tycheon.fullname" . -}}
+
+{{- /* ---------------------------------------------------------------- open-source API */ -}}
+{{- if .Values.api.enabled }}
+{{- $api := .Values.api -}}
+{{ include "tycheon.workload" (dict
+  "root" .
+  "component" "api"
+  "cfg" $api
+  "image" (include "tycheon.image" (dict "root" . "image" .Values.image.api))
+  "port" 8080
+  "probePath" "/health"
+  "args" (list "--host" "0.0.0.0" "--port" "8080" "--state-dir" "/data/state")
+  "env" (merge (dict "HF_HOME" "/cache/huggingface") $api.env)
+  "envFromSecrets" (list $api.existingSecret)
+  "extraVolumes" (list
+      (dict "name" "data" (ternary "persistentVolumeClaim" "emptyDir" $api.persistence.enabled) (ternary (dict "claimName" (printf "%s-api-data" $full)) (dict) $api.persistence.enabled))
+      (dict "name" "model-cache" (ternary "persistentVolumeClaim" "emptyDir" .Values.modelCache.enabled) (ternary (dict "claimName" (printf "%s-model-cache" $full)) (dict) .Values.modelCache.enabled)))
+  "extraMounts" (list (dict "name" "data" "mountPath" "/data") (dict "name" "model-cache" "mountPath" "/cache"))
+) }}
+{{- end }}
+
+{{- /* ------------------------------------------------------------- Tycheon Cloud */ -}}
+{{- if .Values.controlPlane.enabled }}
+{{- $cp := .Values.controlPlane -}}
+{{- $cloudImage := include "tycheon.image" (dict "root" . "image" .Values.image.cloud) -}}
+{{- $cloudEnv := merge (dict "HF_HOME" "/cache/huggingface" "TYCHEON_CP_STORAGE_ROOT" "/data") $cp.config -}}
+{{- $cloudMounts := list (dict "name" "data" "mountPath" "/data") (dict "name" "model-cache" "mountPath" "/cache") -}}
+{{- $cloudVolumes := list
+      (dict "name" "data" (ternary "persistentVolumeClaim" "emptyDir" $cp.storage.persistence.enabled) (ternary (dict "claimName" (printf "%s-data" $full)) (dict) $cp.storage.persistence.enabled))
+      (dict "name" "model-cache" (ternary "persistentVolumeClaim" "emptyDir" .Values.modelCache.enabled) (ternary (dict "claimName" (printf "%s-model-cache" $full)) (dict) .Values.modelCache.enabled)) -}}
+{{ include "tycheon.workload" (dict
+  "root" .
+  "component" "control-plane"
+  "saKey" "controlPlane"
+  "cfg" $cp
+  "image" $cloudImage
+  "port" 8080
+  "probePath" "/health"
+  "env" $cloudEnv
+  "envFromSecrets" (list $cp.existingSecret)
+  "extraVolumes" $cloudVolumes
+  "extraMounts" $cloudMounts
+  "startupFailures" 60
+) }}
+
+{{- if .Values.mcp.enabled }}
+{{ include "tycheon.workload" (dict
+  "root" .
+  "component" "mcp"
+  "saKey" "mcp"
+  "cfg" .Values.mcp
+  "image" $cloudImage
+  "port" 8080
+  "probePath" "/health"
+  "env" $cloudEnv
+  "envFromSecrets" (list $cp.existingSecret)
+  "extraVolumes" $cloudVolumes
+  "extraMounts" $cloudMounts
+  "startupFailures" 60
+) }}
+{{- end }}
+
+{{- if .Values.workers.cpu.enabled }}
+{{ include "tycheon.workload" (dict
+  "root" .
+  "component" "worker-cpu"
+  "saKey" "workers"
+  "cfg" .Values.workers.cpu
+  "image" $cloudImage
+  "command" (list "python" "-m" "tycheon_ft.worker")
+  "args" (list "--pool" .Values.workers.cpu.pool "--device" "cpu")
+  "env" $cloudEnv
+  "envFromSecrets" (list $cp.existingSecret)
+  "extraVolumes" $cloudVolumes
+  "extraMounts" $cloudMounts
+  "grace" 600
+) }}
+{{- end }}
+
+{{- if .Values.workers.gpu.enabled }}
+{{ include "tycheon.workload" (dict
+  "root" .
+  "component" "worker-gpu"
+  "saKey" "workers"
+  "cfg" .Values.workers.gpu
+  "image" (include "tycheon.image" (dict "root" . "image" .Values.image.cloudCuda "suffix" .Values.image.cloudCuda.tagSuffix))
+  "command" (list "python" "-m" "tycheon_ft.worker")
+  "args" (list "--pool" .Values.workers.gpu.pool "--device" "cuda")
+  "env" $cloudEnv
+  "envFromSecrets" (list $cp.existingSecret)
+  "extraVolumes" $cloudVolumes
+  "extraMounts" $cloudMounts
+  "grace" 600
+) }}
+{{- end }}
+{{- end }}
+
+{{- /* ------------------------------------------------------------------ dashboard */ -}}
+{{- if .Values.dashboard.enabled }}
+{{- $d := .Values.dashboard -}}
+{{ include "tycheon.workload" (dict
+  "root" .
+  "component" "dashboard"
+  "cfg" $d
+  "image" (include "tycheon.image" (dict "root" . "image" .Values.image.dashboard))
+  "port" 3000
+  "probePath" "/login"
+  "env" (merge (dict "CONTROL_PLANE_URL" (printf "http://%s-control-plane:8080" $full)) $d.config)
+) }}
+{{- end }}

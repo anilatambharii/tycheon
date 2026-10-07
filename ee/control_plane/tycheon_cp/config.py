@@ -34,6 +34,8 @@ class Settings:
     stripe_webhook_secret: str | None = field(default=None, repr=False)
     public_url: str = "http://localhost:8080"
     dashboard_url: str = "http://localhost:3000"
+    #: bearer token for /metrics; the endpoint does not exist without it
+    metrics_token: str | None = field(default=None, repr=False)
     #: authenticates platform operators (Tycheon staff); the operator API is off when unset
     operator_token: str | None = field(default=None, repr=False)
     session_ttl_seconds: int = 8 * 3600
@@ -46,6 +48,8 @@ class Settings:
             raise ConfigError(
                 f"the session secret must be at least {MIN_SESSION_SECRET} characters"
             )
+        if self.metrics_token is not None and len(self.metrics_token) < MIN_SESSION_SECRET:
+            raise ConfigError("the metrics token must be at least 32 characters")
         if self.operator_token is not None and len(self.operator_token) < MIN_SESSION_SECRET:
             raise ConfigError("the operator token must be at least 32 characters")
         if self.kms == "local":
@@ -89,5 +93,6 @@ class Settings:
             public_url=env.get("TYCHEON_CP_PUBLIC_URL", "http://localhost:8080"),
             dashboard_url=env.get("TYCHEON_CP_DASHBOARD_URL", "http://localhost:3000"),
             operator_token=env.get("TYCHEON_CP_OPERATOR_TOKEN"),
+            metrics_token=env.get("TYCHEON_CP_METRICS_TOKEN"),
             dedicated_gpu_pools=env.get("TYCHEON_CP_DEDICATED_GPU_POOLS", "") == "true",
         )

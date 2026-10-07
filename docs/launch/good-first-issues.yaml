@@ -1,0 +1,796 @@
+# Good first issues for the launch. Reviewed and created by a maintainer with docs/launch/create-issues.sh.
+# Each entry: title, labels, body. Labels are defined in docs/launch/labels.yaml.
+# A path followed by (new file) in a body is a file the issue asks the contributor to create.
+- title: 'docs: replace the ''not yet measured'' baseline comparison on the drift model card'
+  labels:
+  - good first issue
+  - documentation
+  - 'area: docs'
+  - 'area: models'
+  body: |
+    **Context**
+
+    `docs/models/drift.md` ends with a "Baseline comparison" section that still says the comparison is "not yet measured" and arrives "in Phase T3". The walk-forward engine has since shipped and `benchmarks/results/small/0.1.0.json` is a published run (benchmark `small`, three synthetic series, horizon 5, 108 pooled origins). In that file `drift` has MASE 1.024 against the random walk and one-sided Diebold-Mariano p-values of 0.850 (squared error) and 0.905 (CRPS), verdict "indistinguishable from the random walk". It is one of the baselines in the run.
+
+    **What to do**
+
+    Rewrite only the "Baseline comparison" section of `docs/models/drift.md`: say which result file and run it comes from, that the data are synthetic and the sample small, quote the MASE and both DM p-values exactly as they appear in `benchmarks/results/small/0.1.0.json` (key `diebold_mariano_vs_random_walk`), state the verdict in plain words, and link `docs/leaderboard/index.md`. Do not imply skill, and keep the disclaimer line at the bottom of the card.
+
+    **Acceptance criteria**
+
+    - Every number in the new text appears in `benchmarks/results/small/0.1.0.json` and is attributed to that file.
+    - The text says the data are synthetic and the sample is small, and does not claim the model beats (or reliably loses to) the random walk.
+    - `tests/test_forecaster_contract.py` (which checks the required card headings) and `uv run --group docs mkdocs build --strict` both pass.
+
+    **How to check**
+
+    Run `make check` (lint, format check, `mypy --strict`, fast tests). Without `make` (for example on Windows) run the same steps directly:
+    `uv run ruff check . && uv run ruff format --check . && uv run mypy && uv run pytest -m "not slow"`. For docs changes also run `uv run --group docs mkdocs build --strict`.
+
+    **Before you start**
+
+    Read [CONTRIBUTING.md](CONTRIBUTING.md) (ground rules, Conventional Commits, the PR template and its leakage/baseline checklist). Say in a comment that you are taking the issue. Expected effort: 1 to 3 hours. Nothing here asks for, or should contain, a claim about returns or trading performance. Tycheon is for research and risk analytics; it is not investment advice.
+- title: 'docs: replace the ''not yet measured'' baseline comparison on the seasonal-naive model card'
+  labels:
+  - good first issue
+  - documentation
+  - 'area: docs'
+  - 'area: models'
+  body: |
+    **Context**
+
+    `docs/models/seasonal-naive.md` ends with a "Baseline comparison" section that still says the comparison is "not yet measured" and arrives "in Phase T3". The walk-forward engine has since shipped and `benchmarks/results/small/0.1.0.json` is a published run (benchmark `small`, three synthetic series, horizon 5, 108 pooled origins). In that file `seasonal-naive` has MASE 1.012 against the random walk and one-sided Diebold-Mariano p-values of 0.618 (squared error) and 0.269 (CRPS), verdict "indistinguishable from the random walk". It has the lowest MASE of any row in that run, and is still statistically indistinguishable from the random walk; say both things.
+
+    **What to do**
+
+    Rewrite only the "Baseline comparison" section of `docs/models/seasonal-naive.md`: say which result file and run it comes from, that the data are synthetic and the sample small, quote the MASE and both DM p-values exactly as they appear in `benchmarks/results/small/0.1.0.json` (key `diebold_mariano_vs_random_walk`), state the verdict in plain words, and link `docs/leaderboard/index.md`. Do not imply skill, and keep the disclaimer line at the bottom of the card.
+
+    **Acceptance criteria**
+
+    - Every number in the new text appears in `benchmarks/results/small/0.1.0.json` and is attributed to that file.
+    - The text says the data are synthetic and the sample is small, and does not claim the model beats (or reliably loses to) the random walk.
+    - `tests/test_forecaster_contract.py` (which checks the required card headings) and `uv run --group docs mkdocs build --strict` both pass.
+
+    **How to check**
+
+    Run `make check` (lint, format check, `mypy --strict`, fast tests). Without `make` (for example on Windows) run the same steps directly:
+    `uv run ruff check . && uv run ruff format --check . && uv run mypy && uv run pytest -m "not slow"`. For docs changes also run `uv run --group docs mkdocs build --strict`.
+
+    **Before you start**
+
+    Read [CONTRIBUTING.md](CONTRIBUTING.md) (ground rules, Conventional Commits, the PR template and its leakage/baseline checklist). Say in a comment that you are taking the issue. Expected effort: 1 to 3 hours. Nothing here asks for, or should contain, a claim about returns or trading performance. Tycheon is for research and risk analytics; it is not investment advice.
+- title: 'docs: replace the ''not yet measured'' baseline comparison on the GARCH model card'
+  labels:
+  - good first issue
+  - documentation
+  - 'area: docs'
+  - 'area: models'
+  body: |
+    **Context**
+
+    `docs/models/garch.md` ends with a "Baseline comparison" section that still says the comparison is "not yet measured" and arrives "in Phase T3". The walk-forward engine has since shipped and `benchmarks/results/small/0.1.0.json` is a published run (benchmark `small`, three synthetic series, horizon 5, 108 pooled origins). In that file `garch` has MASE 1.028 against the random walk and one-sided Diebold-Mariano p-values of 0.929 (squared error) and 0.258 (CRPS), verdict "indistinguishable from the random walk". It has the lowest CRPS of any row in that run (1.734%), and is still statistically indistinguishable from the random walk; say both things.
+
+    **What to do**
+
+    Rewrite only the "Baseline comparison" section of `docs/models/garch.md`: say which result file and run it comes from, that the data are synthetic and the sample small, quote the MASE and both DM p-values exactly as they appear in `benchmarks/results/small/0.1.0.json` (key `diebold_mariano_vs_random_walk`), state the verdict in plain words, and link `docs/leaderboard/index.md`. Do not imply skill, and keep the disclaimer line at the bottom of the card.
+
+    **Acceptance criteria**
+
+    - Every number in the new text appears in `benchmarks/results/small/0.1.0.json` and is attributed to that file.
+    - The text says the data are synthetic and the sample is small, and does not claim the model beats (or reliably loses to) the random walk.
+    - `tests/test_forecaster_contract.py` (which checks the required card headings) and `uv run --group docs mkdocs build --strict` both pass.
+
+    **How to check**
+
+    Run `make check` (lint, format check, `mypy --strict`, fast tests). Without `make` (for example on Windows) run the same steps directly:
+    `uv run ruff check . && uv run ruff format --check . && uv run mypy && uv run pytest -m "not slow"`. For docs changes also run `uv run --group docs mkdocs build --strict`.
+
+    **Before you start**
+
+    Read [CONTRIBUTING.md](CONTRIBUTING.md) (ground rules, Conventional Commits, the PR template and its leakage/baseline checklist). Say in a comment that you are taking the issue. Expected effort: 1 to 3 hours. Nothing here asks for, or should contain, a claim about returns or trading performance. Tycheon is for research and risk analytics; it is not investment advice.
+- title: 'docs: update the Kronos-mini model card now that it appears in a published benchmark run'
+  labels:
+  - good first issue
+  - documentation
+  - 'area: docs'
+  - 'area: models'
+  body: |
+    **Context**
+
+    `docs/models/kronos-mini.md` (section "Baseline comparison", around line 94) says "Not yet evaluated" and that evaluation "arrives in Phase T3". `benchmarks/results/small/0.1.0.json` now contains a zero-shot `kronos-mini` row: MASE 1.025, DM p 0.685 (squared error) and 0.756 (CRPS), 90% interval coverage 57.4% against a nominal 90%, verdict "indistinguishable from the random walk". That run used 20 samples and a 256-bar history for Kronos (`n_samples` and `max_history` in the same file), which differs from the other models.
+
+    **What to do**
+
+    Replace that section with a factual paragraph: result file and run, synthetic data and small sample, the numbers above copied from the JSON (the coverage is under `pooled.coverage["0.9"].achieved`), the reduced sampling settings, and a plain statement that raw Kronos-mini intervals were overconfident on this data and that no skill is claimed. Link `docs/leaderboard/index.md` and `docs/benchmark-methodology.md`.
+
+    **Acceptance criteria**
+
+    - All numbers match `benchmarks/results/small/0.1.0.json` exactly.
+    - The overconfidence finding and the "no skill claimed" statement are both present.
+    - `uv run --group docs mkdocs build --strict` and `tests/test_forecaster_contract.py` pass.
+
+    **How to check**
+
+    Run `make check` (lint, format check, `mypy --strict`, fast tests). Without `make` (for example on Windows) run the same steps directly:
+    `uv run ruff check . && uv run ruff format --check . && uv run mypy && uv run pytest -m "not slow"`. For docs changes also run `uv run --group docs mkdocs build --strict`.
+
+    **Before you start**
+
+    Read [CONTRIBUTING.md](CONTRIBUTING.md) (ground rules, Conventional Commits, the PR template and its leakage/baseline checklist). Say in a comment that you are taking the issue. Expected effort: 1 to 3 hours. Nothing here asks for, or should contain, a claim about returns or trading performance. Tycheon is for research and risk analytics; it is not investment advice.
+- title: 'docs: remove the future-tense ''Phase T3'' wording from the random-walk and ARIMA model cards'
+  labels:
+  - good first issue
+  - documentation
+  - 'area: docs'
+  - 'area: models'
+  body: |
+    **Context**
+
+    `docs/models/random-walk.md` (section "Baseline comparison") says its performance is reported "(Phase T3)" and `docs/models/arima.md` says "not yet measured". Phase T3 shipped. The random walk is the reference row in `benchmarks/results/small/0.1.0.json` (MASE 1.014, RMSE 3.229%, CRPS 1.752%, 90% coverage 79.6%), while ARIMA is not in that run at all (`benchmarks/configs/small.yaml` lists drift, seasonal-naive and garch as the other baselines).
+
+    **What to do**
+
+    For the random walk: say it is the reference row of the published `small` run and quote its own numbers from the JSON. For ARIMA: say it is implemented and available to the benchmark (`benchmarks/configs/models/arima.yaml`) but is not part of the published run, so no comparison is reported yet. Do not guess a result.
+
+    **Acceptance criteria**
+
+    - Both sections are present-tense and accurate; no number appears that is not in the result file.
+    - ARIMA's section does not claim a measurement it does not have.
+    - `uv run --group docs mkdocs build --strict` passes.
+
+    **How to check**
+
+    Run `make check` (lint, format check, `mypy --strict`, fast tests). Without `make` (for example on Windows) run the same steps directly:
+    `uv run ruff check . && uv run ruff format --check . && uv run mypy && uv run pytest -m "not slow"`. For docs changes also run `uv run --group docs mkdocs build --strict`.
+
+    **Before you start**
+
+    Read [CONTRIBUTING.md](CONTRIBUTING.md) (ground rules, Conventional Commits, the PR template and its leakage/baseline checklist). Say in a comment that you are taking the issue. Expected effort: 1 to 3 hours. Nothing here asks for, or should contain, a claim about returns or trading performance. Tycheon is for research and risk analytics; it is not investment advice.
+- title: 'docs: say ''not in the published run'' on the model cards that were not benchmarked'
+  labels:
+  - good first issue
+  - documentation
+  - 'area: docs'
+  - 'area: models'
+  body: |
+    **Context**
+
+    `docs/models/kronos-small.md`, `docs/models/kronos-base.md`, `docs/models/timesfm.md` and `docs/models/chronos-2.md` say evaluation "arrives in Phase T3". The walk-forward engine exists, but these four models are not in the published `benchmarks/results/small/0.1.0.json` (only `kronos-mini` is). `benchmarks/configs/full.yaml` lists them for the full benchmark, which needs the optional extras and model downloads.
+
+    **What to do**
+
+    In each card's "Baseline comparison" section, replace the future tense with: not part of the published result yet, how to run it (`benchmarks/configs/full.yaml`, `make benchmark`, link `docs/tutorials/run-the-benchmark.md`), and keep the sentence that nothing on the card claims the model beats the random walk.
+
+    **Acceptance criteria**
+
+    - The four sections no longer mention "Phase T3" and give the exact command to produce a result.
+    - No performance number is introduced.
+    - `uv run --group docs mkdocs build --strict` passes.
+
+    **How to check**
+
+    Run `make check` (lint, format check, `mypy --strict`, fast tests). Without `make` (for example on Windows) run the same steps directly:
+    `uv run ruff check . && uv run ruff format --check . && uv run mypy && uv run pytest -m "not slow"`. For docs changes also run `uv run --group docs mkdocs build --strict`.
+
+    **Before you start**
+
+    Read [CONTRIBUTING.md](CONTRIBUTING.md) (ground rules, Conventional Commits, the PR template and its leakage/baseline checklist). Say in a comment that you are taking the issue. Expected effort: 1 to 3 hours. Nothing here asks for, or should contain, a claim about returns or trading performance. Tycheon is for research and risk analytics; it is not investment advice.
+- title: 'docs: add ADR 0009 (commercial layer) to the mkdocs navigation'
+  labels:
+  - good first issue
+  - documentation
+  - 'area: docs'
+  body: |
+    **Context**
+
+    `docs/adr/0009-commercial-layer.md` exists and `docs/cloud.md` links to it, but the "Decisions" list in `mkdocs.yml` stops at ADR 0008, so the page is built but not reachable from the site navigation.
+
+    **What to do**
+
+    Add an entry for the 0009 ADR file after the 0008 entry under "Decisions" in `mkdocs.yml` (nav paths are relative to the `docs/` folder), using the same label style as the other ADR entries. Read the ADR's title line and use its wording.
+
+    **Acceptance criteria**
+
+    - The ADR appears in the built site navigation.
+    - `uv run --group docs mkdocs build --strict` passes with no new warnings.
+
+    **How to check**
+
+    Run `make check` (lint, format check, `mypy --strict`, fast tests). Without `make` (for example on Windows) run the same steps directly:
+    `uv run ruff check . && uv run ruff format --check . && uv run mypy && uv run pytest -m "not slow"`. For docs changes also run `uv run --group docs mkdocs build --strict`.
+
+    **Before you start**
+
+    Read [CONTRIBUTING.md](CONTRIBUTING.md) (ground rules, Conventional Commits, the PR template and its leakage/baseline checklist). Say in a comment that you are taking the issue. Expected effort: 1 to 3 hours. Nothing here asks for, or should contain, a claim about returns or trading performance. Tycheon is for research and risk analytics; it is not investment advice.
+- title: 'docs: refresh examples/README.md, which still says examples arrive ''starting in Phase T1'''
+  labels:
+  - good first issue
+  - documentation
+  - 'area: docs'
+  body: |
+    **Context**
+
+    `examples/README.md` ends with "Examples land alongside the features they demonstrate, starting in Phase T1." and lists no scripts. The directory now contains `examples/forecast.py`, `examples/calibrated_kronos.py`, `examples/risk_report.py` and `examples/agentic_risk_review.py`, each with a usage block in its module docstring.
+
+    **What to do**
+
+    Replace the stale sentence with a table of the scripts: file, what it shows (one line, taken from each docstring), the command to run it, and which extra it needs (`kronos`, `report`, `agents`). Keep the existing data-in-examples rules and the disclaimer.
+
+    **Acceptance criteria**
+
+    - Every script in `examples/` is listed once, and every command in the table was run by you (say so in the PR).
+    - The "Phase T1" sentence is gone.
+    - `tests/test_repo_layout.py::test_no_unfinished_markers_ship_in_the_docs` still passes.
+
+    **How to check**
+
+    Run `make check` (lint, format check, `mypy --strict`, fast tests). Without `make` (for example on Windows) run the same steps directly:
+    `uv run ruff check . && uv run ruff format --check . && uv run mypy && uv run pytest -m "not slow"`. For docs changes also run `uv run --group docs mkdocs build --strict`.
+
+    **Before you start**
+
+    Read [CONTRIBUTING.md](CONTRIBUTING.md) (ground rules, Conventional Commits, the PR template and its leakage/baseline checklist). Say in a comment that you are taking the issue. Expected effort: 1 to 3 hours. Nothing here asks for, or should contain, a claim about returns or trading performance. Tycheon is for research and risk analytics; it is not investment advice.
+- title: 'docs: update the version banner on the docs home page'
+  labels:
+  - good first issue
+  - documentation
+  - 'area: docs'
+  body: |
+    **Context**
+
+    `docs/index.md` opens with an admonition titled "v0.1.0 - evidence so far is synthetic". The package is at 0.3.0 (`pyproject.toml`), and the project now has agents, a REST/MCP server and Tycheon Cloud. The honest statement (nothing beats the random walk on the bundled synthetic series) is still true and must stay.
+
+    **What to do**
+
+    Retitle the admonition without hard-coding a version that will go stale again (for example "Alpha: evidence so far is synthetic"), keep the substance, and link `docs/leaderboard/index.md`.
+
+    **Acceptance criteria**
+
+    - The page no longer names an out-of-date version, and still says the evidence is synthetic and the baselines are not beaten.
+    - `tests/test_repo_layout.py::test_not_investment_advice_disclaimer_is_published` and `uv run --group docs mkdocs build --strict` pass.
+
+    **How to check**
+
+    Run `make check` (lint, format check, `mypy --strict`, fast tests). Without `make` (for example on Windows) run the same steps directly:
+    `uv run ruff check . && uv run ruff format --check . && uv run mypy && uv run pytest -m "not slow"`. For docs changes also run `uv run --group docs mkdocs build --strict`.
+
+    **Before you start**
+
+    Read [CONTRIBUTING.md](CONTRIBUTING.md) (ground rules, Conventional Commits, the PR template and its leakage/baseline checklist). Say in a comment that you are taking the issue. Expected effort: 1 to 3 hours. Nothing here asks for, or should contain, a claim about returns or trading performance. Tycheon is for research and risk analytics; it is not investment advice.
+- title: 'docs: rewrite benchmarks/README.md, which says the runner refuses --execute'
+  labels:
+  - good first issue
+  - documentation
+  - 'area: docs'
+  - 'area: backtest'
+  body: |
+    **Context**
+
+    `benchmarks/README.md` says "Today the runner validates configs ... It refuses `--execute` ... arrives in Phase T3" and that `results/` is "created when the first run lands". `benchmarks/run.py` now accepts `--execute`, `--data-dir`, `--out`, `--only` and `--no-render`, and `benchmarks/results/small/0.1.0.json` is published.
+
+    **What to do**
+
+    Update the "Running" and "Layout" sections: document the real flags (read `main()` in `benchmarks/run.py`), the `make benchmark-small` and `make benchmark-render` targets from the `Makefile`, where results go, what `results/local/` is for, and add the files that exist (`execute.py`, `models.py`, `datasets.py`, `render.py`). Keep the "Rules" section.
+
+    **Acceptance criteria**
+
+    - Every flag and path mentioned exists; you ran `uv run python -m benchmarks.run --help` and the output matches the text.
+    - No sentence says the runner refuses to execute.
+    - `tests/test_repo_layout.py` passes.
+
+    **How to check**
+
+    Run `make check` (lint, format check, `mypy --strict`, fast tests). Without `make` (for example on Windows) run the same steps directly:
+    `uv run ruff check . && uv run ruff format --check . && uv run mypy && uv run pytest -m "not slow"`. For docs changes also run `uv run --group docs mkdocs build --strict`.
+
+    **Before you start**
+
+    Read [CONTRIBUTING.md](CONTRIBUTING.md) (ground rules, Conventional Commits, the PR template and its leakage/baseline checklist). Say in a comment that you are taking the issue. Expected effort: 1 to 3 hours. Nothing here asks for, or should contain, a claim about returns or trading performance. Tycheon is for research and risk analytics; it is not investment advice.
+- title: 'feat(serve): add a --version flag to tycheon-serve and tycheon-mcp'
+  labels:
+  - good first issue
+  - enhancement
+  - 'area: serve'
+  - tests
+  body: |
+    **Context**
+
+    `src/tycheon/serve/cli.py` defines `serve_main` and `mcp_main` with argparse parsers that have no `--version`, so there is no quick way to ask an installed server which release it is. `tycheon.__version__` exists (`src/tycheon/__init__.py`) and `GET /health` already returns it.
+
+    **What to do**
+
+    Write the failing test first in `tests/test_serve.py`: calling `serve_main(["--version"])` and `mcp_main(["--version"])` exits with code 0 and prints `tycheon-serve <version>` / `tycheon-mcp <version>` using `tycheon.__version__` (argparse's `action="version"` raises `SystemExit(0)`; use `pytest.raises(SystemExit)` and `capsys`). Then add the flag to both parsers.
+
+    **Acceptance criteria**
+
+    - Both commands print their name and `tycheon.__version__`.
+    - `uv run mypy` passes (the repo runs `mypy --strict` on `src/`).
+    - The flag appears in the `--help` output.
+
+    **How to check**
+
+    Run `make check` (lint, format check, `mypy --strict`, fast tests). Without `make` (for example on Windows) run the same steps directly:
+    `uv run ruff check . && uv run ruff format --check . && uv run mypy && uv run pytest -m "not slow"`. For docs changes also run `uv run --group docs mkdocs build --strict`.
+
+    **Before you start**
+
+    Read [CONTRIBUTING.md](CONTRIBUTING.md) (ground rules, Conventional Commits, the PR template and its leakage/baseline checklist). Say in a comment that you are taking the issue. Expected effort: 1 to 3 hours. Nothing here asks for, or should contain, a claim about returns or trading performance. Tycheon is for research and risk analytics; it is not investment advice.
+- title: 'fix(serve): give TYCHEON_APPROVER_TOKENS a clear error instead of a raw JSON traceback'
+  labels:
+  - good first issue
+  - bug
+  - 'area: serve'
+  - tests
+  body: |
+    **Context**
+
+    `_approver_tokens` in `src/tycheon/serve/cli.py` parses the `TYCHEON_APPROVER_TOKENS` environment variable with `json.loads` and indexes `entry["approver_id"]` and `entry["tenant_id"]`. Malformed JSON, a non-object value or a missing key currently surfaces as a `JSONDecodeError` or `KeyError` traceback. `_approver_tokens` has no test (`grep -rn _approver_tokens tests` finds nothing).
+
+    **What to do**
+
+    Test first (new tests in `tests/test_serve.py`): a valid value parses with `max_tier` defaulting to `"ONE_CLICK"`; malformed JSON, a top-level list, and an entry without `tenant_id` each produce a one-line message on stderr and exit code 2 from `serve_main` (mirror how the existing `TYCHEON_API_KEYS` error is reported in the same function). Then implement the handling. Never print the token values in an error message.
+
+    **Acceptance criteria**
+
+    - All three failure cases give a clear message and exit code 2 without a traceback and without echoing secrets.
+    - The success case is covered by a test.
+    - `uv run mypy` and the new tests pass.
+
+    **How to check**
+
+    Run `make check` (lint, format check, `mypy --strict`, fast tests). Without `make` (for example on Windows) run the same steps directly:
+    `uv run ruff check . && uv run ruff format --check . && uv run mypy && uv run pytest -m "not slow"`. For docs changes also run `uv run --group docs mkdocs build --strict`.
+
+    **Before you start**
+
+    Read [CONTRIBUTING.md](CONTRIBUTING.md) (ground rules, Conventional Commits, the PR template and its leakage/baseline checklist). Say in a comment that you are taking the issue. Expected effort: 1 to 3 hours. Nothing here asks for, or should contain, a claim about returns or trading performance. Tycheon is for research and risk analytics; it is not investment advice.
+- title: 'docs: document tycheon-serve and tycheon-mcp command-line flags in docs/serving.md'
+  labels:
+  - good first issue
+  - documentation
+  - 'area: docs'
+  - 'area: serve'
+  body: |
+    **Context**
+
+    `docs/serving.md` mentions `--port`, `--insecure-dev` and `--as-of`, but `src/tycheon/serve/cli.py` also defines `--state-dir`, `--tenant`, `--data-dir` and `--host`. `--state-dir` in particular matters for MCP clients, because a desktop app launches the server from an arbitrary working directory.
+
+    **What to do**
+
+    Add a short "Flags" table to `docs/serving.md` covering every flag of both commands (take names, defaults and help text from `serve_main`, `mcp_main` and `_common` in `src/tycheon/serve/cli.py`; confirm with `uv run tycheon-mcp --help` and `uv run tycheon-serve --help`). Include the rule that `--insecure-dev` only works on a loopback address and that `--as-of` needs a UTC offset.
+
+    **Acceptance criteria**
+
+    - Each flag appears once with its default and a one-line meaning that matches the code.
+    - The page keeps its disclaimer.
+    - `uv run --group docs mkdocs build --strict` passes.
+
+    **How to check**
+
+    Run `make check` (lint, format check, `mypy --strict`, fast tests). Without `make` (for example on Windows) run the same steps directly:
+    `uv run ruff check . && uv run ruff format --check . && uv run mypy && uv run pytest -m "not slow"`. For docs changes also run `uv run --group docs mkdocs build --strict`.
+
+    **Before you start**
+
+    Read [CONTRIBUTING.md](CONTRIBUTING.md) (ground rules, Conventional Commits, the PR template and its leakage/baseline checklist). Say in a comment that you are taking the issue. Expected effort: 1 to 3 hours. Nothing here asks for, or should contain, a claim about returns or trading performance. Tycheon is for research and risk analytics; it is not investment advice.
+- title: 'test: unit tests for CostModel and the naive position rule in backtest/costs.py'
+  labels:
+  - good first issue
+  - tests
+  - 'area: backtest'
+  body: |
+    **Context**
+
+    `src/tycheon/backtest/costs.py` defines `CostModel` (with the `one_way_bps` and `one_way` properties and a `ValueError` for negative costs), `positions` and `strategy_result`. The cost-aware diagnostic on the leaderboard depends on them, but no test mentions `one_way_bps` (the module is only exercised indirectly through `tests/test_backtest_walk_forward.py`).
+
+    **What to do**
+
+    Add `tests/test_backtest_costs.py` (new file) with direct tests: `CostModel(spread_bps=2, slippage_bps=1, fee_bps=0).one_way_bps == 2.0` (half the spread plus slippage plus fee), `one_way` equals `one_way_bps / 1e4`, any negative cost raises `ValueError`, and `positions` returns `+1`, `-1`, `0` around `min_edge` including the exact boundary. Also add one-line docstrings to the `one_way_bps` property and `StrategyResult.to_dict`.
+
+    **Acceptance criteria**
+
+    - At least five new tests, no randomness, each under a second.
+    - The docstrings are present and `uv run ruff check .` passes.
+
+    **How to check**
+
+    Run `make check` (lint, format check, `mypy --strict`, fast tests). Without `make` (for example on Windows) run the same steps directly:
+    `uv run ruff check . && uv run ruff format --check . && uv run mypy && uv run pytest -m "not slow"`. For docs changes also run `uv run --group docs mkdocs build --strict`.
+
+    **Before you start**
+
+    Read [CONTRIBUTING.md](CONTRIBUTING.md) (ground rules, Conventional Commits, the PR template and its leakage/baseline checklist). Say in a comment that you are taking the issue. Expected effort: 1 to 3 hours. Nothing here asks for, or should contain, a claim about returns or trading performance. Tycheon is for research and risk analytics; it is not investment advice.
+- title: 'test: add smoke tests for the calibration SVG plots'
+  labels:
+  - good first issue
+  - tests
+  - 'area: calibration'
+  body: |
+    **Context**
+
+    `src/tycheon/calibration/plots.py` defines `reliability_svg`, `pit_svg` and `coverage_svg`, which build matplotlib figures and return inline SVG through `figure_to_svg` in `src/tycheon/_svg.py` (it strips the XML prolog and metadata and rewrites black to `currentColor`). No test file references them by name (`grep -rn reliability_svg tests` is empty).
+
+    **What to do**
+
+    Add `tests/test_calibration_plots.py` (new file). Start with `pytest.importorskip("matplotlib")` (the `report` extra). Build a `CalibrationReport` as the `scores` and `report` fixtures in `tests/test_calibration_diagnostics.py` do (copy the two fixtures; module-scoped fixtures are not shared across files). For each of the three functions assert: the result starts with `<svg`, parses as XML (`xml.etree.ElementTree.fromstring`), contains no `<metadata>` element and no `#000000`. Add one test that `new_figure` raises `OptionalDependencyError` with the install hint when matplotlib cannot be imported (monkeypatch `importlib.import_module` as seen in `require_matplotlib`).
+
+    **Acceptance criteria**
+
+    - Three plot functions covered by the same assertions, plus the missing-extra test.
+    - The tests are skipped, not failed, if matplotlib is absent.
+    - `uv run --extra report pytest tests/test_calibration_plots.py --no-cov -q` passes.
+
+    **How to check**
+
+    Run `make check` (lint, format check, `mypy --strict`, fast tests). Without `make` (for example on Windows) run the same steps directly:
+    `uv run ruff check . && uv run ruff format --check . && uv run mypy && uv run pytest -m "not slow"`. For docs changes also run `uv run --group docs mkdocs build --strict`.
+
+    **Before you start**
+
+    Read [CONTRIBUTING.md](CONTRIBUTING.md) (ground rules, Conventional Commits, the PR template and its leakage/baseline checklist). Say in a comment that you are taking the issue. Expected effort: 1 to 3 hours. Nothing here asks for, or should contain, a claim about returns or trading performance. Tycheon is for research and risk analytics; it is not investment advice.
+- title: 'fix(models): validate the ARIMA order at construction (failing test first)'
+  labels:
+  - good first issue
+  - bug
+  - 'area: models'
+  - tests
+  body: |
+    **Context**
+
+    `ARIMAForecaster.__init__` in `src/tycheon/models/baselines/arima.py` validates `window` but stores `order` as given. A tuple of the wrong length, a negative entry or a non-integer only fails later, inside statsmodels, at `predict` time, with an error that does not mention Tycheon. `tests/test_baselines.py::test_baselines_reject_bad_parameters_and_short_histories` shows the house style for parameter validation.
+
+    **What to do**
+
+    First add the failing test to `tests/test_baselines.py`: `ARIMAForecaster(order=(1, 0))`, `order=(-1, 0, 0)` and `order=(1.5, 0, 0)` each raise `ValueError` mentioning `order`. Then validate in `__init__` (three integers, all non-negative) and keep `(1, 0, 1)` as the default.
+
+    **Acceptance criteria**
+
+    - The new test fails before the change and passes after it.
+    - Existing ARIMA tests still pass; `uv run mypy` passes.
+
+    **How to check**
+
+    Run `make check` (lint, format check, `mypy --strict`, fast tests). Without `make` (for example on Windows) run the same steps directly:
+    `uv run ruff check . && uv run ruff format --check . && uv run mypy && uv run pytest -m "not slow"`. For docs changes also run `uv run --group docs mkdocs build --strict`.
+
+    **Before you start**
+
+    Read [CONTRIBUTING.md](CONTRIBUTING.md) (ground rules, Conventional Commits, the PR template and its leakage/baseline checklist). Say in a comment that you are taking the issue. Expected effort: 1 to 3 hours. Nothing here asks for, or should contain, a claim about returns or trading performance. Tycheon is for research and risk analytics; it is not investment advice.
+- title: 'docs: add docstrings to the public Portfolio helpers in risk/portfolio.py'
+  labels:
+  - good first issue
+  - documentation
+  - 'area: risk'
+  body: |
+    **Context**
+
+    In `src/tycheon/risk/portfolio.py`, `Portfolio.from_values`, `Portfolio.symbols`, `Portfolio.total_value` and `Portfolio.weights` (and `start_value` further down) have no docstring. They are the first thing a user touches in `examples/risk_report.py`.
+
+    **What to do**
+
+    Write a one-to-three line docstring for each, stating units and constraints that the code enforces (long-only, positive values, duplicate symbols rejected with `DataValidationError`). Add one short usage example to the `from_values` docstring, and add a test that runs it through `doctest` (for example `doctest.run_docstring_examples` in `tests/test_risk_portfolio.py`).
+
+    **Acceptance criteria**
+
+    - Every listed member has a docstring that matches its behaviour.
+    - The example in `from_values` is executed by a test.
+    - `uv run ruff check .` and `uv run mypy` pass.
+
+    **How to check**
+
+    Run `make check` (lint, format check, `mypy --strict`, fast tests). Without `make` (for example on Windows) run the same steps directly:
+    `uv run ruff check . && uv run ruff format --check . && uv run mypy && uv run pytest -m "not slow"`. For docs changes also run `uv run --group docs mkdocs build --strict`.
+
+    **Before you start**
+
+    Read [CONTRIBUTING.md](CONTRIBUTING.md) (ground rules, Conventional Commits, the PR template and its leakage/baseline checklist). Say in a comment that you are taking the issue. Expected effort: 1 to 3 hours. Nothing here asks for, or should contain, a claim about returns or trading performance. Tycheon is for research and risk analytics; it is not investment advice.
+- title: 'docs: add missing docstrings to KronosSpec and RiskReport properties'
+  labels:
+  - good first issue
+  - documentation
+  - 'area: models'
+  - 'area: risk'
+  body: |
+    **Context**
+
+    `KronosSpec.forecaster_id` and `KronosSpec.model_card` in `src/tycheon/models/kronos/specs.py`, and `RiskReport.to_json` and `RiskReport.to_html` in `src/tycheon/risk/report.py`, have no docstrings. The model-card path is part of the forecast contract (`ForecastDistribution.model_card`), and the HTML report is served with a strict CSP by the REST API.
+
+    **What to do**
+
+    Add docstrings. For `to_html`, state what the output is (read `_render_html` and `docs/risk.md` first and only claim what you verified, for example that it is self-contained and that text is escaped). For `to_json`, state that NaN is rejected (`allow_nan=False`).
+
+    **Acceptance criteria**
+
+    - Four docstrings, each verified against the code, no claim you did not check.
+    - `uv run ruff check .` passes.
+
+    **How to check**
+
+    Run `make check` (lint, format check, `mypy --strict`, fast tests). Without `make` (for example on Windows) run the same steps directly:
+    `uv run ruff check . && uv run ruff format --check . && uv run mypy && uv run pytest -m "not slow"`. For docs changes also run `uv run --group docs mkdocs build --strict`.
+
+    **Before you start**
+
+    Read [CONTRIBUTING.md](CONTRIBUTING.md) (ground rules, Conventional Commits, the PR template and its leakage/baseline checklist). Say in a comment that you are taking the issue. Expected effort: 1 to 3 hours. Nothing here asks for, or should contain, a claim about returns or trading performance. Tycheon is for research and risk analytics; it is not investment advice.
+- title: 'docs: add a runnable example to the diebold_mariano docstring'
+  labels:
+  - good first issue
+  - documentation
+  - 'area: backtest'
+  - tests
+  body: |
+    **Context**
+
+    `diebold_mariano` in `src/tycheon/backtest/metrics.py` is the test every leaderboard row depends on, but its docstring documents only `lags` and has no example or return description. `DieboldMariano` (same file) has `statistic`, `p_two_sided`, `p_model_better`, `mean_diff`, `n` and `lags`.
+
+    **What to do**
+
+    Extend the docstring: what `loss_model` and `loss_benchmark` are (per-origin losses on the same origins), what each field of the result means (`p_model_better` is one-sided: small values mean the model has lower loss), and a short example with fixed numbers whose output you print and paste. Add a test in `tests/test_backtest_metrics.py` that runs the example with `doctest.run_docstring_examples`.
+
+    **Acceptance criteria**
+
+    - The example's printed values are exactly what the function returns (round them in the example to avoid float noise).
+    - The example is executed by a test, not just displayed.
+    - `uv run mypy` and `uv run ruff check .` pass.
+
+    **How to check**
+
+    Run `make check` (lint, format check, `mypy --strict`, fast tests). Without `make` (for example on Windows) run the same steps directly:
+    `uv run ruff check . && uv run ruff format --check . && uv run mypy && uv run pytest -m "not slow"`. For docs changes also run `uv run --group docs mkdocs build --strict`.
+
+    **Before you start**
+
+    Read [CONTRIBUTING.md](CONTRIBUTING.md) (ground rules, Conventional Commits, the PR template and its leakage/baseline checklist). Say in a comment that you are taking the issue. Expected effort: 1 to 3 hours. Nothing here asks for, or should contain, a claim about returns or trading performance. Tycheon is for research and risk analytics; it is not investment advice.
+- title: 'feat(services): add field descriptions to the request models so the OpenAPI docs explain them'
+  labels:
+  - good first issue
+  - enhancement
+  - 'area: serve'
+  - tests
+  body: |
+    **Context**
+
+    `src/tycheon/services/schemas.py` defines the request models served at `/docs` and `/openapi.json` (`ForecastIn`, `CalibrationIn`, `RiskIn`, `BacktestIn`). Only a few fields carry a `description` (for example `ForecastIn.horizon` and `RiskIn.positions`); `RiskIn.coupling`, `RiskIn.levels`, `BacktestIn.folds`, `BacktestIn.test_window` and others have none.
+
+    **What to do**
+
+    Test first in `tests/test_services.py`: iterate `model_fields` of the four request models and assert each field has a non-empty `description` (it will fail and list the gaps). Then write the descriptions. For `coupling`, read `docs/risk.md` and `docs/adr/0005-risk-and-portfolio-dependence.md` and describe `terminal` versus `stepwise` accurately. Do not change defaults, bounds or field names.
+
+    **Acceptance criteria**
+
+    - Every field of the four request models has a description; the new test enforces it.
+    - `tests/test_serve.py` and `tests/test_services.py` still pass.
+    - `uv run mypy` passes.
+
+    **How to check**
+
+    Run `make check` (lint, format check, `mypy --strict`, fast tests). Without `make` (for example on Windows) run the same steps directly:
+    `uv run ruff check . && uv run ruff format --check . && uv run mypy && uv run pytest -m "not slow"`. For docs changes also run `uv run --group docs mkdocs build --strict`.
+
+    **Before you start**
+
+    Read [CONTRIBUTING.md](CONTRIBUTING.md) (ground rules, Conventional Commits, the PR template and its leakage/baseline checklist). Say in a comment that you are taking the issue. Expected effort: 1 to 3 hours. Nothing here asks for, or should contain, a claim about returns or trading performance. Tycheon is for research and risk analytics; it is not investment advice.
+- title: 'ci: pin the GitHub Actions in ci.yml to full commit SHAs'
+  labels:
+  - good first issue
+  - security
+  - 'area: ci'
+  body: |
+    **Context**
+
+    `.github/workflows/ci.yml` references actions by mutable tag: `actions/checkout@v4`, `astral-sh/setup-uv@v4` and `actions/upload-artifact@v4`. OpenSSF Scorecard's Pinned-Dependencies check wants full commit SHAs. See `docs/launch/scorecard-audit.md` for the full list of workflows and the reasoning.
+
+    **What to do**
+
+    For each `uses:` line in `.github/workflows/ci.yml`, resolve the tag you want to the commit it points to (for an annotated tag, dereference it: `gh api repos/<owner>/<repo>/git/ref/tags/<tag>` and, if `object.type` is `tag`, `gh api repos/<owner>/<repo>/git/tags/<sha>`), pin to that SHA, and keep the tag as a trailing comment (`uses: actions/checkout@<sha> # v4.x.y`). Keep the same major version unless you have a reason to change it, and say in the PR what you ran to resolve each SHA.
+
+    **Acceptance criteria**
+
+    - No `uses:` line in `ci.yml` refers to a tag or branch (local `./` actions excepted).
+    - The workflow still passes on your PR.
+    - You did not change any step's behaviour.
+
+    **How to check**
+
+    Run `make check` (lint, format check, `mypy --strict`, fast tests). Without `make` (for example on Windows) run the same steps directly:
+    `uv run ruff check . && uv run ruff format --check . && uv run mypy && uv run pytest -m "not slow"`. For docs changes also run `uv run --group docs mkdocs build --strict`.
+
+    **Before you start**
+
+    Read [CONTRIBUTING.md](CONTRIBUTING.md) (ground rules, Conventional Commits, the PR template and its leakage/baseline checklist). Say in a comment that you are taking the issue. Expected effort: 1 to 3 hours. Nothing here asks for, or should contain, a claim about returns or trading performance. Tycheon is for research and risk analytics; it is not investment advice.
+- title: 'ci: pin the GitHub Actions in codeql, dependency-review, docs, secret-scan and nightly-slow workflows'
+  labels:
+  - good first issue
+  - security
+  - 'area: ci'
+  body: |
+    **Context**
+
+    `.github/workflows/codeql.yml`, `dependency-review.yml`, `docs.yml`, `secret-scan.yml` and `nightly-slow.yml` use tag references (`actions/checkout@v4`, `github/codeql-action/init@v3` and `analyze@v3`, `actions/dependency-review-action@v4`, `actions/upload-pages-artifact@v3`, `actions/deploy-pages@v4`, `gitleaks/gitleaks-action@v2`, `astral-sh/setup-uv@v4`, `actions/cache@v4`, `actions/upload-artifact@v4`). Scorecard's Pinned-Dependencies check flags each one.
+
+    **What to do**
+
+    Pin each `uses:` line to the full commit SHA of the release tag, with the tag kept as a trailing comment. Resolve annotated tags to their commit, as described in `docs/launch/scorecard-audit.md`. Do not touch `ci.yml`, `publish.yml`, `release-please.yml` or `ee.yml` (separate issues).
+
+    **Acceptance criteria**
+
+    - No tag or branch references remain in the five files.
+    - The docs build (`uv run --group docs mkdocs build --strict`) still passes and the workflows still run on your PR.
+
+    **How to check**
+
+    Run `make check` (lint, format check, `mypy --strict`, fast tests). Without `make` (for example on Windows) run the same steps directly:
+    `uv run ruff check . && uv run ruff format --check . && uv run mypy && uv run pytest -m "not slow"`. For docs changes also run `uv run --group docs mkdocs build --strict`.
+
+    **Before you start**
+
+    Read [CONTRIBUTING.md](CONTRIBUTING.md) (ground rules, Conventional Commits, the PR template and its leakage/baseline checklist). Say in a comment that you are taking the issue. Expected effort: 1 to 3 hours. Nothing here asks for, or should contain, a claim about returns or trading performance. Tycheon is for research and risk analytics; it is not investment advice.
+- title: 'ci: pin the actions in publish.yml, release-please.yml and ee.yml (maintainer review required)'
+  labels:
+  - good first issue
+  - security
+  - 'area: ci'
+  - help wanted
+  body: |
+    **Context**
+
+    `.github/workflows/publish.yml` (PyPI trusted publishing via `pypa/gh-action-pypi-publish@release/v1`, which is a branch ref), `release-please.yml` (`googleapis/release-please-action@v4`) and `ee.yml` (`actions/setup-node@v4` and others) reference actions by mutable tag or branch. These workflows hold release privileges, so pinning matters most here.
+
+    **What to do**
+
+    Pin every `uses:` line to a full commit SHA with the tag in a trailing comment. `pypa/gh-action-pypi-publish@release/v1` is a branch: pick the latest release tag and pin its commit. Explain in the PR how you resolved each SHA. A maintainer will review this one closely because it changes the release path, so do not combine it with other changes.
+
+    **Acceptance criteria**
+
+    - No tag or branch references remain in the three files.
+    - `tests/test_release_files.py` passes (it checks the permissions of these workflows).
+    - Nothing else in the files changes.
+
+    **How to check**
+
+    Run `make check` (lint, format check, `mypy --strict`, fast tests). Without `make` (for example on Windows) run the same steps directly:
+    `uv run ruff check . && uv run ruff format --check . && uv run mypy && uv run pytest -m "not slow"`. For docs changes also run `uv run --group docs mkdocs build --strict`.
+
+    **Before you start**
+
+    Read [CONTRIBUTING.md](CONTRIBUTING.md) (ground rules, Conventional Commits, the PR template and its leakage/baseline checklist). Say in a comment that you are taking the issue. Expected effort: 1 to 3 hours. Nothing here asks for, or should contain, a claim about returns or trading performance. Tycheon is for research and risk analytics; it is not investment advice.
+- title: 'ci: add a Dependabot config for GitHub Actions'
+  labels:
+  - good first issue
+  - security
+  - 'area: ci'
+  body: |
+    **Context**
+
+    There is no Dependabot or Renovate configuration in the repository, so pinned action SHAs (see the pinning issues) would never be refreshed automatically. Scorecard's Dependency-Update-Tool check looks for exactly this kind of configuration.
+
+    **What to do**
+
+    Add `.github/dependabot.yml` (new file) with a `github-actions` ecosystem entry at directory `/`, a weekly schedule, and a small `open-pull-requests-limit`. Use a Conventional Commits prefix in the config (`commit-message.prefix: "ci"`) so the PR titles match `CONTRIBUTING.md`. Do not add other ecosystems in this PR; the Python dependency policy (upper bounds, ask before adding heavy packages) is a separate discussion.
+
+    **Acceptance criteria**
+
+    - The file validates against GitHub's Dependabot schema (say how you checked).
+    - Only the `github-actions` ecosystem is configured.
+    - `tests/test_repo_layout.py` still passes.
+
+    **How to check**
+
+    Run `make check` (lint, format check, `mypy --strict`, fast tests). Without `make` (for example on Windows) run the same steps directly:
+    `uv run ruff check . && uv run ruff format --check . && uv run mypy && uv run pytest -m "not slow"`. For docs changes also run `uv run --group docs mkdocs build --strict`.
+
+    **Before you start**
+
+    Read [CONTRIBUTING.md](CONTRIBUTING.md) (ground rules, Conventional Commits, the PR template and its leakage/baseline checklist). Say in a comment that you are taking the issue. Expected effort: 1 to 3 hours. Nothing here asks for, or should contain, a claim about returns or trading performance. Tycheon is for research and risk analytics; it is not investment advice.
+- title: 'docs: add a tutorial for the portfolio risk report example'
+  labels:
+  - good first issue
+  - documentation
+  - 'area: docs'
+  - 'area: risk'
+  body: |
+    **Context**
+
+    `docs/tutorials/` has two pages (`calibrated-kronos.md` and `run-the-benchmark.md`). `examples/risk_report.py` produces a JSON and an HTML risk report from three synthetic assets, and `docs/risk.md` explains the measures, but there is no walkthrough that ties them together.
+
+    **What to do**
+
+    Write `docs/tutorials/portfolio-risk-report.md` (new file) in the style of the existing tutorials: install (`uv sync --extra report`), run `uv run python examples/risk_report.py` yourself, show a trimmed real output, then read the report: VaR and Expected Shortfall rows (`portfolio_risk.var_es` in the JSON), drawdown probability, why the portfolio is always `uncalibrated` (dependence is assumed, see `docs/adr/0005-risk-and-portfolio-dependence.md`), and what the per-asset `calibrated` status means (`diagnostics.<symbol>.n_holdout`). Add it to the Tutorials list in `mkdocs.yml`.
+
+    **Acceptance criteria**
+
+    - Every number quoted comes from a run you did, and the page says the data are synthetic.
+    - The page carries the disclaimer and makes no claim about real portfolios.
+    - `uv run --group docs mkdocs build --strict` passes.
+
+    **How to check**
+
+    Run `make check` (lint, format check, `mypy --strict`, fast tests). Without `make` (for example on Windows) run the same steps directly:
+    `uv run ruff check . && uv run ruff format --check . && uv run mypy && uv run pytest -m "not slow"`. For docs changes also run `uv run --group docs mkdocs build --strict`.
+
+    **Before you start**
+
+    Read [CONTRIBUTING.md](CONTRIBUTING.md) (ground rules, Conventional Commits, the PR template and its leakage/baseline checklist). Say in a comment that you are taking the issue. Expected effort: 1 to 3 hours. Nothing here asks for, or should contain, a claim about returns or trading performance. Tycheon is for research and risk analytics; it is not investment advice.
+- title: 'test: property-based leakage test for filter_as_of with Hypothesis'
+  labels:
+  - good first issue
+  - tests
+  - 'area: data'
+  - help wanted
+  body: |
+    **Context**
+
+    `filter_as_of` in `src/tycheon/data/asof.py` is the core point-in-time filter. `tests/test_data_asof.py` covers it with example-based tests marked `@pytest.mark.leakage`; the file does not use Hypothesis, although it is already a test dependency (`tests/test_governance.py` imports it).
+
+    **What to do**
+
+    Add a property-based test to `tests/test_data_asof.py`, marked `@pytest.mark.leakage`, that builds a bars frame with random `available_at` offsets (use the `bars_factory` fixture from `tests/conftest.py` as a base and perturb `available_at`) and a random `as_of`, and asserts: (1) every returned row has `available_at <= as_of`, (2) the result contains no duplicate index entries, (3) applying `filter_as_of` twice equals applying it once, (4) a row whose `available_at` is after `as_of` never appears. Function-scoped fixtures need `HealthCheck.function_scoped_fixture` suppressed (see how `tests/test_governance.py` configures `settings`).
+
+    **Acceptance criteria**
+
+    - The test runs in under five seconds.
+    - It fails if you deliberately change `<=` to `<` in the filter (try it locally and say so; do not commit that change).
+    - `uv run pytest tests/test_data_asof.py --no-cov -q` passes.
+
+    **How to check**
+
+    Run `make check` (lint, format check, `mypy --strict`, fast tests). Without `make` (for example on Windows) run the same steps directly:
+    `uv run ruff check . && uv run ruff format --check . && uv run mypy && uv run pytest -m "not slow"`. For docs changes also run `uv run --group docs mkdocs build --strict`.
+
+    **Before you start**
+
+    Read [CONTRIBUTING.md](CONTRIBUTING.md) (ground rules, Conventional Commits, the PR template and its leakage/baseline checklist). Say in a comment that you are taking the issue. Expected effort: 1 to 3 hours. Nothing here asks for, or should contain, a claim about returns or trading performance. Tycheon is for research and risk analytics; it is not investment advice.
+- title: 'docs: add a glossary page (as_of, available_at, embargo, CRPS, MASE, Diebold-Mariano, conformal)'
+  labels:
+  - good first issue
+  - documentation
+  - 'area: docs'
+  body: |
+    **Context**
+
+    The docs use `as_of`, `available_at`, embargo, CRPS, MASE, IC, PIT, Diebold-Mariano, conformal coverage and "calibration status" throughout (`docs/methodology.md`, `docs/benchmark-methodology.md`, `docs/calibration.md`), and each page defines only the terms it needs. There is no glossary page under `docs/`.
+
+    **What to do**
+
+    Create `docs/glossary.md` (new file): one or two sentences per term, each linking to the page or ADR that defines it precisely (for example `docs/adr/0003-point-in-time-data-and-forecast-contract.md` for the two clocks, `docs/benchmark-methodology.md` for the metrics). Do not restate a definition differently from the source page. Add the page to `nav` in `mkdocs.yml`, and end it with the disclaimer.
+
+    **Acceptance criteria**
+
+    - At least ten terms, every one linked to its authoritative page, and no definition contradicts that page.
+    - `uv run --group docs mkdocs build --strict` passes.
+
+    **How to check**
+
+    Run `make check` (lint, format check, `mypy --strict`, fast tests). Without `make` (for example on Windows) run the same steps directly:
+    `uv run ruff check . && uv run ruff format --check . && uv run mypy && uv run pytest -m "not slow"`. For docs changes also run `uv run --group docs mkdocs build --strict`.
+
+    **Before you start**
+
+    Read [CONTRIBUTING.md](CONTRIBUTING.md) (ground rules, Conventional Commits, the PR template and its leakage/baseline checklist). Say in a comment that you are taking the issue. Expected effort: 1 to 3 hours. Nothing here asks for, or should contain, a claim about returns or trading performance. Tycheon is for research and risk analytics; it is not investment advice.
+- title: 'docs: document NewsStore and injection_suspected in services/news.py'
+  labels:
+  - good first issue
+  - documentation
+  - 'area: services'
+  body: |
+    **Context**
+
+    In `src/tycheon/services/news.py`, the `NewsStore` protocol and the function `injection_suspected` have no docstrings. External text is untrusted by project rule (`AGENTS.md`, `docs/safety.md`), so the contract of these two names should be written down.
+
+    **What to do**
+
+    Document: what a `NewsStore` implementation must return from `documents` (documents for a symbol, including ones not yet published; the as-of filtering happens in `news_signals`), and what `injection_suspected` does and does not promise. Read the `_INJECTION` pattern and `sanitize` first, and state plainly that it is a heuristic flag, not a defence: the real defence is that the text is only ever treated as data.
+
+    **Acceptance criteria**
+
+    - Both docstrings are accurate against the code and do not oversell the detector.
+    - `tests/test_services.py` still passes; `uv run ruff check .` and `uv run mypy` pass.
+
+    **How to check**
+
+    Run `make check` (lint, format check, `mypy --strict`, fast tests). Without `make` (for example on Windows) run the same steps directly:
+    `uv run ruff check . && uv run ruff format --check . && uv run mypy && uv run pytest -m "not slow"`. For docs changes also run `uv run --group docs mkdocs build --strict`.
+
+    **Before you start**
+
+    Read [CONTRIBUTING.md](CONTRIBUTING.md) (ground rules, Conventional Commits, the PR template and its leakage/baseline checklist). Say in a comment that you are taking the issue. Expected effort: 1 to 3 hours. Nothing here asks for, or should contain, a claim about returns or trading performance. Tycheon is for research and risk analytics; it is not investment advice.

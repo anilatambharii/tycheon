@@ -1,0 +1,64 @@
+name: Model or benchmark request
+description: Ask for a forecaster to be added or evaluated, or for a benchmark change
+title: "benchmark: "
+labels: ["benchmark", "model request", "needs triage"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        The leaderboard reads every model against the random walk with a Diebold-Mariano test, and publishes the result whichever way it falls. A request here is a request to be measured honestly, not to be featured. Read the [benchmark methodology](https://github.com/anilatambharii/tycheon/blob/main/docs/benchmark-methodology.md) first.
+  - type: dropdown
+    id: kind
+    attributes:
+      label: What are you asking for?
+      options:
+        - Add a new forecaster
+        - Evaluate an existing forecaster in the published run
+        - Add or change a baseline
+        - Add a dataset or universe (bring-your-own-licence)
+        - Change a metric or the methodology
+        - Report a problem with a published result
+    validations:
+      required: true
+  - type: input
+    id: model
+    attributes:
+      label: Model or dataset
+      description: Name and link (paper, repository, model card, or data description).
+    validations:
+      required: true
+  - type: input
+    id: license
+    attributes:
+      label: Licence of the code, weights and data
+      description: We need to know before anything is added. Heavy (over 50 MB), GPU-only or copyleft dependencies are discussed first and live behind optional extras.
+    validations:
+      required: true
+  - type: textarea
+    id: output
+    attributes:
+      label: What does the model output?
+      description: Sample paths, quantiles only, or a point forecast? Anything without an uncertainty estimate cannot be scored on CRPS or coverage, and a point-only model would need wrapping (for example by conformal calibration) to be a Tycheon forecaster.
+    validations:
+      required: true
+  - type: textarea
+    id: leakage
+    attributes:
+      label: Leakage considerations
+      description: Could the model's pre-training data overlap the evaluation period, or does it use anything beyond the history it is given? Say what you know. If you do not know, say so.
+    validations:
+      required: true
+  - type: textarea
+    id: details
+    attributes:
+      label: Anything else
+      description: Horizons, context length, expected runtime, hardware needs. For a problem with a published result, name the result file under `benchmarks/results/` and what looks wrong.
+  - type: checkboxes
+    id: honesty
+    attributes:
+      label: Acknowledgements
+      options:
+        - label: I understand the result will be published whether or not the model beats the random walk.
+          required: true
+        - label: I am not asking for a claim about returns or trading performance.
+          required: true

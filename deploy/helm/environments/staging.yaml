@@ -1,0 +1,27 @@
+# Environment overrides for STAGING, layered after values-saas.yaml by .github/workflows/images.yml.
+# Fill the <placeholders> from the Terraform outputs (deploy/terraform). No secret belongs here.
+controlPlane:
+  replicas: 2
+  config:
+    TYCHEON_CP_PUBLIC_URL: https://api.staging.example.com
+    TYCHEON_CP_DASHBOARD_URL: https://app.staging.example.com
+    TYCHEON_CP_AWS_KMS_KEY_ID: <app_kms_key_arn>
+dashboard:
+  config:
+    CONTROL_PLANE_PUBLIC_URL: https://api.staging.example.com
+workers:
+  cpu: { replicas: 1 }
+  gpu: { enabled: false }          # staging does not pay for GPUs; a fine-tune smoke test uses the CPU worker
+ingress:
+  hosts:
+    controlPlane: api.staging.example.com
+    dashboard: app.staging.example.com
+networkPolicy:
+  egress:
+    postgresCIDRs: ["<database_subnet_cidr>"]
+    redisCIDRs: ["<cache_subnet_cidr>"]
+serviceAccount:
+  annotations:
+    controlPlane: { eks.amazonaws.com/role-arn: <control_plane_role_arn> }
+    mcp: { eks.amazonaws.com/role-arn: <control_plane_role_arn> }
+    workers: { eks.amazonaws.com/role-arn: <worker_role_arn> }

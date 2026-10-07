@@ -1,0 +1,76 @@
+# Prove the deployment artefacts on every change to them, without any cloud account:
+#   * the Helm chart lints, renders for every profile and passes a strict Kubernetes schema check;
+#   * the Terraform modules format, validate and plan offline with their example variables;
+#   * the chart installs and becomes healthy on a throwaway kind cluster (CPU profile) and the
+#     in-cluster smoke test passes (sign-up, forecast, MCP plan gate, 401 without a key, pod
+#     security contexts).
+# Staging and production deploys are in images.yml and need real clusters.
+name: Deploy verification
+
+on:
+  pull_request:
+    paths: ["deploy/**", "Dockerfile", "ee/dashboard/Dockerfile", ".github/workflows/deploy-verify.yml"]
+  push:
+    branches: [main]
+    paths: ["deploy/**", "Dockerfile", "ee/dashboard/Dockerfile", ".github/workflows/deploy-verify.yml"]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: deploy-verify-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  helm:
+    name: helm lint, render and schema check
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: azure/setup-helm@9bc31f4ebc9c6b171d7bfbaa5d006ae7abdb4310 # v5.0.1
+      - name: Install kubeconform (checksum verified)
+        run: |
+          v=v0.8.0
+          curl -fsSLO "https://github.com/yannh/kubeconform/releases/download/${v}/kubeconform-linux-amd64.tar.gz"
+          curl -fsSLO "https://github.com/yannh/kubeconform/releases/download/${v}/CHECKSUMS"
+          grep " kubeconform-linux-amd64.tar.gz$" CHECKSUMS | sha256sum -c -
+          tar xzf kubeconform-linux-amd64.tar.gz kubeconform && sudo install kubeconform /usr/local/bin/
+      - run: bash deploy/helm/verify.sh
+
+  terraform:
+    name: terraform fmt, validate and offline plan
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: hashicorp/setup-terraform@dfe3c3f87815947d99a8997f908cb6525fc44e9e # v4.0.1
+        with:
+          terraform_wrapper: false
+      - run: bash deploy/terraform/verify.sh
+
+  kind:
+    name: install on kind (CPU profile)
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4.4.1
+      - uses: azure/setup-helm@9bc31f4ebc9c6b171d7bfbaa5d006ae7abdb4310 # v5.0.1
+      - uses: helm/kind-action@1544676c07bb3570fcb70166beaa07c4528fd4aa # v1.15.1
+        with:
+          install_only: true     # the smoke script creates (and deletes) its own cluster
+      - name: Build the three images
+        run: |
+          docker buildx build --load --target api   -t tycheon-api:t6-cpu .
+          docker buildx build --load --target cloud -t tycheon-cloud:t6-cpu .
+          docker buildx build --load -t tycheon-dashboard:t6 ee/dashboard
+      - name: Check the images' security properties
+        run: |
+          K=$(python3 -c "import os,base64;print(base64.b64encode(os.urandom(32)).decode())")
+          bash deploy/docker/verify_image.sh tycheon-api:t6-cpu 8080 TYCHEON_API_KEYS=acme:0123456789abcdef0123456789abcdef
+          bash deploy/docker/verify_image.sh tycheon-cloud:t6-cpu 8080 TYCHEON_CP_DATABASE_URL=postgresql://x:y@127.0.0.1:1/z TYCHEON_CP_SESSION_SECRET=0123456789abcdef0123456789abcdef0123 TYCHEON_CP_LOCAL_KMS_KEY="$K" TYCHEON_CP_ENV=dev
+          bash deploy/docker/verify_image.sh tycheon-dashboard:t6 3000 CONTROL_PLANE_URL=http://127.0.0.1:1
+      - name: Install on kind and smoke test
+        run: bash deploy/helm/kind-smoke.sh

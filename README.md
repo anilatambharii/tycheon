@@ -10,14 +10,16 @@ desk actually uses. Tycheon is that missing layer.
 
 [![License](https://img.shields.io/badge/license-Apache--2.0-blue.svg)](LICENSE)
 [![Python](https://img.shields.io/badge/python-3.11%20%7C%203.12-blue.svg)](pyproject.toml)
+[![OpenSSF Scorecard](https://api.scorecard.dev/projects/github.com/anilatambharii/tycheon/badge)](https://scorecard.dev/viewer/?uri=github.com/anilatambharii/tycheon)
 
-> **Status: v0.2.0 (alpha, in development).** Everything in v0.1.0, plus a governed agentic risk
-> review (planner, specialist agents, an independent verifier, paper-trade proposals that always
-> wait for a human), a REST API with async jobs, and an MCP server, all through Keelgate's
-> gateway. **The evidence so far is synthetic: on the bundled series no model is
-> distinguishable from the random walk, and we publish that.** See the
-> [leaderboard](docs/leaderboard/index.md). Multi-asset portfolio risk is always labelled
-> **uncalibrated**: dependence is assumed.
+**For research and risk analytics. Not investment advice.**
+
+> **Status: v0.3.0, alpha.** The library, a governed agentic risk review, a REST API and an
+> MCP server exist and are tested. **The evidence so far is synthetic: on the bundled series
+> no model, Kronos included, is distinguishable from the random walk, and we publish that**
+> (see [Benchmark results](#benchmark-results) below). Multi-asset portfolio risk is always
+> labelled **uncalibrated**: dependence is assumed. See [What works, what is experimental,
+> what is not verified](#what-works-what-is-experimental-what-is-not-verified).
 
 ![Kronos-small beside the random-walk baseline on a synthetic series, from examples/forecast.py](docs/assets/forecast-example.png)
 
@@ -98,37 +100,68 @@ status, the model mix that produced it, its `as_of`, and a model card
 reference. Every evaluation reports the random-walk baseline and a
 Diebold-Mariano test — including when the baseline wins.
 
+## Install
+
+```bash
+pip install tycheon                 # core: baselines, calibration, risk, backtest (no torch)
+pip install "tycheon[report]"       # + the HTML risk report
+```
+
+Foundation models are optional extras, so the base install stays small
+(`import tycheon.models` never imports torch): `tycheon[kronos]`, `[timesfm]`, `[chronos]`.
+The `serve` and `agents` extras depend on [Keelgate](https://github.com/anilatambharii/keelgate),
+which this repo pins to a commit through its `uv` sources; to use the REST API, the MCP server or
+the agents, work from a clone (below), which is the path we test. PyPI lists `tycheon` 0.3.0 at the
+time of writing.
+
 ## Quickstart
 
-Requires [uv](https://docs.astral.sh/uv/) and Python 3.11+.
+This runs on the base install, offline, on bundled **synthetic** data (Tycheon ships no market
+data). A forecast is a distribution, always, and every read is point-in-time:
+
+```python
+from tycheon.data import load_sample
+from tycheon.errors import LookaheadError
+from tycheon.models.baselines import GARCHForecaster, RandomWalkForecaster
+
+bars = load_sample("SYN-GARCH")  # synthetic series with two clocks: timestamp, available_at
+history = bars.iloc[:900]
+as_of = history["available_at"].iloc[-1]  # when this history became known
+
+for model in (RandomWalkForecaster(), GARCHForecaster()):
+    forecast = model.predict(history, horizon=10, n_samples=200, as_of=as_of)
+    print(forecast.summary())  # quantiles, calibration status, model mix, as_of, disclaimer
+
+try:  # bars published after as_of are refused before any model runs
+    RandomWalkForecaster().predict(bars, horizon=10, n_samples=50, as_of=as_of)
+except LookaheadError as exc:
+    print("refused:", exc)
+```
+
+Output, from `uv run python` on a clone of this repository (not separately re-run against the PyPI wheel):
+
+```text
+random-walk [uncalibrated, sample paths] as_of 2021-06-12T00:00:00+00:00: last close 95.32; step 10 median 95.19, 90% interval [89.86, 99.72]. For research and risk analytics. Not investment advice.
+garch [uncalibrated, sample paths] as_of 2021-06-12T00:00:00+00:00: last close 95.32; step 10 median 95.14, 90% interval [88.75, 100.5]. For research and risk analytics. Not investment advice.
+refused: available_at reaches 2023-09-30T00:00:00+00:00, after as_of=2021-06-12T00:00:00+00:00
+```
+
+Note that both forecasts say `uncalibrated`: calibration is something you earn on a holdout
+(see [calibration](docs/calibration.md)), not a label. Kronos works the same way
+(`KronosForecaster("small")`, needs `uv sync --extra kronos`), see
+[`examples/forecast.py`](examples/forecast.py). More runnable material is in the
+[examples gallery](docs/gallery.md): MCP in Claude Desktop and Cursor, a portfolio risk report,
+and fine-tuning through Tycheon Cloud.
+
+To develop (requires [uv](https://docs.astral.sh/uv/) and Python 3.11+):
 
 ```bash
 git clone https://github.com/anilatambharii/tycheon.git
 cd tycheon
 make setup          # venv + dev deps + CPU torch (for Kronos) + git hooks
 make check          # lint, format check, mypy --strict, fast tests
-uv run python -c "import tycheon; print(tycheon.__version__)"
 make example        # Kronos-small beside the random walk -> examples/output/forecast.png
 ```
-
-A forecast is a distribution, always, and every read is point-in-time:
-
-```python
-from tycheon.data import load_sample
-from tycheon.models.baselines import RandomWalkForecaster
-from tycheon.models.kronos import KronosForecaster
-
-bars = load_sample("SYN-GARCH")  # synthetic: Tycheon ships no market data
-history = bars.iloc[:900]
-as_of = history["available_at"].iloc[-1]  # when this history became known
-
-for model in (RandomWalkForecaster(), KronosForecaster("small")):
-    forecast = model.predict(history, horizon=10, n_samples=50, as_of=as_of)
-    print(forecast.summary())  # quantiles, calibration status, model mix, as_of, disclaimer
-```
-
-Passing a history that includes anything published after `as_of` raises
-`LookaheadError` before the model runs. See [ADR 0003](docs/adr/0003-point-in-time-data-and-forecast-contract.md).
 
 Optional dev services (Postgres, Redis, MinIO, Jaeger):
 
@@ -138,8 +171,7 @@ make up             # start and wait for health
 make down           # stop and delete volumes
 ```
 
-The foundation models are optional extras, so the base install stays small
-(`import tycheon.models` never imports torch):
+Extras for working from a clone:
 
 ```bash
 uv sync --extra kronos      # Kronos (vendored) + torch
@@ -148,6 +180,71 @@ uv sync --extra chronos     # Chronos-2
 uv sync --extra serve       # FastAPI + MCP server
 uv sync --all-extras        # everything
 ```
+
+## Benchmark results
+
+**On the only data the public benchmark uses so far, nothing beats the random walk.** The
+numbers below are copied from
+[`benchmarks/results/small/0.1.0.json`](benchmarks/results/small/0.1.0.json) (benchmark `small`,
+run 2026-10-05T15:41:15+00:00 on CPU, Tycheon 0.1.0, 743.6 s, git commit `5c344b4660` with
+uncommitted changes, as the file itself records). It is a smoke-sized run: 3 **synthetic** series
+(GBM, GARCH, two-regime volatility), horizon 5 bars, 36 non-overlapping forecast origins per series,
+108 pooled origins. Every model is scored by the same leakage-guarded walk-forward engine at the same
+origins.
+
+| Model | MASE vs RW | RMSE (%) | CRPS (%) | 90% interval coverage | DM p, sq. error | DM p, CRPS | Diebold-Mariano outcome |
+|---|--:|--:|--:|--:|--:|--:|---|
+| **random-walk** (baseline) | 1.014 | 3.229 | 1.752 | 79.6% | n/a | n/a | the reference |
+| drift (baseline) | 1.024 | 3.264 | 1.778 | 79.6% | 0.850 | 0.905 | indistinguishable from the random walk |
+| seasonal-naive (baseline) | 1.012 | 3.244 | 1.738 | 85.2% | 0.618 | 0.269 | indistinguishable from the random walk |
+| garch (baseline) | 1.028 | 3.267 | 1.734 | 83.3% | 0.929 | 0.258 | indistinguishable from the random walk |
+| kronos-mini (zero-shot) | 1.025 | 3.306 | 1.819 | 57.4% | 0.685 | 0.756 | indistinguishable from the random walk |
+| tycheon-ensemble | 1.041 | 3.298 | 1.744 | 83.3% | 0.991 | 0.343 | indistinguishable from the random walk |
+| tycheon-calibrated | 1.039 | 3.281 | 1.781 | 86.1% | 0.787 | 0.797 | indistinguishable from the random walk |
+
+How to read it. MASE is the model's MAE over the random walk's MAE on the same origins (below 1
+beats it). "DM p" is the one-sided Diebold-Mariano p-value, with the Harvey-Leybourne-Newbold
+correction, that the model has lower loss than the random walk; a model counts as beating the
+random walk only if **both** tests give p < 0.05. Nominal coverage is 90%.
+
+What this says, plainly:
+
+- **None of the 6 models other than the random-walk reference beats it; all 6 are statistically
+  indistinguishable from it.** The best RMSE is the random walk itself, the best MASE is
+  seasonal-naive and the best CRPS is GARCH: a baseline leads every headline column, and the
+  differences are not statistically distinguishable at this sample size.
+- **Zero-shot Kronos-mini's 90% interval contained 57.4% of outcomes**, against 79.6% to 86.1% for
+  the others: its raw intervals are overconfident. Its 57.4% directional accuracy and IC of 0.168
+  are not distinguishable from chance with 108 origins, and the DM tests agree.
+- **The calibrated ensemble's 90% interval contained 86.1%** (closest to nominal in the table), at
+  the cost of the widest interval. That ensemble is built from baselines, not from Kronos, so this
+  is not evidence that calibrating Kronos works.
+- TimesFM and Chronos are not in this run.
+
+This is a machinery check on known processes, not evidence about markets: synthetic data, small
+samples, no live trading, no regime coverage beyond the generated series. Read the
+[full leaderboard](docs/leaderboard/index.md) (per-series results, interval coverage at 50/80/90%,
+a cost-aware diagnostic) and the [benchmark methodology](docs/benchmark-methodology.md) for the
+leakage controls and the limits. Reproduce with
+`python -m benchmarks.run --config benchmarks/configs/small.yaml --execute` (`make benchmark-small`);
+the same code rendered the leaderboard page from the same JSON file.
+
+## What works, what is experimental, what is not verified
+
+| | |
+|---|---|
+| **Works (tested in CI)** | Point-in-time data layer with `as_of` enforcement and leakage tests; the baselines (random walk, drift, seasonal naive, ARIMA, GARCH); conformal calibration with a holdout-based status; VaR / ES / drawdown / stress and the HTML risk report; the walk-forward engine with guards, embargo and Diebold-Mariano tests; REST API and MCP server (stdio) over governed tools; an offline scripted agent review with an independent verifier. |
+| **Experimental** | The regime-weighted ensemble and calibrated forecaster (evaluated only on synthetic data so far); Kronos adapters and zero-shot use (the vendored model runs, but no evidence yet that it adds value on market data); TimesFM and Chronos adapters (quantiles only; not in the published benchmark run); the covariate residual corrector; the agent workflow beyond the scripted model; Tycheon Cloud (`ee/`, proprietary). |
+| **Not verified** | Any forecasting skill on real market data. Any trading or investment outcome (there is no live execution, by design). Tycheon Cloud against live Stripe, AWS KMS, GPUs or a browser-driven dashboard (see [cloud](docs/cloud.md)). Multi-asset dependence (always reported `uncalibrated`). The `examples/cloud_finetune.py` script against a live backend. |
+
+## Documentation
+
+[Methodology](docs/methodology.md) | [Calibration](docs/calibration.md) | [Risk](docs/risk.md) |
+[Benchmark methodology](docs/benchmark-methodology.md) | [Leaderboard](docs/leaderboard/index.md) |
+[Serving (REST and MCP)](docs/serving.md) | [Agents](docs/agents.md) | [Governance](docs/governance.md) |
+[Examples gallery](docs/gallery.md) | [Model cards](docs/models/index.md) |
+[Tycheon Cloud](docs/cloud.md) | [Safety and compliance](docs/safety.md) |
+[ADRs](docs/adr/0001-licensing-and-open-core.md)
 
 ## Governed agents and serving
 
@@ -267,7 +364,8 @@ which also ships inside the wheel.
 
 See [`CONTRIBUTING.md`](CONTRIBUTING.md) and
 [`CODE_OF_CONDUCT.md`](CODE_OF_CONDUCT.md). `make check` must pass, tests ship
-with code, and no PR lands without them.
+with code, and no PR lands without them. Report vulnerabilities privately, per
+[`SECURITY.md`](SECURITY.md); lookahead leakage counts as one.
 
 ---
 
