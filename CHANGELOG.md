@@ -7,6 +7,24 @@ All notable changes to Tycheon are recorded here. The format follows
 
 For research and risk analytics. Not investment advice.
 
+## [0.3.0](https://github.com/anilatambharii/tycheon/compare/v0.2.0...v0.3.0) (2026-10-07)
+
+
+### Features
+
+* **ee:** control plane foundation: RLS schema, envelope encryption, plans, metering, rate limits ([59a026d](https://github.com/anilatambharii/tycheon/commit/59a026d87e0f217ff06084c26b6cfcf75055c6b1))
+* **ee:** control-plane API: accounts, keys, CSV data sources, credentials, governed metered analytics, MCP ([3717267](https://github.com/anilatambharii/tycheon/commit/3717267378f8f901957e1b4b98fcd03c969a33e5))
+* **ee:** OIDC SSO for Enterprise: PKCE, state, nonce, JWKS verification, JIT provisioning ([0d49585](https://github.com/anilatambharii/tycheon/commit/0d49585f334416588595873e0585b9524ae0c129))
+* **ee:** per-tenant Kronos fine-tuning with a promotion gate, model registry and routing ([3fabc33](https://github.com/anilatambharii/tycheon/commit/3fabc336060ecb420e8ff7580beed5f057d3eed3))
+* **ee:** retention, CLI, SSO browser hand-off, dashboard, acceptance script, CI, docs and ADR 0009 ([77f240b](https://github.com/anilatambharii/tycheon/commit/77f240b25166891b6c8f54b9769cf9ebd538d30c))
+* **ee:** Stripe billing in test mode: catalogue from config, checkout, portal, webhooks, usage meters, operator API ([20584f3](https://github.com/anilatambharii/tycheon/commit/20584f3fd12d0142ec8cc95ed757108aab05d7cd))
+* **services:** bind per-call data source and private model resolver in the trusted context ([bf53337](https://github.com/anilatambharii/tycheon/commit/bf533376ed453d9acc6f61d2112fa77259dabd5c))
+
+
+### Bug Fixes
+
+* address CodeQL findings and the gitleaks false positive on PR [#14](https://github.com/anilatambharii/tycheon/issues/14) ([acc31b5](https://github.com/anilatambharii/tycheon/commit/acc31b5cf8529bdfca1ba7d41cbf3250869ddf92))
+
 ## [0.2.0](https://github.com/anilatambharii/tycheon/compare/v0.1.0...v0.2.0) (2026-10-07)
 
 
