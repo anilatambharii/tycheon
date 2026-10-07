@@ -231,6 +231,7 @@ ignore = [
 # Tests import optional extras inside functions (after importorskip) and dispatch
 # fixtures with a long if-chain on purpose.
 "tests/**" = ["S101", "ARG", "ERA001", "PLC0415", "PLR0911", "PLR0917"]
+"ee/tests/**" = ["S101", "ARG", "ERA001", "PLC0415", "PLR0911", "PLR0917", "S105", "S106", "S608"]
 # Foundation models are optional extras: importing torch, timesfm or chronos at
 # module level would make `import tycheon.models` require them, so those imports are
 # deliberately inside functions.
@@ -248,7 +249,7 @@ ignore = [
 "examples/**" = ["T20", "PLC0415"]
 
 [tool.ruff.lint.isort]
-known-first-party = ["tycheon", "benchmarks"]
+known-first-party = ["tycheon", "benchmarks", "tycheon_cp", "tycheon_ft"]
 
 [tool.ruff.lint.flake8-tidy-imports]
 ban-relative-imports = "parents"
@@ -260,7 +261,7 @@ docstring-code-format = true
 # AGENTS.md: `mypy --strict` on src/.
 [tool.mypy]
 python_version = "3.11"
-files = ["src"]
+files = ["src", "ee/control_plane", "ee/finetune"]
 strict = true
 warn_unreachable = true
 warn_no_return = true
@@ -276,7 +277,7 @@ pretty = true
 # Optional extras and untyped scientific packages are not installed in the
 # default dev env.
 module = [
-    "accelerate.*", "arch.*", "chronos.*", "duckdb.*", "einops.*",
+    "accelerate.*", "arch.*", "asyncpg.*", "boto3.*", "botocore.*", "chronos.*", "duckdb.*", "einops.*",
     "huggingface_hub.*", "kronos.*", "lightgbm.*", "mcp.*", "safetensors.*", "scipy", "scipy.*",
     "statsmodels.*", "timesfm.*", "torch.*", "yfinance.*",
 ]
