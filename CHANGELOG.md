@@ -7,6 +7,25 @@ All notable changes to Tycheon are recorded here. The format follows
 
 For research and risk analytics. Not investment advice.
 
+## [0.4.0](https://github.com/anilatambharii/tycheon/compare/v0.3.0...v0.4.0) (2026-10-07)
+
+
+### Features
+
+* **ee:** migration rollback, queue stats and Prometheus metrics ([7324a06](https://github.com/anilatambharii/tycheon/commit/7324a06be48d52ba7ed65e0e749165f788b9a7f6))
+* **helm:** chart for the API, control plane, MCP, CPU/GPU workers, dashboard and OTel collector ([5c9f66c](https://github.com/anilatambharii/tycheon/commit/5c9f66c6bede1580b33b032d38383e34a838e368))
+
+
+### Bug Fixes
+
+* **helm:** retry the health test and print its logs; ignore three reviewed gitleaks false positives ([d87cfaa](https://github.com/anilatambharii/tycheon/commit/d87cfaa829b499ba46d8b7144b7a60cd504b577d))
+
+
+### Documentation
+
+* **launch:** README with the benchmark table, examples gallery, blog draft, issue templates, discussion forms, 28 good first issues, Scorecard workflow and the launch checklist ([ac2cf3e](https://github.com/anilatambharii/tycheon/commit/ac2cf3e79a75588645ebe74bd009a71c29fe0166))
+* **ops:** SLOs and alerts, runbooks, backup and restore with a tested drill, incident response, CI/CD, SOC 2 aligned controls ([c330638](https://github.com/anilatambharii/tycheon/commit/c330638cb608cf913d9a9ac242085b26dcff52dc))
+
 ## [0.3.0](https://github.com/anilatambharii/tycheon/compare/v0.2.0...v0.3.0) (2026-10-07)
 
 
