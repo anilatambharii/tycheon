@@ -1,0 +1,31 @@
+# Private deployment inside a customer's VPC (see deploy/terraform/aws/examples/customer-vpc).
+# No public ingress by default: reach it through the customer's own gateway or an internal LB.
+global:
+  imagePullSecrets: [{ name: tycheon-registry }]    # the proprietary images come from a private registry
+controlPlane:
+  enabled: true
+  replicas: 2
+  config:
+    TYCHEON_CP_ENV: production
+    TYCHEON_CP_KMS: aws
+workers:
+  cpu: { enabled: true }
+  gpu: { enabled: false }                            # turn on if the customer provides GPU nodes
+dashboard: { enabled: true }
+ingress:
+  enabled: true
+  className: alb
+  annotations:
+    alb.ingress.kubernetes.io/scheme: internal       # not internet-facing
+    alb.ingress.kubernetes.io/target-type: ip
+networkPolicy:
+  enabled: true
+  egress:
+    allowInternet443: false                          # no calls out of the customer network...
+    # ...except what you add here. Stripe is not used in a private deployment; SSO needs the IdP's CIDR.
+otel:
+  enabled: true
+  exporters: { otlpEndpoint: "" }                    # keep telemetry inside the customer network
+modelCache:
+  enabled: true
+  prefetch: { enabled: false }                       # pre-seed the cache volume: egress to Hugging Face is closed

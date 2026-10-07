@@ -1,0 +1,13 @@
+Tycheon {{ .Chart.AppVersion }} is installed as release "{{ .Release.Name }}" in namespace "{{ .Release.Namespace }}".
+
+For research and risk analytics. Not investment advice.
+
+{{ if .Values.api.enabled }}API:           kubectl -n {{ .Release.Namespace }} port-forward svc/{{ include "tycheon.fullname" . }}-api 8080:8080   (X-API-Key: from secret {{ .Values.api.existingSecret }})
+{{ end }}{{ if .Values.controlPlane.enabled }}Control plane: kubectl -n {{ .Release.Namespace }} port-forward svc/{{ include "tycheon.fullname" . }}-control-plane 8081:8080
+{{ end }}{{ if .Values.dashboard.enabled }}Dashboard:     kubectl -n {{ .Release.Namespace }} port-forward svc/{{ include "tycheon.fullname" . }}-dashboard 3000:3000
+{{ end }}
+Check health:   helm test {{ .Release.Name }} -n {{ .Release.Namespace }}
+{{ if .Values.devPostgres.enabled }}
+WARNING: devPostgres is enabled. This release uses a throwaway in-cluster database with weak
+credentials and no backups. It is for smoke tests only.
+{{ end }}

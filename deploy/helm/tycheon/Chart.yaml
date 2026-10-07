@@ -1,0 +1,18 @@
+apiVersion: v2
+name: tycheon
+description: >-
+  Tycheon: calibrated forecasting and risk. Installs the open-source API and, optionally, Tycheon
+  Cloud (control plane, MCP endpoint, CPU and GPU fine-tune workers, dashboard) with an
+  OpenTelemetry collector. For research and risk analytics. Not investment advice.
+type: application
+version: 0.1.0
+appVersion: "0.3.0"
+kubeVersion: ">=1.29.0-0"
+home: https://github.com/anilatambharii/tycheon
+sources:
+  - https://github.com/anilatambharii/tycheon
+keywords: [forecasting, risk, kronos, mcp]
+maintainers:
+  - name: The Tycheon Authors
+annotations:
+  category: Analytics

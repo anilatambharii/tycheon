@@ -1,0 +1,35 @@
+# Tycheon-operated SaaS on AWS (see deploy/terraform/aws). Layer on top of values.yaml:
+#   helm upgrade --install tycheon deploy/helm/tycheon -n tycheon -f values-saas.yaml \
+#     -f my-environment.yaml --set image.cloud.digest=sha256:... (CI sets the digests it just signed)
+# Account-specific values (role ARNs, KMS key, hosts, CIDRs) belong in my-environment.yaml.
+controlPlane:
+  enabled: true
+  replicas: 3
+  config:
+    TYCHEON_CP_ENV: production
+    TYCHEON_CP_KMS: aws
+    TYCHEON_CP_DEDICATED_GPU_POOLS: "true"
+  storage:
+    persistence: { enabled: true, size: 200Gi, accessModes: [ReadWriteMany] }   # EFS
+mcp: { enabled: true }
+workers:
+  cpu: { enabled: true, replicas: 2 }
+  gpu: { enabled: true, replicas: 1 }          # node pool scales from zero (see Terraform)
+dashboard: { enabled: true }
+modelCache:
+  enabled: true
+  persistence: { size: 50Gi, accessModes: [ReadWriteMany] }
+ingress:
+  enabled: true
+  className: alb
+  annotations:
+    alb.ingress.kubernetes.io/scheme: internet-facing
+    alb.ingress.kubernetes.io/target-type: ip
+    alb.ingress.kubernetes.io/listen-ports: '[{"HTTPS":443}]'
+    alb.ingress.kubernetes.io/ssl-policy: ELBSecurityPolicy-TLS13-1-2-2021-06
+    # alb.ingress.kubernetes.io/wafv2-acl-arn: <waf_web_acl_arn from the Terraform outputs>
+    # alb.ingress.kubernetes.io/certificate-arn: <ACM certificate>
+networkPolicy:
+  enabled: true
+  ingressController: { namespaceSelector: { kubernetes.io/metadata.name: kube-system } }
+otel: { enabled: true, serviceMonitor: { enabled: true } }

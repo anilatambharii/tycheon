@@ -1,0 +1,454 @@
+{{- $full := include "tycheon.fullname" . -}}
+
+{{- /* ----------------------------------------------------------- persistent volumes */ -}}
+{{- if and .Values.api.enabled .Values.api.persistence.enabled }}
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: {{ $full }}-api-data
+  labels: {{- include "tycheon.labels" . | nindent 4 }}
+spec:
+  accessModes: [ReadWriteOnce]
+  {{- with .Values.api.persistence.storageClass }}
+  storageClassName: {{ . | quote }}
+  {{- end }}
+  resources: { requests: { storage: {{ .Values.api.persistence.size }} } }
+{{- end }}
+{{- if and .Values.controlPlane.enabled .Values.controlPlane.storage.persistence.enabled }}
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: {{ $full }}-data
+  labels: {{- include "tycheon.labels" . | nindent 4 }}
+spec:
+  accessModes: {{- toYaml .Values.controlPlane.storage.persistence.accessModes | nindent 4 }}
+  {{- with .Values.controlPlane.storage.persistence.storageClass }}
+  storageClassName: {{ . | quote }}
+  {{- end }}
+  resources: { requests: { storage: {{ .Values.controlPlane.storage.persistence.size }} } }
+{{- end }}
+{{- if .Values.modelCache.enabled }}
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: {{ $full }}-model-cache
+  labels: {{- include "tycheon.labels" . | nindent 4 }}
+  annotations:
+    helm.sh/resource-policy: keep   # the cache outlives an uninstall: weights are slow to fetch
+spec:
+  accessModes: {{- toYaml .Values.modelCache.persistence.accessModes | nindent 4 }}
+  {{- with .Values.modelCache.persistence.storageClass }}
+  storageClassName: {{ . | quote }}
+  {{- end }}
+  resources: { requests: { storage: {{ .Values.modelCache.persistence.size }} } }
+{{- if .Values.modelCache.prefetch.enabled }}
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: {{ $full }}-model-prefetch-{{ .Release.Revision }}
+  labels:
+    {{- include "tycheon.labels" . | nindent 4 }}
+    app.kubernetes.io/component: model-prefetch
+spec:
+  backoffLimit: 3
+  ttlSecondsAfterFinished: 3600
+  template:
+    metadata:
+      labels: {{- include "tycheon.labels" . | nindent 8 }}
+    spec:
+      restartPolicy: OnFailure
+      automountServiceAccountToken: false
+      securityContext: {{- include "tycheon.podSecurityContext" . | nindent 8 }}
+      {{- include "tycheon.pullSecrets" . | nindent 6 }}
+      containers:
+        - name: prefetch
+          image: {{ include "tycheon.image" (dict "root" . "image" .Values.image.api) | quote }}
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          command: ["python", "-c"]
+          # downloads the pinned Kronos checkpoint (a specific commit, safetensors only) once
+          args:
+            - |
+              from tycheon.models.kronos import KronosForecaster
+              KronosForecaster(variant="{{ .Values.modelCache.prefetch.variant }}", device="cpu").load()
+              print("model cache ready")
+          env:
+            - { name: HF_HOME, value: /cache/huggingface }
+          securityContext: {{- include "tycheon.containerSecurityContext" . | nindent 12 }}
+          resources: { requests: { cpu: 500m, memory: 2Gi }, limits: { memory: 4Gi } }
+          volumeMounts:
+            - { name: model-cache, mountPath: /cache }
+            - { name: tmp, mountPath: /tmp }
+      volumes:
+        - { name: model-cache, persistentVolumeClaim: { claimName: {{ $full }}-model-cache } }
+        - { name: tmp, emptyDir: {} }
+{{- end }}
+{{- end }}
+
+{{- /* ---------------------------------------------------------------- migrations */ -}}
+{{- if and .Values.controlPlane.enabled .Values.migrations.enabled }}
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: {{ $full }}-migrate-{{ .Release.Revision }}
+  labels:
+    {{- include "tycheon.labels" . | nindent 4 }}
+    app.kubernetes.io/component: migrations
+  {{- if .Values.migrations.hook }}
+  annotations:
+    # runs before the new version's pods start; a failed migration stops the release
+    helm.sh/hook: pre-install,pre-upgrade
+    helm.sh/hook-weight: "5"
+    helm.sh/hook-delete-policy: before-hook-creation,hook-succeeded
+  {{- end }}
+spec:
+  backoffLimit: 0        # a failed migration stops the release; it is never retried blindly
+  ttlSecondsAfterFinished: 86400
+  activeDeadlineSeconds: 600
+  template:
+    metadata:
+      labels: {{- include "tycheon.labels" . | nindent 8 }}
+    spec:
+      restartPolicy: Never
+      automountServiceAccountToken: false
+      securityContext: {{- include "tycheon.podSecurityContext" . | nindent 8 }}
+      {{- include "tycheon.pullSecrets" . | nindent 6 }}
+      containers:
+        - name: migrate
+          image: {{ include "tycheon.image" (dict "root" . "image" .Values.image.cloud) | quote }}
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          command: ["python", "-m", "tycheon_cp.cli", "migrate", "--wait", {{ .Values.migrations.waitSeconds | quote }}]
+          env:
+            - { name: TYCHEON_CP_APP_ROLE, value: {{ .Values.migrations.appRole | quote }} }
+          envFrom:
+            - secretRef: { name: {{ .Values.migrations.existingSecret }} }
+          securityContext: {{- include "tycheon.containerSecurityContext" . | nindent 12 }}
+          resources: { requests: { cpu: 100m, memory: 256Mi }, limits: { memory: 512Mi } }
+          volumeMounts:
+            - { name: tmp, mountPath: /tmp }
+      volumes:
+        - { name: tmp, emptyDir: {} }
+{{- end }}
+
+{{- /* ------------------------------------------------------------------- ingress */ -}}
+{{- if .Values.ingress.enabled }}
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: {{ $full }}
+  labels: {{- include "tycheon.labels" . | nindent 4 }}
+  {{- with .Values.ingress.annotations }}
+  annotations: {{- toYaml . | nindent 4 }}
+  {{- end }}
+spec:
+  {{- with .Values.ingress.className }}
+  ingressClassName: {{ . }}
+  {{- end }}
+  {{- with .Values.ingress.tls }}
+  tls: {{- toYaml . | nindent 4 }}
+  {{- end }}
+  rules:
+    {{- if and .Values.api.enabled .Values.ingress.hosts.api }}
+    - host: {{ .Values.ingress.hosts.api | quote }}
+      http:
+        paths:
+          - { path: /, pathType: Prefix, backend: { service: { name: {{ $full }}-api, port: { name: http } } } }
+    {{- end }}
+    {{- if and .Values.controlPlane.enabled .Values.ingress.hosts.controlPlane }}
+    - host: {{ .Values.ingress.hosts.controlPlane | quote }}
+      http:
+        paths:
+          {{- if .Values.mcp.enabled }}
+          - { path: /v1/mcp, pathType: Exact, backend: { service: { name: {{ $full }}-mcp, port: { name: http } } } }
+          {{- end }}
+          - { path: /, pathType: Prefix, backend: { service: { name: {{ $full }}-control-plane, port: { name: http } } } }
+    {{- end }}
+    {{- if and .Values.dashboard.enabled .Values.ingress.hosts.dashboard }}
+    - host: {{ .Values.ingress.hosts.dashboard | quote }}
+      http:
+        paths:
+          - { path: /, pathType: Prefix, backend: { service: { name: {{ $full }}-dashboard, port: { name: http } } } }
+    {{- end }}
+{{- end }}
+
+{{- /* ------------------------------------------------------------ network policies */ -}}
+{{- if .Values.networkPolicy.enabled }}
+# default: nothing in, nothing out for any Tycheon pod; the policies below open exactly what is needed
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: {{ $full }}-default-deny
+  labels: {{- include "tycheon.labels" . | nindent 4 }}
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/name: {{ include "tycheon.name" . }}
+      app.kubernetes.io/instance: {{ .Release.Name }}
+  policyTypes: [Ingress, Egress]
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: {{ $full }}-allow-ingress-controller
+  labels: {{- include "tycheon.labels" . | nindent 4 }}
+spec:
+  podSelector:
+    matchExpressions:
+      - { key: app.kubernetes.io/component, operator: In, values: [api, control-plane, mcp, dashboard] }
+      - { key: app.kubernetes.io/instance, operator: In, values: [{{ .Release.Name }}] }
+  policyTypes: [Ingress]
+  ingress:
+    - from:
+        - namespaceSelector:
+            matchLabels: {{- toYaml .Values.networkPolicy.ingressController.namespaceSelector | nindent 14 }}
+      ports:
+        - { port: 8080 }
+        - { port: 3000 }
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: {{ $full }}-allow-internal
+  labels: {{- include "tycheon.labels" . | nindent 4 }}
+spec:
+  # the dashboard talks to the control plane; Prometheus-style scrapers and the collector talk to everyone
+  podSelector:
+    matchLabels: { app.kubernetes.io/instance: {{ .Release.Name }} }
+  policyTypes: [Ingress]
+  ingress:
+    - from:
+        - podSelector:
+            matchLabels: { app.kubernetes.io/instance: {{ .Release.Name }} }
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: {{ $full }}-allow-egress
+  labels: {{- include "tycheon.labels" . | nindent 4 }}
+spec:
+  podSelector:
+    matchLabels: { app.kubernetes.io/instance: {{ .Release.Name }} }
+  policyTypes: [Egress]
+  egress:
+    # other Tycheon pods (collector, control plane, dev database)
+    - to:
+        - podSelector:
+            matchLabels: { app.kubernetes.io/instance: {{ .Release.Name }} }
+    {{- if .Values.networkPolicy.egress.dns }}
+    - to:
+        - namespaceSelector: {}
+          podSelector:
+            matchLabels: { k8s-app: kube-dns }
+      ports:
+        - { port: 53, protocol: UDP }
+        - { port: 53, protocol: TCP }
+    {{- end }}
+    {{- range .Values.networkPolicy.egress.postgresCIDRs }}
+    - to: [{ ipBlock: { cidr: {{ . | quote }} } }]
+      ports: [{ port: 5432 }]
+    {{- end }}
+    {{- range .Values.networkPolicy.egress.redisCIDRs }}
+    - to: [{ ipBlock: { cidr: {{ . | quote }} } }]
+      ports: [{ port: 6379 }]
+    {{- end }}
+    {{- if .Values.networkPolicy.egress.allowInternet443 }}
+    - to:
+        - ipBlock:
+            cidr: 0.0.0.0/0
+            except: [10.0.0.0/8, 172.16.0.0/12, 192.168.0.0/16, 169.254.0.0/16]
+      ports: [{ port: 443 }]
+    {{- end }}
+{{- end }}
+
+{{- /* ------------------------------------------------------- OpenTelemetry collector */ -}}
+{{- if .Values.otel.enabled }}
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ $full }}-otel
+  labels: {{- include "tycheon.labels" . | nindent 4 }}
+data:
+  config.yaml: |
+    receivers:
+      otlp:
+        protocols:
+          grpc: { endpoint: 0.0.0.0:4317 }
+          http: { endpoint: 0.0.0.0:4318 }
+    processors:
+      memory_limiter: { check_interval: 1s, limit_percentage: 75, spike_limit_percentage: 20 }
+      batch: {}
+      # never export request bodies or credentials, whatever a library puts in a span
+      attributes/scrub:
+        actions:
+          - { key: http.request.header.authorization, action: delete }
+          - { key: http.request.header.x-api-key, action: delete }
+          - { key: http.request.header.cookie, action: delete }
+          - { key: db.statement, action: delete }
+    exporters:
+      prometheus: { endpoint: 0.0.0.0:8889, namespace: tycheon }
+      {{- if .Values.otel.exporters.otlpEndpoint }}
+      otlp:
+        endpoint: {{ .Values.otel.exporters.otlpEndpoint | quote }}
+        tls: { insecure: {{ .Values.otel.exporters.otlpInsecure }} }
+      {{- end }}
+      debug: { verbosity: basic }
+    service:
+      pipelines:
+        traces:
+          receivers: [otlp]
+          processors: [memory_limiter, attributes/scrub, batch]
+          exporters: [{{ if .Values.otel.exporters.otlpEndpoint }}otlp{{ else }}debug{{ end }}]
+        metrics:
+          receivers: [otlp]
+          processors: [memory_limiter, batch]
+          exporters: [prometheus{{ if .Values.otel.exporters.otlpEndpoint }}, otlp{{ end }}]
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: {{ $full }}-otel
+  labels: {{- include "tycheon.labels" . | nindent 4 }}
+  {{- with .Values.serviceAccount.annotations.otel }}
+  annotations: {{- toYaml . | nindent 4 }}
+  {{- end }}
+automountServiceAccountToken: false
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ $full }}-otel
+  labels:
+    {{- include "tycheon.labels" . | nindent 4 }}
+    app.kubernetes.io/component: otel
+spec:
+  replicas: {{ .Values.otel.replicas }}
+  selector:
+    matchLabels: {{- include "tycheon.selectorLabels" (dict "root" . "component" "otel") | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{- include "tycheon.labels" . | nindent 8 }}
+        app.kubernetes.io/component: otel
+      annotations:
+        checksum/config: {{ include "tycheon.fullname" . | sha256sum | trunc 16 }}-{{ .Release.Revision }}
+    spec:
+      serviceAccountName: {{ $full }}-otel
+      automountServiceAccountToken: false
+      securityContext: {{- include "tycheon.podSecurityContext" . | nindent 8 }}
+      containers:
+        - name: otel
+          image: {{ if .Values.otel.image.digest }}{{ printf "%s@%s" .Values.otel.image.repository .Values.otel.image.digest }}{{ else }}{{ printf "%s:%s" .Values.otel.image.repository .Values.otel.image.tag }}{{ end }}
+          args: ["--config=/etc/otel/config.yaml"]
+          ports:
+            - { name: otlp-grpc, containerPort: 4317 }
+            - { name: otlp-http, containerPort: 4318 }
+            - { name: metrics, containerPort: 8889 }
+          securityContext: {{- include "tycheon.containerSecurityContext" . | nindent 12 }}
+          resources: {{- toYaml .Values.otel.resources | nindent 12 }}
+          volumeMounts:
+            - { name: config, mountPath: /etc/otel }
+      volumes:
+        - { name: config, configMap: { name: {{ $full }}-otel } }
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ $full }}-otel
+  labels:
+    {{- include "tycheon.labels" . | nindent 4 }}
+    app.kubernetes.io/component: otel
+spec:
+  selector: {{- include "tycheon.selectorLabels" (dict "root" . "component" "otel") | nindent 4 }}
+  ports:
+    - { name: otlp-grpc, port: 4317, targetPort: otlp-grpc }
+    - { name: otlp-http, port: 4318, targetPort: otlp-http }
+    - { name: metrics, port: 8889, targetPort: metrics }
+{{- if .Values.otel.serviceMonitor.enabled }}
+---
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: {{ $full }}-otel
+  labels: {{- include "tycheon.labels" . | nindent 4 }}
+spec:
+  selector:
+    matchLabels: {{- include "tycheon.selectorLabels" (dict "root" . "component" "otel") | nindent 6 }}
+  endpoints:
+    - { port: metrics, interval: 30s }
+{{- end }}
+{{- end }}
+
+{{- /* ---------------------------------------- DEV ONLY: in-cluster Postgres for kind */ -}}
+{{- if .Values.devPostgres.enabled }}
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ $full }}-dev-postgres-init
+  labels: {{- include "tycheon.labels" . | nindent 4 }}
+data:
+  roles.sql: |
+    -- throwaway roles for the kind smoke test only (production: see deploy/terraform)
+    CREATE ROLE tycheon_owner LOGIN PASSWORD 'owner-dev-pw' CREATEROLE;
+    CREATE ROLE tycheon_app LOGIN PASSWORD 'app-dev-pw' NOSUPERUSER NOBYPASSRLS;
+    ALTER DATABASE tycheon OWNER TO tycheon_owner;
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ $full }}-dev-postgres
+  labels:
+    {{- include "tycheon.labels" . | nindent 4 }}
+    app.kubernetes.io/component: dev-postgres
+spec:
+  clusterIP: None
+  selector: {{- include "tycheon.selectorLabels" (dict "root" . "component" "dev-postgres") | nindent 4 }}
+  ports: [{ name: pg, port: 5432 }]
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: {{ $full }}-dev-postgres
+  labels:
+    {{- include "tycheon.labels" . | nindent 4 }}
+    app.kubernetes.io/component: dev-postgres
+spec:
+  serviceName: {{ $full }}-dev-postgres
+  replicas: 1
+  selector:
+    matchLabels: {{- include "tycheon.selectorLabels" (dict "root" . "component" "dev-postgres") | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{- include "tycheon.labels" . | nindent 8 }}
+        app.kubernetes.io/component: dev-postgres
+    spec:
+      automountServiceAccountToken: false
+      securityContext: { runAsUser: 70, runAsGroup: 70, fsGroup: 70, runAsNonRoot: true, seccompProfile: { type: RuntimeDefault } }
+      containers:
+        - name: postgres
+          image: {{ printf "%s@%s" .Values.devPostgres.image.repository .Values.devPostgres.image.digest | quote }}
+          env:
+            - { name: POSTGRES_USER, value: postgres }
+            - { name: POSTGRES_PASSWORD, value: dev-only-not-a-secret }  # throwaway: see values-kind.yaml
+            - { name: POSTGRES_DB, value: tycheon }
+            - { name: PGDATA, value: /var/lib/postgresql/data/pgdata }
+          ports: [{ name: pg, containerPort: 5432 }]
+          securityContext: { allowPrivilegeEscalation: false, capabilities: { drop: ["ALL"] } }
+          readinessProbe: { exec: { command: [pg_isready, -U, postgres] }, periodSeconds: 5 }
+          volumeMounts:
+            - { name: data, mountPath: /var/lib/postgresql/data }
+            - { name: run, mountPath: /var/run/postgresql }
+            - { name: initdb, mountPath: /docker-entrypoint-initdb.d, readOnly: true }
+      volumes:
+        - { name: data, emptyDir: {} }
+        - { name: run, emptyDir: {} }
+        - { name: initdb, configMap: { name: {{ $full }}-dev-postgres-init } }
+{{- end }}

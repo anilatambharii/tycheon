@@ -1,0 +1,171 @@
+{{- /* SLO burn-rate alerts and operational alerts. Needs the Prometheus Operator CRDs.
+        Written against docs/ops/slos.md: change a threshold there and here together. */ -}}
+{{- if .Values.prometheusRule.enabled }}
+{{- $a := .Values.prometheusRule.thresholds -}}
+{{- $ns := .Release.Namespace -}}
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: {{ include "tycheon.fullname" . }}
+  labels:
+    {{- include "tycheon.labels" . | nindent 4 }}
+    {{- with .Values.prometheusRule.labels }}{{ toYaml . | nindent 4 }}{{ end }}
+spec:
+  groups:
+    - name: tycheon.slo
+      rules:
+        # Availability SLO 99.9% of requests not answered with 5xx (30 days). Page on fast burn,
+        # ticket on slow burn: the standard multi-window, multi-burn-rate pattern.
+        - record: tycheon:http_error_ratio:rate5m
+          expr: |
+            sum(rate(tycheon_http_requests_total{status_class="5xx", route!="unmatched"}[5m]))
+              / sum(rate(tycheon_http_requests_total{route!="unmatched"}[5m]))
+        - alert: TycheonErrorBudgetFastBurn
+          expr: |
+            ( sum(rate(tycheon_http_requests_total{status_class="5xx", route!="unmatched"}[5m]))
+                / sum(rate(tycheon_http_requests_total{route!="unmatched"}[5m])) > (14.4 * 0.001) )
+            and
+            ( sum(rate(tycheon_http_requests_total{status_class="5xx", route!="unmatched"}[1h]))
+                / sum(rate(tycheon_http_requests_total{route!="unmatched"}[1h])) > (14.4 * 0.001) )
+          for: 2m
+          labels: { severity: page, slo: availability }
+          annotations:
+            summary: "Burning the 30-day availability error budget 14x too fast"
+            runbook_url: {{ $.Values.prometheusRule.runbookBase }}/error-budget-burn.md
+        - alert: TycheonErrorBudgetSlowBurn
+          expr: |
+            ( sum(rate(tycheon_http_requests_total{status_class="5xx", route!="unmatched"}[30m]))
+                / sum(rate(tycheon_http_requests_total{route!="unmatched"}[30m])) > (6 * 0.001) )
+            and
+            ( sum(rate(tycheon_http_requests_total{status_class="5xx", route!="unmatched"}[6h]))
+                / sum(rate(tycheon_http_requests_total{route!="unmatched"}[6h])) > (6 * 0.001) )
+          for: 15m
+          labels: { severity: ticket, slo: availability }
+          annotations:
+            summary: "Burning the 30-day availability error budget 6x too fast"
+            runbook_url: {{ $.Values.prometheusRule.runbookBase }}/error-budget-burn.md
+        # Latency SLO: 99% of forecast, risk and backtest calls complete within the bound.
+        - alert: TycheonForecastLatencyHigh
+          expr: |
+            histogram_quantile(0.99,
+              sum by (le) (rate(tycheon_http_request_duration_seconds_bucket{route="/v1/forecast", method="POST"}[10m]))
+            ) > {{ $a.forecastP99Seconds }}
+          for: 15m
+          labels: { severity: page, slo: latency }
+          annotations:
+            summary: "The 99th-percentile forecast latency is above {{ $a.forecastP99Seconds }}s"
+            runbook_url: {{ $.Values.prometheusRule.runbookBase }}/high-latency.md
+    - name: tycheon.quality
+      rules:
+        # Calibration decay (a proxy: see docs/ops/slos.md). The share of served forecasts that are
+        # not calibrated, and how far served intervals' holdout coverage is from nominal.
+        - alert: TycheonUncalibratedShareHigh
+          expr: |
+            sum(rate(tycheon_forecast_calibration_total{status!="calibrated"}[1h]))
+              / sum(rate(tycheon_forecast_calibration_total[1h])) > {{ $a.uncalibratedShare }}
+          for: 2h
+          labels: { severity: ticket, slo: calibration }
+          annotations:
+            summary: "More than {{ $a.uncalibratedShare }} of forecasts are being served uncalibrated or stale"
+            runbook_url: {{ $.Values.prometheusRule.runbookBase }}/calibration-decay.md
+        - alert: TycheonCoverageGapHigh
+          expr: |
+            histogram_quantile(0.9,
+              sum by (le) (rate(tycheon_calibration_coverage_gap_bucket[6h]))
+            ) > {{ $a.coverageGap }}
+          for: 1h
+          labels: { severity: ticket, slo: calibration }
+          annotations:
+            summary: "Served intervals miss their nominal coverage by more than {{ $a.coverageGap }} at the 90th percentile"
+            runbook_url: {{ $.Values.prometheusRule.runbookBase }}/calibration-decay.md
+    - name: tycheon.gpu-and-cost
+      rules:
+        # GPU utilisation comes from the NVIDIA DCGM exporter (not part of this chart).
+        - alert: TycheonGpuIdle
+          expr: |
+            avg(DCGM_FI_DEV_GPU_UTIL{namespace="{{ $ns }}"}) < {{ $a.gpuIdlePercent }}
+              and on() sum(kube_pod_container_resource_requests{namespace="{{ $ns }}", resource="nvidia_com_gpu"}) > 0
+          for: 1h
+          labels: { severity: ticket, slo: cost }
+          annotations:
+            summary: "GPUs are allocated but under {{ $a.gpuIdlePercent }}% utilised for an hour: money is being spent on idle hardware"
+            runbook_url: {{ $.Values.prometheusRule.runbookBase }}/gpu-underutilised.md
+        - alert: TycheonGpuSaturated
+          expr: avg(DCGM_FI_DEV_GPU_UTIL{namespace="{{ $ns }}"}) > {{ $a.gpuBusyPercent }}
+          for: 2h
+          labels: { severity: ticket, slo: capacity }
+          annotations:
+            summary: "GPUs have been saturated for two hours: fine-tune jobs will queue"
+            runbook_url: {{ $.Values.prometheusRule.runbookBase }}/queue-stuck.md
+        - alert: TycheonGpuCostAnomaly
+          expr: sum(kube_pod_container_resource_requests{namespace="{{ $ns }}", resource="nvidia_com_gpu"}) > {{ $a.maxGpus }}
+          for: 1h
+          labels: { severity: page, slo: cost }
+          annotations:
+            summary: "More than {{ $a.maxGpus }} GPUs are allocated: a runaway autoscaler or a stuck job is costing money"
+            runbook_url: {{ $.Values.prometheusRule.runbookBase }}/cost-anomaly.md
+        - alert: TycheonTrafficAnomaly
+          expr: |
+            sum(rate(tycheon_usage_committed_total[1h]))
+              > {{ $a.trafficMultiple }} * sum(avg_over_time(sum(rate(tycheon_usage_committed_total[1h]))[7d:1h]))
+          for: 2h
+          labels: { severity: ticket, slo: cost }
+          annotations:
+            summary: "Metered traffic is more than {{ $a.trafficMultiple }}x its 7-day norm (abuse, a runaway client, or growth)"
+            runbook_url: {{ $.Values.prometheusRule.runbookBase }}/cost-anomaly.md
+    - name: tycheon.platform
+      rules:
+        - alert: TycheonFineTuneQueueStuck
+          expr: tycheon_finetune_oldest_queued_seconds > {{ $a.queueWaitSeconds }}
+          for: 15m
+          labels: { severity: ticket, slo: capacity }
+          annotations:
+            summary: "A fine-tune job has been waiting longer than {{ $a.queueWaitSeconds }}s in pool {{ "{{ $labels.pool }}" }}"
+            runbook_url: {{ $.Values.prometheusRule.runbookBase }}/queue-stuck.md
+        - alert: TycheonDeploymentUnavailable
+          expr: |
+            kube_deployment_status_replicas_available{namespace="{{ $ns }}", deployment=~"{{ include "tycheon.fullname" . }}-.*"}
+              / kube_deployment_spec_replicas{namespace="{{ $ns }}", deployment=~"{{ include "tycheon.fullname" . }}-.*"} < 0.5
+          for: 10m
+          labels: { severity: page }
+          annotations:
+            summary: "Less than half of the replicas of {{ "{{ $labels.deployment }}" }} are available"
+            runbook_url: {{ $.Values.prometheusRule.runbookBase }}/high-latency.md
+        - alert: TycheonPodCrashLooping
+          expr: increase(kube_pod_container_status_restarts_total{namespace="{{ $ns }}", pod=~"{{ include "tycheon.fullname" . }}-.*"}[30m]) > 3
+          for: 5m
+          labels: { severity: ticket }
+          annotations:
+            summary: "{{ "{{ $labels.pod }}" }} has restarted more than 3 times in 30 minutes"
+            runbook_url: {{ $.Values.prometheusRule.runbookBase }}/high-latency.md
+        - alert: TycheonQuotaRefusalsSpike
+          expr: sum(rate(tycheon_refusals_total{reason="quota_exceeded"}[15m])) > {{ $a.quotaRefusalsPerSecond }}
+          for: 15m
+          labels: { severity: info }
+          annotations:
+            summary: "Many requests are being refused for quota: customers may be hitting limits, or a limit is set wrong"
+            runbook_url: {{ $.Values.prometheusRule.runbookBase }}/quota-lockout.md
+{{- end }}
+
+{{- if and .Values.controlPlane.enabled .Values.metrics.serviceMonitor.enabled }}
+---
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: {{ include "tycheon.fullname" . }}-control-plane
+  labels:
+    {{- include "tycheon.labels" . | nindent 4 }}
+    {{- with .Values.metrics.serviceMonitor.labels }}{{ toYaml . | nindent 4 }}{{ end }}
+spec:
+  selector:
+    matchLabels: {{- include "tycheon.selectorLabels" (dict "root" . "component" "control-plane") | nindent 6 }}
+  endpoints:
+    - port: http
+      path: /metrics
+      interval: 30s
+      authorization:
+        type: Bearer
+        credentials:
+          name: {{ .Values.controlPlane.existingSecret }}
+          key: TYCHEON_CP_METRICS_TOKEN
+{{- end }}

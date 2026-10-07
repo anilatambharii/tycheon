@@ -1,0 +1,45 @@
+# CPU-only smoke test on a kind cluster. NOT for production: it runs a throwaway in-cluster
+# Postgres with weak credentials, no ingress, no autoscaling, and a local-only KMS key.
+global:
+  imageRegistry: docker.io/library      # where `kind load docker-image` puts a local image name
+image:
+  pullPolicy: Never           # images are loaded into kind with `kind load docker-image`
+  api:       { repository: tycheon-api,       tag: t6-cpu }
+  cloud:     { repository: tycheon-cloud,     tag: t6-cpu }
+  dashboard: { repository: tycheon-dashboard, tag: t6 }
+api:
+  replicas: 1
+  autoscaling: { enabled: false }
+  pdb: null
+  resources: { requests: { cpu: 100m, memory: 512Mi }, limits: { memory: 2Gi } }
+controlPlane:
+  enabled: true
+  replicas: 1
+  autoscaling: { enabled: false }
+  pdb: null
+  config:
+    TYCHEON_CP_ENV: dev
+    TYCHEON_CP_KMS: local
+    TYCHEON_CP_PUBLIC_URL: http://localhost:8080
+    TYCHEON_CP_DASHBOARD_URL: http://localhost:3000
+  resources: { requests: { cpu: 100m, memory: 512Mi }, limits: { memory: 2Gi } }
+mcp:
+  enabled: true
+  replicas: 1
+  autoscaling: { enabled: false }
+  pdb: null
+  resources: { requests: { cpu: 100m, memory: 512Mi }, limits: { memory: 2Gi } }
+workers:
+  cpu: { enabled: false }
+  gpu: { enabled: false }
+dashboard:
+  enabled: true
+  replicas: 1
+  autoscaling: { enabled: false }
+  pdb: null
+  config: { CONTROL_PLANE_PUBLIC_URL: http://localhost:8080 }
+modelCache: { enabled: false }
+otel: { enabled: true }
+networkPolicy: { enabled: false }     # kind's default CNI does not enforce them
+migrations: { hook: false, waitSeconds: 300 }
+devPostgres: { enabled: true }
