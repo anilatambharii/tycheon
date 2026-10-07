@@ -33,6 +33,9 @@ class Settings:
     stripe_secret_key: str | None = field(default=None, repr=False)
     stripe_webhook_secret: str | None = field(default=None, repr=False)
     public_url: str = "http://localhost:8080"
+    dashboard_url: str = "http://localhost:3000"
+    #: authenticates platform operators (Tycheon staff); the operator API is off when unset
+    operator_token: str | None = field(default=None, repr=False)
     session_ttl_seconds: int = 8 * 3600
     max_upload_bytes: int = 20_000_000
 
@@ -41,6 +44,8 @@ class Settings:
             raise ConfigError(
                 f"the session secret must be at least {MIN_SESSION_SECRET} characters"
             )
+        if self.operator_token is not None and len(self.operator_token) < MIN_SESSION_SECRET:
+            raise ConfigError("the operator token must be at least 32 characters")
         if self.kms == "local":
             if self.env == "production":
                 raise ConfigError("the local KMS provider is for development only")
@@ -80,4 +85,6 @@ class Settings:
             stripe_secret_key=env.get("STRIPE_SECRET_KEY"),
             stripe_webhook_secret=env.get("STRIPE_WEBHOOK_SECRET"),
             public_url=env.get("TYCHEON_CP_PUBLIC_URL", "http://localhost:8080"),
+            dashboard_url=env.get("TYCHEON_CP_DASHBOARD_URL", "http://localhost:3000"),
+            operator_token=env.get("TYCHEON_CP_OPERATOR_TOKEN"),
         )

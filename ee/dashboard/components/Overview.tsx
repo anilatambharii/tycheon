@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { api, type Meter } from "@/lib/api";
 import { useAsync } from "@/lib/hooks";
+import { useMe } from "./Shell";
 import { ErrorBox, Loading, ProgressBar } from "./ui";
 
 const METER_LABELS: Record<string, string> = {
@@ -68,7 +69,8 @@ export function Checklist() {
 
 export default function Overview() {
   const usage = useAsync(() => api.usage());
-  const me = useAsync(() => api.me());
+  const meData = useMe();
+  const me = { data: meData, loading: meData === null, error: null as unknown };
   return (
     <div className="grid gap-4 lg:grid-cols-2">
       <section className="card" aria-labelledby="plan-title">

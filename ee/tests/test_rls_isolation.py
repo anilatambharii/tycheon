@@ -162,11 +162,15 @@ async def test_the_audit_log_is_append_only_for_the_application(db) -> None:
             await conn.execute("DELETE FROM audit_log")
 
 
-async def test_the_application_cannot_read_webhook_events_or_run_ddl(db) -> None:
+async def test_the_application_cannot_read_or_write_webhook_events_or_run_ddl(db) -> None:
     async with db.anonymous() as conn:
-        await conn.execute("INSERT INTO stripe_events (id) VALUES ($1)", f"evt_{uuid.uuid4().hex}")
-        with pytest.raises(asyncpg.exceptions.InsufficientPrivilegeError):
-            await conn.fetch("SELECT * FROM stripe_events")
+        event_id = f"evt_{uuid.uuid4().hex}"
+        assert await conn.fetchval("SELECT cp_record_stripe_event($1)", event_id) is True
+        assert await conn.fetchval("SELECT cp_record_stripe_event($1)", event_id) is False
+    for statement in ("SELECT * FROM stripe_events", "INSERT INTO stripe_events (id) VALUES ('x')"):
+        async with db.anonymous() as conn:
+            with pytest.raises(asyncpg.exceptions.InsufficientPrivilegeError):
+                await conn.execute(statement)
     async with db.anonymous() as conn:
         with pytest.raises(asyncpg.exceptions.InsufficientPrivilegeError):
             await conn.execute("CREATE TABLE evil (x int)")

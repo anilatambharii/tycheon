@@ -30,6 +30,7 @@ const csp = [
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
+  outputFileTracingRoot: import.meta.dirname,
   poweredByHeader: false,
   async headers() {
     return [

@@ -29,6 +29,8 @@ if TYPE_CHECKING:
     from collections.abc import AsyncIterator
 
 APP_ROLE = "tycheon_app"
+WEBHOOK_SECRET = "whsec_test_only_not_a_real_secret_0000"  # pragma: allowlist secret
+OPERATOR_TOKEN = "operator-token-for-tests-0123456789abcdef"  # pragma: allowlist secret
 
 
 @dataclass(frozen=True)
@@ -130,17 +132,19 @@ async def cp(pg: PgUrls, db: Database, runtime, tmp_path):
         storage_root=tmp_path / "blobs",
         env="test",
         local_kms_key=base64.b64encode(os.urandom(32)).decode(),
+        stripe_webhook_secret=WEBHOOK_SECRET,
+        operator_token=OPERATOR_TOKEN,
     )
     return await build_control_plane(settings, db=db, runtime=runtime, limiter=RateLimiter())
 
 
 @pytest.fixture
-async def client(cp):
+async def client(cp, fake_stripe):
     import httpx
 
     from tycheon_cp.factory import create_full_app
 
-    app = create_full_app(cp)
+    app = create_full_app(cp, stripe_api=fake_stripe)
     transport = httpx.ASGITransport(app=app)
     async with httpx.AsyncClient(transport=transport, base_url="http://cp.test") as http:
         http.app = app  # type: ignore[attr-defined]
@@ -237,3 +241,54 @@ def set_org_plan(owner):
         await set_plan(owner, org_id, plan, override)
 
     return apply
+
+
+class FakeStripe:
+    """A stand-in for :class:`tycheon_cp.billing.RealStripe` that records what it is asked."""
+
+    def __init__(self) -> None:
+        self.customers: list[dict] = []
+        self.checkouts: list[dict] = []
+        self.usage: list[dict] = []
+        self.invoices: list[dict] = []
+        self.catalog_calls = 0
+
+    def ensure_catalog(self, plans):
+        self.catalog_calls += 1
+        return {p.price.lookup_key: f"price_test_{p.key}" for p in plans.plans.values() if p.price}
+
+    def create_customer(self, *, email, name, org_id):
+        self.customers.append({"email": email, "name": name, "org_id": org_id})
+        return f"cus_test_{uuid.uuid4().hex[:14]}"
+
+    def checkout_url(self, **kw):
+        self.checkouts.append(kw)
+        return f"https://checkout.stripe.test/c/{kw['plan']}"
+
+    def portal_url(self, *, customer, return_url):
+        return f"https://billing.stripe.test/p/{customer}"
+
+    def preview(self, *, customer, subscription, price_id):
+        return {
+            "currency": "usd",
+            "total_cents": 100_000,
+            "period_end": 1_900_000_000,
+            "lines": [{"description": "Tycheon Startup", "amount_cents": 100_000}],
+            "for": {"customer": customer, "subscription": subscription, "price": price_id},
+        }
+
+    def report_usage(self, *, kind, customer, value, identifier, timestamp):
+        self.usage.append(
+            {"kind": kind, "customer": customer, "value": value, "identifier": identifier}
+        )
+
+    def draft_invoice(self, *, customer, description, amount_cents, currency):
+        self.invoices.append(
+            {"customer": customer, "description": description, "amount_cents": amount_cents}
+        )
+        return f"in_test_{uuid.uuid4().hex[:14]}"
+
+
+@pytest.fixture
+def fake_stripe() -> FakeStripe:
+    return FakeStripe()
