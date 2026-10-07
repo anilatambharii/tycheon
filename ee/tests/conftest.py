@@ -138,9 +138,9 @@ async def cp(pg: PgUrls, db: Database, runtime, tmp_path):
 async def client(cp):
     import httpx
 
-    from tycheon_cp.app import create_app
+    from tycheon_cp.factory import create_full_app
 
-    app = create_app(cp)
+    app = create_full_app(cp)
     transport = httpx.ASGITransport(app=app)
     async with httpx.AsyncClient(transport=transport, base_url="http://cp.test") as http:
         http.app = app  # type: ignore[attr-defined]
