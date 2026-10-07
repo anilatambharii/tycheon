@@ -28,6 +28,8 @@ if TYPE_CHECKING:
 MIN_ROWS = 60
 MAX_ROWS = 2_000_000
 _FAR_FUTURE = datetime(2100, 1, 1, tzinfo=UTC)
+#: validation reads the upload under a fixed name: the customer's symbol never touches a path here
+_UPLOAD_NAME = "UPLOAD"
 
 
 class DataSourceError(ValueError):
@@ -56,17 +58,17 @@ def infer_frequency(index: pd.DatetimeIndex) -> str:
     return "1min"
 
 
-def validate_csv(symbol: str, raw: bytes, *, max_bytes: int) -> CsvInfo:
+def validate_csv(raw: bytes, *, max_bytes: int) -> CsvInfo:
     """Parse ``raw`` as the OSS file provider would, and check it is fit to forecast from."""
     if not raw:
         raise DataSourceError("the file is empty")
     if len(raw) > max_bytes:
         raise DataSourceError(f"the file is larger than {max_bytes // 1_000_000} MB")
     with tempfile.TemporaryDirectory() as tmp:
-        (Path(tmp) / f"{symbol}.csv").write_bytes(raw)
+        (Path(tmp) / f"{_UPLOAD_NAME}.csv").write_bytes(raw)
         try:
             bars = FileProvider(tmp).fetch_bars(
-                symbol, start=None, end=None, as_of=_FAR_FUTURE, frequency="1D"
+                _UPLOAD_NAME, start=None, end=None, as_of=_FAR_FUTURE, frequency="1D"
             )
         except (TycheonError, ValueError, KeyError, pd.errors.ParserError) as exc:
             raise DataSourceError(f"the file is not a valid bars file: {exc}") from exc

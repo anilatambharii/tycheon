@@ -528,7 +528,7 @@ def _account_routes(cp: ControlPlane, deps: _Deps) -> APIRouter:
             from tycheon.data.schema import validate_symbol  # noqa: PLC0415
 
             validate_symbol(symbol)
-            info = validate_csv(symbol, raw, max_bytes=cp.settings.max_upload_bytes)
+            info = validate_csv(raw, max_bytes=cp.settings.max_upload_bytes)
         except (DataSourceError, ValueError) as exc:
             raise ApiProblem(422, "invalid_data", str(exc)) from exc
         if info.frequency not in org.plan.data_frequencies:

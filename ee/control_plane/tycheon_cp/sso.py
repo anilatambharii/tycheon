@@ -14,14 +14,16 @@ Proprietary: see ee/LICENSE.
 """
 
 # NOTE: no ``from __future__ import annotations``: FastAPI reads the route annotations.
+import asyncio
 import base64
 import hashlib
 import ipaddress
+import re
 import secrets
 import socket
 import time
 from typing import Annotated, Any
-from urllib.parse import urlencode, urlparse
+from urllib.parse import urlencode, urlparse, urlunparse
 from uuid import UUID
 
 import asyncpg
@@ -57,6 +59,24 @@ class SsoIn(BaseModel):
     default_role: str = Field(default="member", pattern="^(admin|member|viewer)$")
 
 
+_ISSUER_PATH = re.compile(r"^[A-Za-z0-9._~/-]*$")
+
+
+def public_addresses(host: str, port: int) -> list[str]:
+    """Every address ``host`` resolves to, refusing the lot if any is not publicly routable."""
+    try:
+        infos = socket.getaddrinfo(host, port, proto=socket.IPPROTO_TCP)
+    except OSError as exc:
+        raise ApiProblem(422, "invalid_request", "That host does not resolve.") from exc
+    found = []
+    for info in infos:
+        address = ipaddress.ip_address(info[4][0])
+        if not address.is_global:
+            raise ApiProblem(422, "invalid_request", "That host is not a public address.")
+        found.append(str(address))
+    return found
+
+
 def check_public_url(url: str, *, env: str) -> None:
     """Refuse URLs the server must not fetch (non-https, credentials, private networks)."""
     parsed = urlparse(url)
@@ -65,16 +85,50 @@ def check_public_url(url: str, *, env: str) -> None:
         raise ApiProblem(422, "invalid_request", "Identity-provider URLs must use https.")
     if not parsed.hostname or parsed.username or parsed.password:
         raise ApiProblem(422, "invalid_request", "That identity-provider URL is not valid.")
-    if local:
-        return
-    try:
-        infos = socket.getaddrinfo(parsed.hostname, parsed.port or 443, proto=socket.IPPROTO_TCP)
-    except OSError as exc:
-        raise ApiProblem(422, "invalid_request", "That host does not resolve.") from exc
-    for info in infos:
-        address = ipaddress.ip_address(info[4][0])
-        if not address.is_global:
-            raise ApiProblem(422, "invalid_request", "That host is not a public address.")
+    if not local:
+        public_addresses(parsed.hostname, parsed.port or 443)
+
+
+def clean_issuer(value: str, *, env: str) -> str:
+    """An issuer URL with nothing but scheme, host and a plain path: no query, fragment or userinfo.
+
+    The discovery URL is built from these parts, never by pasting a customer-supplied string.
+    """
+    parsed = urlparse(value.strip())
+    segments = parsed.path.split("/")
+    if (
+        parsed.query
+        or parsed.fragment
+        or parsed.params
+        or ".." in segments
+        or not _ISSUER_PATH.fullmatch(parsed.path)
+    ):
+        raise ApiProblem(422, "invalid_request", "That issuer URL is not valid.")
+    check_public_url(value.strip(), env=env)
+    return urlunparse((parsed.scheme, parsed.netloc, parsed.path.rstrip("/"), "", "", ""))
+
+
+async def send(cp: ControlPlane, method: str, url: str, **kwargs: Any) -> httpx.Response:
+    """One outbound request to an identity provider, pinned to the address that was checked.
+
+    Outside development the host is resolved once, every address must be public, and the request
+    goes to that address with the original host name kept for TLS (SNI and certificate checks) and
+    the ``Host`` header, so a DNS answer that changes between the check and the connection (DNS
+    rebinding) cannot redirect the request to an internal address. Redirects are never followed.
+    """
+    parsed = urlparse(url)
+    if cp.settings.env not in ("dev", "test") and parsed.hostname:
+        addresses = await asyncio.to_thread(public_addresses, parsed.hostname, parsed.port or 443)
+        netloc = f"[{addresses[0]}]" if ":" in addresses[0] else addresses[0]
+        if parsed.port:
+            netloc += f":{parsed.port}"
+        headers = {**kwargs.pop("headers", {}), "Host": parsed.netloc}
+        extensions = {**kwargs.pop("extensions", {}), "sni_hostname": parsed.hostname}
+        url = urlunparse(parsed._replace(netloc=netloc))
+        return await _client(cp).request(
+            method, url, headers=headers, extensions=extensions, **kwargs
+        )
+    return await _client(cp).request(method, url, **kwargs)
 
 
 def _client(cp: ControlPlane) -> httpx.AsyncClient:
@@ -160,7 +214,7 @@ async def _verify_id_token(
         raise ApiProblem(
             401, "unauthorized", "The identity provider used an unsupported algorithm."
         )
-    keys = (await _client(cp).get(provider["jwks_uri"])).json().get("keys", [])
+    keys = (await send(cp, "GET", provider["jwks_uri"])).json().get("keys", [])
     kid = header.get("kid")
     candidates = [k for k in keys if kid is None or k.get("kid") == kid]
     last: Exception | None = None
@@ -295,11 +349,9 @@ async def _configure(cp: ControlPlane, who: store.Principal, body: SsoIn) -> Non
     org = await store.load_org(cp.db, who.org_id, cp.plans)
     if not org.plan.has("sso"):
         raise ApiProblem(403, "plan_feature", f"The {org.plan.name} plan does not include SSO.")
-    issuer = body.issuer.rstrip("/")
-    check_public_url(issuer, env=cp.settings.env)
-    http = _client(cp)
+    issuer = clean_issuer(body.issuer, env=cp.settings.env)
     try:
-        doc = (await http.get(f"{issuer}/.well-known/openid-configuration")).json()
+        doc = (await send(cp, "GET", f"{issuer}/.well-known/openid-configuration")).json()
     except (httpx.HTTPError, ValueError) as exc:
         raise ApiProblem(422, "invalid_request", "OIDC discovery failed for that issuer.") from exc
     for field_name in ("issuer", "authorization_endpoint", "token_endpoint", "jwks_uri"):
@@ -378,7 +430,9 @@ async def _exchange_code(
     verifier: str,
 ) -> tuple[httpx.Response, dict[str, Any]]:
     try:
-        response = await _client(cp).post(
+        response = await send(
+            cp,
+            "POST",
             provider["token_endpoint"],
             data={
                 "grant_type": "authorization_code",

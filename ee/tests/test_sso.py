@@ -462,3 +462,75 @@ async def test_forged_expired_or_foreign_tickets_are_refused(
     for label, ticket in cases.items():
         res = await client.post("/auth/sso/exchange", json={"ticket": ticket})
         assert res.status_code == 401, label
+
+
+# ----------------------------------------------------- outbound requests to identity providers
+@pytest.mark.parametrize(
+    "issuer",
+    [
+        "https://idp.example.com/?x=1",
+        "https://idp.example.com/#frag",
+        "https://idp.example.com/a b",
+        "https://idp.example.com/../internal",
+        "https://idp.example.com/a;p=1",
+        "https://idp.example.com/%2e%2e/x",
+    ],
+)
+def test_an_issuer_url_with_anything_but_a_plain_path_is_refused(issuer) -> None:
+    from tycheon_cp.errors import ApiProblem
+    from tycheon_cp.sso import clean_issuer
+
+    with pytest.raises(ApiProblem):
+        clean_issuer(issuer, env="dev")
+
+
+def test_a_clean_issuer_is_rebuilt_from_its_parts() -> None:
+    from tycheon_cp.sso import clean_issuer
+
+    assert (
+        clean_issuer(" http://idp.test/realms/acme/ ", env="dev") == "http://idp.test/realms/acme"
+    )
+
+
+async def test_in_production_the_request_goes_to_the_address_that_was_checked(
+    cp, monkeypatch
+) -> None:
+    """DNS rebinding: resolve once, connect to that address, keep the name for TLS and Host."""
+    import dataclasses
+
+    from tycheon_cp import sso
+
+    seen: list[httpx.Request] = []
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        seen.append(request)
+        return httpx.Response(200, json={})
+
+    cp.extras["http"] = httpx.AsyncClient(transport=httpx.MockTransport(handler))
+    monkeypatch.setattr(sso, "public_addresses", lambda host, port: ["93.184.216.34"])
+    cp.settings = dataclasses.replace(cp.settings, env="production", kms="aws", aws_kms_key_id="k")
+    await sso.send(cp, "GET", "https://idp.example.com/.well-known/openid-configuration")
+    request = seen[0]
+    assert request.url.host == "93.184.216.34" and request.headers["host"] == "idp.example.com"
+    assert request.extensions["sni_hostname"] == "idp.example.com"
+
+
+async def test_in_production_a_private_resolution_is_refused_before_any_request(
+    cp, monkeypatch
+) -> None:
+    import dataclasses
+
+    from tycheon_cp import sso
+    from tycheon_cp.errors import ApiProblem
+
+    called: list[int] = []
+    cp.extras["http"] = httpx.AsyncClient(
+        transport=httpx.MockTransport(lambda r: called.append(1) or httpx.Response(200, json={}))
+    )
+    monkeypatch.setattr(
+        sso.socket, "getaddrinfo", lambda *a, **k: [(2, 1, 6, "", ("10.0.0.7", 443))]
+    )
+    cp.settings = dataclasses.replace(cp.settings, env="production", kms="aws", aws_kms_key_id="k")
+    with pytest.raises(ApiProblem):
+        await sso.send(cp, "GET", "https://rebinding.example.com/jwks")
+    assert called == []

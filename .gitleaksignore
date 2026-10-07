@@ -7,3 +7,6 @@
 50aebde092b7acbaa99d1125c8d86831d028b475:tests/test_serve.py:generic-api-key:21
 50aebde092b7acbaa99d1125c8d86831d028b475:tests/test_serve.py:generic-api-key:22
 50aebde092b7acbaa99d1125c8d86831d028b475:tests/test_serve.py:generic-api-key:95
+
+# Not a secret: a variable (self.webhook_secret) passed to the Stripe SDK's signature check.
+20584f3fd12d0142ec8cc95ed757108aab05d7cd:ee/control_plane/tycheon_cp/billing.py:generic-api-key:387
