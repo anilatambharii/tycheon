@@ -1,0 +1,30 @@
+title: "[Show] "
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Show what you built with Tycheon. Please keep it to research and risk analytics: no claims about returns, and no recommendation to buy or sell any security. Do not post licensed market data.
+  - type: textarea
+    id: what
+    attributes:
+      label: What you made
+      description: A paragraph, plus links to code, a notebook or a write-up.
+    validations:
+      required: true
+  - type: textarea
+    id: data
+    attributes:
+      label: Data and as_of handling
+      description: Which data (synthetic or your own licensed data), and how you kept every read point-in-time.
+    validations:
+      required: true
+  - type: textarea
+    id: baseline
+    attributes:
+      label: How it compares with the random walk
+      description: If you evaluated anything, say how it did against the random walk, including if the baseline won. Reporting that is welcome.
+  - type: textarea
+    id: caveats
+    attributes:
+      label: Caveats
+      description: Sample size, regimes covered, what this does not show.

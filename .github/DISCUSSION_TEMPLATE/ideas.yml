@@ -1,0 +1,23 @@
+title: "[Idea] "
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Sketch an idea before it becomes an issue. Tycheon is B2B risk-analytics infrastructure: no consumer trade signals, no live execution, no personalized advice.
+  - type: textarea
+    id: problem
+    attributes:
+      label: The problem or opportunity
+    validations:
+      required: true
+  - type: textarea
+    id: idea
+    attributes:
+      label: The idea
+      description: What would change? How would it stay point-in-time, carry uncertainty, and be measured against the random walk?
+    validations:
+      required: true
+  - type: textarea
+    id: unknowns
+    attributes:
+      label: What you are unsure about

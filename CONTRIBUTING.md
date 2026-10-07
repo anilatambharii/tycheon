@@ -30,6 +30,18 @@ make up             # optional dev services (Postgres, Redis, MinIO, Jaeger)
 No `make` on your platform? Every target is a one-line `uv` command; read the
 [`Makefile`](Makefile) and run them directly.
 
+## Finding something to work on
+
+- Issues labelled [`good first issue`](https://github.com/anilatambharii/tycheon/labels/good%20first%20issue)
+  are small (1 to 3 hours), name the files to touch, and say when you are done. Comment to claim one.
+- Use the issue forms for bugs, feature requests and model or benchmark requests. Questions and
+  half-formed ideas belong in
+  [Discussions](https://github.com/anilatambharii/tycheon/discussions), not issues.
+- If you think you found a way for data published after `as_of` to reach a forecast or an evaluation,
+  that is a security issue here, not a bug: do not file it publicly; see below.
+- Anything you quote from a benchmark (in docs, a README or a PR) must be copied from a file under
+  `benchmarks/results/`, with the file named. Where a baseline wins, say so plainly.
+
 ## Workflow
 
 - One branch per unit of work: `phase-TN-short-name` for roadmap phases,

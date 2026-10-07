@@ -1,0 +1,71 @@
+name: Bug report
+description: Something does not work as documented
+title: "bug: "
+labels: ["bug", "needs triage"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for the report. Tycheon is for research and risk analytics; it is not investment advice.
+
+        **Security first.** If the bug lets data published after `as_of` reach a forecast or an evaluation (lookahead leakage), strips uncertainty from a forecast, bypasses governance, or crosses a tenant boundary, do **not** file it here. Those are treated as vulnerabilities: use a [private security advisory](https://github.com/anilatambharii/tycheon/security/advisories/new), as described in [SECURITY.md](https://github.com/anilatambharii/tycheon/blob/main/SECURITY.md).
+  - type: checkboxes
+    id: preflight
+    attributes:
+      label: Before you file
+      options:
+        - label: I searched existing issues and Discussions.
+          required: true
+        - label: This is not a security vulnerability (see above).
+          required: true
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened
+      description: What you did, what you expected, and what you saw instead.
+    validations:
+      required: true
+  - type: textarea
+    id: reproduce
+    attributes:
+      label: Minimal reproduction
+      description: The smallest script or command that shows it. Prefer the bundled synthetic data (`load_sample`) so others can run it. Do not paste licensed market data.
+      render: python
+    validations:
+      required: true
+  - type: textarea
+    id: output
+    attributes:
+      label: Output or traceback
+      description: Paste the real output. Remove any API keys or tokens first.
+      render: text
+  - type: input
+    id: version
+    attributes:
+      label: Tycheon version or commit
+      description: "`uv run python -c \"import tycheon; print(tycheon.__version__)\"`, or the git commit if you run from a clone."
+    validations:
+      required: true
+  - type: input
+    id: environment
+    attributes:
+      label: Python, OS and install method
+      description: For example "Python 3.12, Windows 11, uv sync --extra kronos".
+    validations:
+      required: true
+  - type: dropdown
+    id: area
+    attributes:
+      label: Area
+      options:
+        - Data and as-of store
+        - Forecasters and baselines
+        - Calibration
+        - Risk and reports
+        - Backtest and benchmark
+        - REST API or MCP server
+        - Agents and governance
+        - Docs and examples
+        - Other
+    validations:
+      required: true
