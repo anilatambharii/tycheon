@@ -56,7 +56,7 @@ helm install tycheon deploy/helm/tycheon -n $NS -f deploy/helm/tycheon/values-ki
 kubectl -n $NS get pods
 
 step "helm test (every service answers its health endpoint in-cluster)"
-helm test tycheon -n $NS --timeout 3m
+helm test tycheon -n $NS --timeout 5m --logs
 
 step "exercise it through port-forwards"
 kubectl -n $NS port-forward svc/tycheon-control-plane 18081:8080 >/dev/null 2>&1 & PF_PIDS+=($!)

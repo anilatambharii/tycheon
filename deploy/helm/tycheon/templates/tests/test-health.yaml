@@ -35,15 +35,23 @@ spec:
             "http://{{ $full }}-dashboard:3000/login",
           {{- end }}
           ]
+          import time
+          def healthy(url):
+              # a service that just became Ready may still be warming up: retry for up to a minute
+              last = "no attempt"
+              for _ in range(20):
+                  try:
+                      if urllib.request.urlopen(url, timeout=10).status == 200:
+                          return True, ""
+                      last = "not 200"
+                  except Exception as exc:
+                      last = type(exc).__name__
+                  time.sleep(3)
+              return False, last
           bad = 0
           for url in targets:
-              try:
-                  ok = urllib.request.urlopen(url, timeout=10).status == 200
-              except Exception as exc:
-                  ok = False
-                  print("FAIL", url, type(exc).__name__)
-              else:
-                  print("ok  " if ok else "FAIL", url)
+              ok, why = healthy(url)
+              print("ok  " if ok else "FAIL", url, why)
               bad += not ok
           sys.exit(1 if bad else 0)
       securityContext: {{- include "tycheon.containerSecurityContext" . | nindent 8 }}

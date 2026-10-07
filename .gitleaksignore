@@ -10,3 +10,10 @@
 
 # Not a secret: a variable (self.webhook_secret) passed to the Stripe SDK's signature check.
 20584f3fd12d0142ec8cc95ed757108aab05d7cd:ee/control_plane/tycheon_cp/billing.py:generic-api-key:387
+
+# Phase T6 false positives, each reviewed: a throwaway value in an image-hardening check that
+# starts a container with no real backend, a test asserting a string is ABSENT from /metrics, and
+# the kind smoke script's randomly generated throwaway API key.
+2091e1ef17387bd164cb3f706f9e1e4ec6812768:.github/workflows/deploy-verify.yml:generic-api-key:73
+7324a06be48d52ba7ed65e0e749165f788b9a7f6:ee/tests/test_metrics.py:generic-api-key:126
+5c9f66c6bede1580b33b032d38383e34a838e368:deploy/helm/kind-smoke.sh:generic-api-key:40
