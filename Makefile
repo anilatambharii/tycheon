@@ -7,10 +7,10 @@ COMPOSE ?= docker compose -f docker-compose.dev.yml
 # The dev environment includes the `kronos` extra (CPU torch): the fast tests run
 # the real Kronos code path on a tiny randomly-initialised model, and mypy needs
 # torch installed to give the same answer locally and in CI.
-EXTRAS  ?= --extra kronos --extra report
+EXTRAS  ?= --extra kronos --extra report --extra agents
 RUN     ?= $(UV) run $(EXTRAS)
 
-.PHONY: help setup setup-all lock fmt lint format-check types test test-slow \
+.PHONY: help setup setup-all lock fmt lint format-check types test test-slow evals \
         check up down restart logs health hooks secrets-baseline \
         benchmark-small benchmark benchmark-render example docs docs-build build clean
 
@@ -48,6 +48,9 @@ test: ## Run the fast test suite with coverage
 
 test-slow: ## Run the slow suite too (downloads Kronos-mini weights from Hugging Face)
 	$(RUN) pytest
+
+evals: ## Run the agent evals (real Keelgate gateway, scripted model: no key or network)
+	$(RUN) pytest -m eval --no-cov
 
 check: lint format-check types test ## Lint, format-check, type-check and fast tests
 	@echo "make check: PASS"

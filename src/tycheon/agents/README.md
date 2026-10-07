@@ -1,33 +1,29 @@
-# `tycheon.agents` — arrives in Phase T4
+# `tycheon.agents`: the governed agentic risk review
 
-This package is an intentional placeholder. It is empty through phases T0–T3.
+Pure Tycheon code: **nothing here imports Keelgate.** The agents act only through a `ToolCaller`
+that `tycheon.governance` implements over Keelgate's gateway (capability grant, policy, approval,
+audit), so whatever an agent does, the harness decides whether it may.
 
-## What it will be
+```
+Planner -> specialists (governed tool calls) -> composer drafts -> independent verifier
+        -> (rejected: revise, within budget) -> verified report -> save -> paper trade *proposal*
+```
 
-A governed research workflow — a planner, domain specialists (data, covariates,
-calibration, risk) and an independent verifier — that assembles forecast and
-risk analyses and shows its work.
+| Module | Role |
+|---|---|
+| `plan.py` | The **Planner**: a typed, budgeted `ResearchPlan`. A model proposes it; deterministic code validates and clamps it. The goal, `as_of`, portfolio and horizon are the request's, never the model's. Budget fields are clamped to hard limits. |
+| `specialists.py` | `ForecastAgent`, `RiskAgent`, `NewsAgent`, `FundamentalsAgent`, `BacktestAgent`, `TradeProposer`. Each has its own least-privilege grant and maps a plan step to one governed tool call. A refusal becomes a reported evidence gap, never a guess. |
+| `verifier.py` | The **independent verifier**: code, not a model, sharing nothing with the composer. Checks every number against the evidence the sentence cites, that citations exist and are not dated after `as_of`, that uncalibrated outputs are called uncalibrated, that hostile evidence is disclosed, the disclaimer, and no advice language. |
+| `composer.py` | The draft prompt (evidence digest only: ids and numbers, never document text) and the final `Report` with evidence links, gaps, verifier trace and pending approvals. A report no draft could verify is **withheld**. |
+| `workflow.py` | `RiskReviewWorkflow` ties it together and records a trace. |
+| `models.py` | `Evidence` and `EvidenceBook`: the only numbers a report may cite come from tool results. |
+| `demo.py` | Deterministic stand-in model for CI and the offline example. |
 
-## Why it cannot be built before T4
+## Guarantees (each has a test)
 
-These agents are the part of Tycheon that takes actions, so they are exactly the
-part that needs a harness. They arrive only once
-[`tycheon.governance`](../governance/README.md) is in place on top of
-`keelgate>=0.1,<0.2`, because:
-
-- every tool call is capability-scoped and passes a deterministic policy gate
-  before it runs — prompts are never a safety control;
-- every WRITE-side-effect proposal is logged to a tamper-evident audit chain and
-  may require human approval;
-- all context is built with an `as_of`, so an agent cannot read the future;
-- all external text (news, filings, web) is untrusted **data**. Instructions
-  embedded in it are never followed;
-- there is no live brokerage execution in v1. Paper and simulation only, and
-  only through governed tools.
-
-## Rules
-
-- Nothing here imports `keelgate` directly; it goes through
-  `tycheon.governance`.
-- The `tycheon[agents]` extra is what installs the harness.
-- Agent output is research and risk analytics. Not investment advice.
+- A model never calls a tool and never chooses the date, the portfolio or the limits.
+- A draft the verifier does not accept is never published or acted on, and no trade is proposed
+  from an unverified analysis.
+- A paper trade can only be *proposed*: the policy resolves it to a human approval request.
+- External text (news) is untrusted: only numeric scores leave it, and no document text reaches a
+  prompt.

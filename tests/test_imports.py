@@ -36,11 +36,12 @@ MODEL_PACKAGES = [
     "tycheon.models.timesfm",
 ]
 
-# Placeholders until Phase T4. They must import today so the boundary they
-# define is real before there is code to put behind it.
+# Phase T4: the governed agentic workflow. `governance` is the only package that imports Keelgate;
+# `services` is the typed analytics layer both it and the REST API use; `agents` is pure Python.
 T4_PACKAGES = [
     "tycheon.agents",
     "tycheon.governance",
+    "tycheon.services",
 ]
 
 DECLARED_PACKAGES = CORE_PACKAGES + DATA_PACKAGES + MODEL_PACKAGES + T4_PACKAGES
@@ -79,13 +80,6 @@ def test_the_set_of_packages_matches_the_declared_layout() -> None:
         f"undeclared packages: {sorted(found - declared)}; "
         f"missing from tree: {sorted(declared - found)}"
     )
-
-
-def test_the_t4_placeholders_are_still_empty() -> None:
-    """governance/ and agents/ arrive in Phase T4; nothing may be built in them before then."""
-    for name in T4_PACKAGES:
-        leaves = [info.name for info in _walk() if info.name.startswith(name + ".")]
-        assert not leaves, f"{name} must stay a placeholder until T4, but contains {leaves}"
 
 
 def test_every_module_has_a_docstring() -> None:

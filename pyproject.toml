@@ -61,6 +61,20 @@ replacement = '\1(https://raw.githubusercontent.com/anilatambharii/tycheon/main/
 pattern = '\]\((?!https?://|#|mailto:)([^)\s]+)\)'
 replacement = '](https://github.com/anilatambharii/tycheon/blob/main/\1)'
 
+[project.scripts]
+tycheon-serve = "tycheon.serve.cli:serve_main"
+tycheon-mcp = "tycheon.serve.cli:mcp_main"
+
+# Tycheon's financial metrics, registered for Keelgate's outcome-metric plugin point. The group
+# name is part of Keelgate's integration contract. Keelgate's OutcomeMetric protocol is not
+# implemented yet, so these classes follow a small shape of Tycheon's own: see tycheon.metrics.
+[project.entry-points."keelgate.outcome_metrics"]
+crps = "tycheon.metrics:CRPS"
+coverage = "tycheon.metrics:IntervalCoverage"
+mase_vs_rw = "tycheon.metrics:MASEvsRandomWalk"
+dm_test = "tycheon.metrics:DieboldMarianoVsRandomWalk"
+qlike = "tycheon.metrics:QLIKE"
+
 [project.urls]
 Homepage = "https://github.com/anilatambharii/tycheon"
 Repository = "https://github.com/anilatambharii/tycheon"
@@ -101,7 +115,9 @@ gpu = [
 serve = [
     "fastapi>=0.115,<1",
     "uvicorn[standard]>=0.32,<1",
-    "mcp>=1.2,<2",
+    # Keelgate's MCP adapter needs mcp>=2.3, so this extra follows it (T0 pinned mcp<2).
+    "mcp>=2.3,<3",
+    "keelgate[mcp]>=0.1,<0.2",
     "psycopg[binary,pool]>=3.2,<4",
     "redis>=5.2,<9",
     "boto3>=1.35,<2",
@@ -110,11 +126,13 @@ serve = [
 report = [
     "matplotlib>=3.9,<4",
 ]
-# The governed agentic workflow. In Phase T4 this extra also pulls
-# `keelgate>=0.1,<0.2`; phases T0-T3 must not depend on Keelgate at all, so it
-# is deliberately absent here. See src/tycheon/governance/README.md.
+# The governed agentic workflow (Phase T4). Keelgate is imported only from
+# src/tycheon/governance/ (enforced by tests/test_architecture.py). Keelgate is not on PyPI
+# yet: [tool.uv.sources] below pins a commit for development and CI, and a published
+# tycheon[agents] needs `keelgate>=0.1,<0.2` to exist on PyPI first.
 agents = [
     "tycheon[serve]",
+    "keelgate>=0.1,<0.2",
 ]
 
 [dependency-groups]
@@ -206,6 +224,10 @@ ignore = [
 "src/tycheon/_svg.py" = ["PLC0415"]
 "src/tycheon/**/plots.py" = ["PLC0415"]
 "src/tycheon/risk/report.py" = ["PLC0415"]
+"src/tycheon/services/analytics.py" = ["PLC0415"]  # kronos and matplotlib are optional
+"src/tycheon/governance/_llm.py" = ["PLC0415"]  # provider SDKs are optional
+"src/tycheon/serve/cli.py" = ["PLC0415"]  # uvicorn is imported only when serving
+"src/tycheon/governance/_telemetry.py" = ["PLC0415"]  # the OTel SDK is only needed to export
 # The leaderboard harness and the examples are CLIs: they report to stdout by design.
 "benchmarks/**" = ["T20", "PLC0415"]
 "examples/**" = ["T20", "PLC0415"]
@@ -254,6 +276,11 @@ addopts = [
     "--strict-markers",
     "--strict-config",
     "--import-mode=importlib",
+    # Keelgate ships a pytest11 plugin that pytest loads at startup, before any test imports
+    # duckdb; it imports regopy, and regopy-before-duckdb aborts the process on Linux. Tycheon
+    # uses keelgate.testing directly and none of the plugin's fixtures.
+    "-p",
+    "no:keelgate",
     "--cov=tycheon",
     "--cov-report=term-missing",
     "--cov-report=xml",
@@ -263,6 +290,7 @@ markers = [
     "slow: long-running tests (model downloads, full backtests); deselect with -m 'not slow'",
     "integration: needs `make up` services (Postgres/Redis/MinIO)",
     "leakage: point-in-time correctness guards; every data path must have one",
+    "eval: agent evals (trajectory, planted verifier errors, injection); run with `make evals`",
 ]
 filterwarnings = [
     "error",
@@ -301,5 +329,9 @@ name = "pytorch-cpu"
 url = "https://download.pytorch.org/whl/cpu"
 explicit = true
 
+# uv-only (not part of published package metadata): resolve Keelgate from its public git
+# repository at a pinned commit until it is released to PyPI. AGENTS.md: "PyPI, or a pinned git
+# tag until published"; the repository has no tags yet, so this is a commit.
 [tool.uv.sources]
 torch = [{ index = "pytorch-cpu", marker = "sys_platform == 'linux'" }]
+keelgate = { git = "https://github.com/anilatambharii/keelgate", rev = "0852b148f1fcaba825dd5b8d94a218dcd1b63f89" }  # pragma: allowlist secret

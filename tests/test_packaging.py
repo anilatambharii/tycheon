@@ -78,11 +78,13 @@ def test_the_foundation_model_extras_pull_the_right_packages(pyproject: dict[str
     )
 
 
-def test_no_keelgate_in_any_extra_before_t4(pyproject: dict[str, Any]) -> None:
-    for name, deps in pyproject["project"]["optional-dependencies"].items():
-        assert not any("keelgate" in d.lower() for d in deps), (
-            f"extra {name!r} must not need keelgate yet"
-        )
+def test_keelgate_is_only_in_the_agents_and_serve_extras(pyproject: dict[str, Any]) -> None:
+    holders = {
+        name
+        for name, deps in pyproject["project"]["optional-dependencies"].items()
+        if any("keelgate" in d.lower() for d in deps)
+    }
+    assert holders == {"agents", "serve"}
 
 
 def test_the_vendored_kronos_licence_ships_with_the_distribution(pyproject: dict[str, Any]) -> None:

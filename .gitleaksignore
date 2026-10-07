@@ -2,3 +2,8 @@
 # identifier, not a credential, pinned on purpose so weights cannot change under a
 # forecast. One exact finding is ignored; any other high-entropy string is still reported.
 4080cc5e7452453361f7fadf5166d94d98ddcf90:src/tycheon/models/kronos/specs.py:generic-api-key:61
+
+# Fake API keys used as fixtures in tests/test_serve.py (placeholders that unlock nothing).
+50aebde092b7acbaa99d1125c8d86831d028b475:tests/test_serve.py:generic-api-key:21
+50aebde092b7acbaa99d1125c8d86831d028b475:tests/test_serve.py:generic-api-key:22
+50aebde092b7acbaa99d1125c8d86831d028b475:tests/test_serve.py:generic-api-key:95

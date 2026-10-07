@@ -56,7 +56,7 @@ retrieved text the same way, and no retrieved string can authorise an action.
 - Sample data shipped for tests and examples is synthetic or explicitly
   redistributable.
 
-## Governance boundary (from Phase T4)
+## Governance boundary
 
 [Keelgate](https://github.com/anilatambharii/keelgate) is the safety harness:
 capability-scoped tools, deterministic policy gates, approvals, tamper-evident
@@ -68,6 +68,22 @@ audit and evals.
 - Only the documented integration contract is used, never `keelgate._internal`.
 - There is **no fallback that bypasses governance**. If the harness is
   unavailable, the governed operation fails closed.
+
+### Agents (Phase T4)
+
+See [governance](governance.md) and [agents](agents.md) for the detail. In short:
+
+- A model proposes (a plan, draft text). It never calls a tool and never chooses the date, the
+  portfolio or the limits. The harness validates and clamps what it proposes.
+- Each agent has its own least-privilege capability grant; the policy never auto-approves a paper
+  trade, and an approval is bound to the exact arguments and is single-use.
+- `as_of` is trusted context, never a tool or API argument.
+- News is untrusted: only numeric scores leave it, instruction-like documents are flagged and
+  excluded, and no document text reaches a prompt.
+- An independent, rule-based verifier checks every number against cited evidence; a report no draft
+  can verify is withheld and no trade is proposed from it.
+- The REST API takes the tenant from the API key, caps and bounds inputs, and never leaks internals;
+  MCP is served over stdio only.
 
 ## User-facing disclaimer
 
