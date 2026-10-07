@@ -12,6 +12,7 @@ from __future__ import annotations
 
 import asyncio
 import os
+import uuid
 from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
@@ -80,3 +81,159 @@ async def owner(pg: PgUrls) -> AsyncIterator[asyncpg.Connection]:
         yield conn
     finally:
         await conn.close()
+
+
+# ------------------------------------------------------------------------ the whole API
+def synthetic_csv(
+    n: int = 400, *, seed: int = 7, start: str = "2023-01-02", base: float = 100.0, freq: str = "B"
+) -> str:
+    """A believable bars CSV: geometric random walk, OHLC consistent, with volume."""
+    import numpy as np
+    import pandas as pd
+
+    rng = np.random.default_rng(seed)
+    close = base * np.exp(np.cumsum(rng.normal(0.0003, 0.01, n)))
+    open_ = np.concatenate([[base], close[:-1]])
+    high = np.maximum(open_, close) * (1 + np.abs(rng.normal(0, 0.003, n)))
+    low = np.minimum(open_, close) * (1 - np.abs(rng.normal(0, 0.003, n)))
+    frame = pd.DataFrame(
+        {
+            "timestamp": pd.date_range(start, periods=n, freq=freq),
+            "open": open_,
+            "high": high,
+            "low": low,
+            "close": close,
+            "volume": rng.integers(1_000, 50_000, n).astype(float),
+        }
+    )
+    return frame.to_csv(index=False)
+
+
+@pytest.fixture(scope="session")
+def runtime():
+    from tycheon.governance import GovernedRuntime
+
+    return GovernedRuntime()
+
+
+@pytest.fixture
+async def cp(pg: PgUrls, db: Database, runtime, tmp_path):
+    import base64
+
+    from tycheon_cp.app import build_control_plane
+    from tycheon_cp.config import Settings
+    from tycheon_cp.ratelimit import RateLimiter
+
+    settings = Settings(
+        database_url=pg.app,
+        session_secret="s" * 40,
+        storage_root=tmp_path / "blobs",
+        env="test",
+        local_kms_key=base64.b64encode(os.urandom(32)).decode(),
+    )
+    return await build_control_plane(settings, db=db, runtime=runtime, limiter=RateLimiter())
+
+
+@pytest.fixture
+async def client(cp):
+    import httpx
+
+    from tycheon_cp.app import create_app
+
+    app = create_app(cp)
+    transport = httpx.ASGITransport(app=app)
+    async with httpx.AsyncClient(transport=transport, base_url="http://cp.test") as http:
+        http.app = app  # type: ignore[attr-defined]
+        yield http
+
+
+class Tenant:
+    """A signed-up organisation, as an API client sees it."""
+
+    def __init__(self, client, org_id: str, user_id: str, token: str, email: str) -> None:
+        self.client, self.org_id, self.user_id, self.token, self.email = (
+            client,
+            org_id,
+            user_id,
+            token,
+            email,
+        )
+        self.api_key: str | None = None
+
+    @property
+    def session(self) -> dict[str, str]:
+        return {"Authorization": f"Bearer {self.token}"}
+
+    @property
+    def key(self) -> dict[str, str]:
+        assert self.api_key, "call make_key() first"
+        return {"X-API-Key": self.api_key}
+
+    async def make_key(self, scopes=("analytics",)) -> str:
+        res = await self.client.post(
+            "/v1/api-keys", json={"name": "ci", "scopes": list(scopes)}, headers=self.session
+        )
+        assert res.status_code == 201, res.text
+        self.api_key = res.json()["key"]
+        return self.api_key
+
+    async def upload(self, symbol: str, csv: str, source_id: str | None = None) -> dict:
+        if source_id is None:
+            res = await self.client.post(
+                "/v1/data-sources",
+                json={"name": f"src-{uuid.uuid4().hex[:6]}", "default": True},
+                headers=self.session,
+            )
+            assert res.status_code == 201, res.text
+            source_id = res.json()["id"]
+        res = await self.client.put(
+            f"/v1/data-sources/{source_id}/files/{symbol}", content=csv, headers=self.session
+        )
+        assert res.status_code == 200, res.text
+        return {"source_id": source_id, **res.json()}
+
+
+async def sign_up(client, name: str = "Acme Capital") -> Tenant:
+    tag = uuid.uuid4().hex[:10]
+    email = f"owner-{tag}@example.com"
+    res = await client.post(
+        "/auth/signup",
+        json={"org_name": f"{name} {tag}", "email": email, "password": "correct horse battery"},
+    )
+    assert res.status_code == 201, res.text
+    body = res.json()
+    return Tenant(client, body["org_id"], body["user_id"], body["token"], email)
+
+
+@pytest.fixture
+def signup_org(client):
+    async def make(name: str = "Acme Capital") -> Tenant:
+        return await sign_up(client, name)
+
+    return make
+
+
+async def set_plan(owner_conn, org_id: str, plan: str, override: dict | None = None) -> None:
+    import json
+
+    await owner_conn.execute(
+        "UPDATE subscriptions SET plan = $2, status = 'active', limits_override = $3::jsonb "
+        "WHERE org_id = $1::uuid",
+        org_id,
+        plan,
+        json.dumps(override or {}),
+    )
+    await owner_conn.execute("UPDATE orgs SET plan = $2 WHERE id = $1::uuid", org_id, plan)
+
+
+@pytest.fixture
+def csv_factory():
+    return synthetic_csv
+
+
+@pytest.fixture
+def set_org_plan(owner):
+    async def apply(org_id: str, plan: str, override: dict | None = None) -> None:
+        await set_plan(owner, org_id, plan, override)
+
+    return apply

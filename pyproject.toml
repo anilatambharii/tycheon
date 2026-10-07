@@ -231,6 +231,7 @@ ignore = [
 # Tests import optional extras inside functions (after importorskip) and dispatch
 # fixtures with a long if-chain on purpose.
 "tests/**" = ["S101", "ARG", "ERA001", "PLC0415", "PLR0911", "PLR0917"]
+"ee/control_plane/tycheon_cp/errors.py" = ["N818"]  # ApiProblem reads better than ApiProblemError
 "ee/tests/**" = ["S101", "ARG", "ERA001", "PLC0415", "PLR0911", "PLR0917", "S105", "S106", "S608"]
 # Foundation models are optional extras: importing torch, timesfm or chronos at
 # module level would make `import tycheon.models` require them, so those imports are
