@@ -16,6 +16,7 @@ Proprietary: see ee/LICENSE.
 # NOTE: no ``from __future__ import annotations``: FastAPI reads route annotations at definition
 # time and the ``Annotated`` aliases below are local to the builder functions.
 import json
+import time
 from collections.abc import Callable
 from dataclasses import dataclass, field
 from datetime import datetime
@@ -49,6 +50,7 @@ from tycheon_cp.datasources import DataSourceError, validate_csv
 from tycheon_cp.db import Database
 from tycheon_cp.errors import ApiProblem, forbidden, not_found, unauthorized
 from tycheon_cp.metering import Meter, clean_idempotency_key
+from tycheon_cp.metrics import Metrics, authorised, queue_stats
 from tycheon_cp.plans import Plans, load_plans
 from tycheon_cp.ratelimit import RateLimiter
 from tycheon_cp.security import (
@@ -82,6 +84,7 @@ class ControlPlane:
     blobs: BlobStore
     runtime: GovernedRuntime
     gateway: AnalyticsGateway
+    metrics: Metrics = field(default_factory=Metrics)
     extras: dict[str, Any] = field(default_factory=dict)  # billing, finetune, sso, ...
 
     @property
@@ -110,6 +113,8 @@ def make_control_plane(
     rate = limiter or RateLimiter()
     blobs = LocalBlobStore(settings.storage_root)
     governed = runtime or GovernedRuntime()
+    metrics = Metrics()
+    metrics.set_queue_source(lambda: queue_stats(db))
     gateway = AnalyticsGateway(
         db=db,
         plans=plans,
@@ -119,6 +124,7 @@ def make_control_plane(
         blobs=blobs,
         private_models=private_models,
         clock=clock,
+        metrics=metrics,
     )
     return ControlPlane(
         settings=settings,
@@ -130,6 +136,7 @@ def make_control_plane(
         blobs=blobs,
         runtime=governed,
         gateway=gateway,
+        metrics=metrics,
     )
 
 
@@ -256,7 +263,20 @@ def _install_errors(app: FastAPI) -> None:
                 },
                 status_code=413,
             )
-        response: Response = await call_next(request)
+        cp: ControlPlane = request.app.state.cp
+        started = time.perf_counter()
+        cp.metrics.in_flight.inc()
+        status = 500
+        try:
+            response: Response = await call_next(request)
+            status = response.status_code
+        finally:
+            cp.metrics.in_flight.dec()
+            route = request.scope.get("route")
+            template = getattr(route, "path", None) or "unmatched"
+            cp.metrics.observe_request(
+                template, request.method, status, time.perf_counter() - started
+            )
         response.headers.setdefault("X-Content-Type-Options", "nosniff")
         response.headers.setdefault("Cache-Control", "no-store")
         return response
@@ -375,6 +395,21 @@ def _session_out(
 
 def _public_routes(cp: ControlPlane) -> APIRouter:
     router = APIRouter()
+
+    @router.get("/metrics", include_in_schema=False)
+    async def metrics(
+        authorization: Annotated[str | None, Header()] = None,
+    ) -> Response:
+        """Prometheus metrics. Not routed publicly; needs the metrics token (404 without)."""
+        presented = (
+            (authorization or "")[7:]
+            if (authorization or "").lower().startswith("bearer ")
+            else None
+        )
+        if not authorised(presented, cp.settings.metrics_token):
+            raise not_found("resource")
+        await cp.metrics.refresh_queue()
+        return Response(cp.metrics.render(), media_type="text/plain; version=0.0.4")
 
     @router.get("/health", tags=["service"])
     async def health() -> dict[str, Any]:

@@ -85,14 +85,38 @@ class Database:
             yield conn
 
 
-async def migrate(owner_dsn: str, *, app_role: str) -> list[str]:
-    """Apply any pending migrations as the owner role; return the versions applied.
+_DOWN = ".down.sql"
+
+
+def _scripts() -> tuple[dict[str, str], dict[str, str]]:
+    """``(up, down)`` migration scripts, both keyed by the up migration file name."""
+    folder = resources.files("tycheon_cp").joinpath("migrations")
+    up: dict[str, str] = {}
+    down: dict[str, str] = {}
+    for entry in sorted(folder.iterdir(), key=lambda p: p.name):
+        if entry.name.endswith(_DOWN):
+            down[entry.name.removesuffix(_DOWN) + ".sql"] = entry.read_text(encoding="utf-8")
+        elif entry.name.endswith(".sql"):
+            up[entry.name] = entry.read_text(encoding="utf-8")
+    return up, down
+
+
+def _check_role(app_role: str) -> None:
+    if not _ROLE.fullmatch(app_role):
+        raise ValueError("the application role is not a plain lower-case identifier")
+
+
+async def migrate(owner_dsn: str, *, app_role: str, target: str | None = None) -> list[str]:
+    """Apply pending migrations as the owner role; return the versions applied.
 
     ``app_role`` is the role the application connects as. It is granted exactly what the
     migrations grant and nothing else, and it must not be a superuser or have BYPASSRLS.
+    ``target`` stops after that migration (used to prove a rollback reproduces an earlier schema).
     """
-    if not _ROLE.fullmatch(app_role):
-        raise ValueError("the application role is not a plain lower-case identifier")
+    _check_role(app_role)
+    up, _ = _scripts()
+    if target is not None and target not in up:
+        raise ValueError(f"unknown migration {target!r}")
     conn = await asyncpg.connect(owner_dsn)
     applied: list[str] = []
     try:
@@ -101,17 +125,14 @@ async def migrate(owner_dsn: str, *, app_role: str) -> list[str]:
             "(version text PRIMARY KEY, applied_at timestamptz NOT NULL DEFAULT now())"
         )
         done = {r["version"] for r in await conn.fetch("SELECT version FROM schema_migrations")}
-        folder = resources.files("tycheon_cp").joinpath("migrations")
-        for entry in sorted(folder.iterdir(), key=lambda p: p.name):
-            if not entry.name.endswith(".sql") or entry.name in done:
-                continue
-            script = entry.read_text(encoding="utf-8").replace("{app_role}", app_role)
-            async with conn.transaction():
-                await conn.execute(script)
-                await conn.execute(
-                    "INSERT INTO schema_migrations (version) VALUES ($1)", entry.name
-                )
-            applied.append(entry.name)
+        for name, script in up.items():
+            if name not in done:
+                async with conn.transaction():
+                    await conn.execute(script.replace("{app_role}", app_role))
+                    await conn.execute("INSERT INTO schema_migrations (version) VALUES ($1)", name)
+                applied.append(name)
+            if name == target:
+                break
         flags = await conn.fetchrow(
             "SELECT rolsuper, rolbypassrls FROM pg_roles WHERE rolname = $1", app_role
         )
@@ -123,3 +144,45 @@ async def migrate(owner_dsn: str, *, app_role: str) -> list[str]:
     finally:
         await conn.close()
     return applied
+
+
+class RollbackRefusedError(RuntimeError):
+    """A rollback that would destroy data was requested without saying so."""
+
+
+async def rollback(
+    owner_dsn: str, *, app_role: str, steps: int = 1, allow_data_loss: bool = False
+) -> list[str]:
+    """Undo the last ``steps`` applied migrations, newest first; return the versions undone.
+
+    Each undo runs in one transaction together with the removal of its ``schema_migrations`` row,
+    so a failure leaves the database exactly as it was. A script that drops tables is refused
+    unless ``allow_data_loss`` is set: for a database with data, the recovery is a restore.
+    """
+    _check_role(app_role)
+    if steps < 1:
+        raise ValueError("steps must be at least 1")
+    _, down = _scripts()
+    conn = await asyncpg.connect(owner_dsn)
+    undone: list[str] = []
+    try:
+        rows = await conn.fetch(
+            "SELECT version FROM schema_migrations ORDER BY version DESC LIMIT $1", steps
+        )
+        plan = [r["version"] for r in rows]
+        for name in plan:
+            if name not in down:
+                raise RollbackRefusedError(f"{name} has no down migration")
+            if re.search(r"\bDROP\s+TABLE\b", down[name], re.IGNORECASE) and not allow_data_loss:
+                raise RollbackRefusedError(
+                    f"undoing {name} drops tables and all their data; "
+                    "restore from a backup, or pass allow_data_loss for an empty database"
+                )
+        for name in plan:
+            async with conn.transaction():
+                await conn.execute(down[name].replace("{app_role}", app_role))
+                await conn.execute("DELETE FROM schema_migrations WHERE version = $1", name)
+            undone.append(name)
+    finally:
+        await conn.close()
+    return undone

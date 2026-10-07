@@ -142,7 +142,8 @@ ee = [
     "asyncpg>=0.30,<1",
     "stripe>=13,<16",
     "PyJWT[crypto]>=2.10,<3",
-    "cryptography>=44,<48",
+    "cryptography>=50,<51",
+    "prometheus-client>=0.21,<1",
 ]
 # Real AWS KMS for envelope encryption; the local dev provider needs no cloud.
 ee-aws = [

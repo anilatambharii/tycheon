@@ -30,6 +30,7 @@ if TYPE_CHECKING:
 
 APP_ROLE = "tycheon_app"
 WEBHOOK_SECRET = "whsec_test_only_not_a_real_secret_0000"  # pragma: allowlist secret
+METRICS_TOKEN = "metrics-token-for-tests-0123456789abcdef0123"  # pragma: allowlist secret
 OPERATOR_TOKEN = "operator-token-for-tests-0123456789abcdef"  # pragma: allowlist secret
 
 
@@ -134,6 +135,7 @@ async def cp(pg: PgUrls, db: Database, runtime, tmp_path):
         local_kms_key=base64.b64encode(os.urandom(32)).decode(),
         stripe_webhook_secret=WEBHOOK_SECRET,
         operator_token=OPERATOR_TOKEN,
+        metrics_token=METRICS_TOKEN,
         dedicated_gpu_pools=True,  # one worker pool per org: tests never run each other's jobs
     )
     plane = await build_control_plane(settings, db=db, runtime=runtime, limiter=RateLimiter())
