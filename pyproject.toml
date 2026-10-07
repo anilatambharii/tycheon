@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "tycheon"
-version = "0.3.0"
+version = "0.4.0"
 description = "Calibrated financial forecasting and risk. Kronos forecasts the path; Tycheon tells you how much to trust it."
 dynamic = ["readme"]
 requires-python = ">=3.11"
