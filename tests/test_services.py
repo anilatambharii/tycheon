@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from datetime import timedelta
+from datetime import UTC, datetime, timedelta
 
 import pandas as pd
 import pytest
@@ -343,3 +343,39 @@ def test_paper_orders_are_simulated_and_tenant_scoped() -> None:
     filled = blotter.place("acme", order)
     assert filled.status == "filled-paper" and "PAPER" in filled.note
     assert blotter.orders("acme") == [filled] and blotter.orders("other") == []
+
+
+# ------------------------------------------------------------------ private model hook (Cloud)
+def test_private_model_names_resolve_only_through_the_trusted_resolver() -> None:
+    """``ft:<id>`` and ``routed`` exist only where a host binds a resolver; never by default."""
+    from tycheon.models.baselines import RandomWalkForecaster
+    from tycheon.services import ToolContext, bind, make_forecaster
+
+    when = datetime(2023, 10, 2, 14, 30, tzinfo=UTC)
+    asked: list[str] = []
+
+    def resolver(name: str):
+        asked.append(name)
+        return RandomWalkForecaster()
+
+    with (
+        bind(ToolContext(as_of=when, tenant_id="t", data=DataSource())),
+        pytest.raises(ServiceError, match="not available"),
+    ):
+        make_forecaster("ft:abc")
+    with bind(ToolContext(as_of=when, tenant_id="t", data=DataSource(), models=resolver)):
+        assert make_forecaster("ft:abc") is not None
+        assert make_forecaster("routed") is not None
+        with pytest.raises(ServiceError, match="unknown model"):
+            make_forecaster("anything-else")
+    assert asked == ["ft:abc", "routed"]
+
+
+def test_the_private_model_name_pattern_rejects_path_tricks() -> None:
+    from pydantic import ValidationError
+
+    ForecastIn(symbol="SYN-GBM", model="ft:abc-1.2")
+    ForecastIn(symbol="SYN-GBM", model="routed")
+    for bad in ("ft:", "ft:../x", "ft:a/b", "FT:abc", "routed2", "ft:" + "a" * 70):
+        with pytest.raises(ValidationError):
+            ForecastIn(symbol="SYN-GBM", model=bad)

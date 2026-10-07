@@ -135,6 +135,21 @@ agents = [
     "keelgate>=0.1,<0.2",
 ]
 
+# Tycheon Cloud (proprietary, /ee). Never imported by src/tycheon. Postgres access is asyncpg
+# (Apache-2.0) with plain SQL: no ORM, and not psycopg (LGPL).
+ee = [
+    "tycheon[agents,report]",
+    "asyncpg>=0.30,<1",
+    "stripe>=13,<16",
+    "PyJWT[crypto]>=2.10,<3",
+    "cryptography>=44,<48",
+]
+# Real AWS KMS for envelope encryption; the local dev provider needs no cloud.
+ee-aws = [
+    "tycheon[ee]",
+    "boto3>=1.35,<2",
+]
+
 [dependency-groups]
 dev = [
     "pytest>=9.1",
@@ -270,7 +285,8 @@ ignore_missing_imports = true
 # ------------------------------------------------------------------ pytest
 [tool.pytest.ini_options]
 minversion = "9.0"
-testpaths = ["tests"]
+testpaths = ["tests", "ee/tests"]
+pythonpath = ["ee/control_plane", "ee/finetune"]
 addopts = [
     "-ra",
     "--strict-markers",
@@ -291,6 +307,7 @@ markers = [
     "integration: needs `make up` services (Postgres/Redis/MinIO)",
     "leakage: point-in-time correctness guards; every data path must have one",
     "eval: agent evals (trajectory, planted verifier errors, injection); run with `make evals`",
+    "postgres: needs a real Postgres via TYCHEON_TEST_DATABASE_URL; row-level security cannot be tested on anything else",
 ]
 filterwarnings = [
     "error",

@@ -53,6 +53,7 @@ from tycheon.governance._policy import TycheonPolicy, policy_context
 from tycheon.governance._tools import build_tools
 from tycheon.services import (
     DataSource,
+    ModelResolver,
     PaperBlotter,
     ToolContext,
     bind,
@@ -286,8 +287,15 @@ class GovernedRuntime:
         confidence: float | None = None,
         flags: Sequence[str] = (),
         approval_id: str | None = None,
+        data: DataSource | None = None,
+        models: ModelResolver | None = None,
     ) -> ToolResult:
-        """Run one tool as ``agent_id``, through grant, policy, approval and audit."""
+        """Run one tool as ``agent_id``, through grant, policy, approval and audit.
+
+        ``data`` and ``models`` let a multi-tenant host bind one tenant's data source and private
+        models for this call only (trusted context, like ``as_of``); the defaults are the
+        runtime's own.
+        """
         tenant = tenant_id or self.config.tenant_id
         context = CallContext(
             tenant_id=tenant,
@@ -301,7 +309,9 @@ class GovernedRuntime:
             verifier_flags=tuple(flags),
             approval_id=approval_id,
         )
-        with bind(ToolContext(as_of=as_of, tenant_id=tenant, data=self.data)):
+        with bind(
+            ToolContext(as_of=as_of, tenant_id=tenant, data=data or self.data, models=models)
+        ):
             outcome = await self.gateway.call(
                 tool_name=tool,
                 arguments=arguments,

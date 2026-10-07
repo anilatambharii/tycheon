@@ -12,7 +12,14 @@ from tycheon.services.analytics import (
     run_risk,
 )
 from tycheon.services.artifacts import ARTIFACTS, ArtifactStore
-from tycheon.services.context import DataSource, ServiceError, ToolContext, bind, current
+from tycheon.services.context import (
+    DataSource,
+    ModelResolver,
+    ServiceError,
+    ToolContext,
+    bind,
+    current,
+)
 from tycheon.services.fundamentals import FundamentalsStore, build_sample_fundamentals
 from tycheon.services.news import InMemoryNewsStore, NewsDocument, news_signals, sample_news
 from tycheon.services.paper import PaperBlotter
@@ -23,6 +30,7 @@ __all__ = [
     "DataSource",
     "FundamentalsStore",
     "InMemoryNewsStore",
+    "ModelResolver",
     "NewsDocument",
     "PaperBlotter",
     "ServiceError",
