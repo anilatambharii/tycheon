@@ -68,6 +68,10 @@ _STATUS = {
 }
 
 
+class ModelUnavailableError(Exception):
+    """A private model name that this tenant cannot use (unknown, not theirs, not promoted)."""
+
+
 class PrivateModels(Protocol):
     """Resolves a tenant's own fine-tuned or routed model; supplied by ``tycheon_ft``."""
 
@@ -112,7 +116,10 @@ class AnalyticsGateway:
         if self.private_models is None:
             raise ApiProblem(400, "model_unavailable", "Private models are not available here.")
         symbol = arguments.get("symbol") if isinstance(arguments.get("symbol"), str) else None
-        forecaster = await self.private_models.resolve(org_id, name, symbol)
+        try:
+            forecaster = await self.private_models.resolve(org_id, name, symbol)
+        except ModelUnavailableError as exc:
+            raise ApiProblem(400, "model_unavailable", str(exc)) from exc
 
         def resolve(requested: str) -> Forecaster:
             if requested != name:  # exactly the one model this call was authorised to use

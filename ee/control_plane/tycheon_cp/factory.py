@@ -10,6 +10,7 @@ from typing import TYPE_CHECKING, Any
 from tycheon_cp.app import ControlPlane, create_app
 from tycheon_cp.billing_routes import register_billing
 from tycheon_cp.sso import register_sso
+from tycheon_ft.routes import register_finetune
 
 if TYPE_CHECKING:
     from fastapi import FastAPI
@@ -23,4 +24,5 @@ def create_full_app(
     app = create_app(cp, lifespan=lifespan)
     register_sso(app, cp)
     register_billing(app, cp, stripe_api)
+    register_finetune(app, cp)
     return app

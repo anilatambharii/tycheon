@@ -134,8 +134,16 @@ async def cp(pg: PgUrls, db: Database, runtime, tmp_path):
         local_kms_key=base64.b64encode(os.urandom(32)).decode(),
         stripe_webhook_secret=WEBHOOK_SECRET,
         operator_token=OPERATOR_TOKEN,
+        dedicated_gpu_pools=True,  # one worker pool per org: tests never run each other's jobs
     )
-    return await build_control_plane(settings, db=db, runtime=runtime, limiter=RateLimiter())
+    plane = await build_control_plane(settings, db=db, runtime=runtime, limiter=RateLimiter())
+    try:
+        from tycheon_ft.loader import PrivateModelResolver
+
+        plane.gateway.private_models = PrivateModelResolver(db, plane.blobs, TinyBase())
+    except ImportError:  # pragma: no cover - torch is optional for the non-finetune tests
+        pass
+    return plane
 
 
 @pytest.fixture
@@ -292,3 +300,60 @@ class FakeStripe:
 @pytest.fixture
 def fake_stripe() -> FakeStripe:
     return FakeStripe()
+
+
+class TinyBase:
+    """A miniature, randomly initialised Kronos standing in for the pinned checkpoint.
+
+    Built from the vendored upstream classes, so training and serving run the real code path;
+    its forecasts are noise, which is exactly what the promotion gate must refuse.
+    """
+
+    variant = "mini"
+    max_context = 256
+
+    def load(self):
+        import torch
+
+        from tycheon.models.kronos.vendor import load_upstream
+
+        upstream = load_upstream()
+        torch.manual_seed(0)  # the same starting weights on every call
+        tokenizer = upstream.tokenizer_cls(
+            d_in=6,
+            d_model=16,
+            n_heads=2,
+            ff_dim=32,
+            n_enc_layers=1,
+            n_dec_layers=1,
+            ffn_dropout_p=0.0,
+            attn_dropout_p=0.0,
+            resid_dropout_p=0.0,
+            s1_bits=4,
+            s2_bits=4,
+            beta=0.05,
+            gamma0=1.0,
+            gamma=1.1,
+            zeta=0.05,
+            group_size=2,
+        ).eval()
+        model = upstream.kronos_cls(
+            s1_bits=4,
+            s2_bits=4,
+            n_layers=1,
+            d_model=16,
+            n_heads=2,
+            ff_dim=32,
+            ffn_dropout_p=0.0,
+            attn_dropout_p=0.0,
+            resid_dropout_p=0.0,
+            token_dropout_p=0.0,
+            learn_te=True,
+        )
+        return tokenizer, model
+
+
+@pytest.fixture(scope="session")
+def tiny_base() -> TinyBase:
+    pytest.importorskip("torch")
+    return TinyBase()

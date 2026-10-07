@@ -38,6 +38,8 @@ class Settings:
     operator_token: str | None = field(default=None, repr=False)
     session_ttl_seconds: int = 8 * 3600
     max_upload_bytes: int = 20_000_000
+    #: route Enterprise fine-tune jobs to ``dedicated-<org>`` worker pools instead of ``shared``
+    dedicated_gpu_pools: bool = False
 
     def __post_init__(self) -> None:
         if len(self.session_secret) < MIN_SESSION_SECRET:
@@ -87,4 +89,5 @@ class Settings:
             public_url=env.get("TYCHEON_CP_PUBLIC_URL", "http://localhost:8080"),
             dashboard_url=env.get("TYCHEON_CP_DASHBOARD_URL", "http://localhost:3000"),
             operator_token=env.get("TYCHEON_CP_OPERATOR_TOKEN"),
+            dedicated_gpu_pools=env.get("TYCHEON_CP_DEDICATED_GPU_POOLS", "") == "true",
         )
