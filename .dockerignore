@@ -1,0 +1,14 @@
+# Keep the build context to what the images need (see Dockerfile).
+*
+!pyproject.toml
+!README.md
+!LICENSE
+!src/
+!third_party/
+!ee/control_plane/
+!ee/finetune/
+**/__pycache__
+**/*.pyc
+**/.pytest_cache
+**/.mypy_cache
+**/.ruff_cache

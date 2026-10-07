@@ -30,6 +30,8 @@ const csp = [
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
+  // a self-contained server for the container image (no node_modules at runtime)
+  output: "standalone",
   outputFileTracingRoot: import.meta.dirname,
   poweredByHeader: false,
   async headers() {
