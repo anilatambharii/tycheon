@@ -10,6 +10,7 @@ Proprietary: see ee/LICENSE.
 
 from __future__ import annotations
 
+import asyncio
 import contextlib
 import re
 from importlib import resources
@@ -27,8 +28,18 @@ _ROLE = re.compile(r"^[a-z_][a-z0-9_]{0,62}$")
 class Database:
     """A connection pool whose connections are always scoped to one tenant (or to none)."""
 
-    def __init__(self, pool: asyncpg.Pool[Any]) -> None:
+    def __init__(
+        self,
+        pool: asyncpg.Pool[Any] | None = None,
+        *,
+        dsn: str | None = None,
+        max_size: int = 10,
+    ) -> None:
+        if pool is None and dsn is None:
+            raise ValueError("a Database needs a pool or a DSN")
         self._pool = pool
+        self._dsn, self._max_size = dsn, max_size
+        self._lock = asyncio.Lock()
 
     @classmethod
     async def connect(cls, dsn: str, *, min_size: int = 1, max_size: int = 10) -> Database:
@@ -37,21 +48,39 @@ class Database:
             raise RuntimeError("could not create the Postgres pool")
         return cls(pool)
 
+    @classmethod
+    def lazy(cls, dsn: str, *, max_size: int = 10) -> Database:
+        """A database whose pool is opened on first use, inside whichever event loop uses it."""
+        return cls(dsn=dsn, max_size=max_size)
+
+    async def _ready(self) -> asyncpg.Pool[Any]:
+        if self._pool is None:
+            async with self._lock:
+                if self._pool is None:
+                    self._pool = await asyncpg.create_pool(self._dsn, max_size=self._max_size)
+        if self._pool is None:  # pragma: no cover
+            raise RuntimeError("could not create the Postgres pool")
+        return self._pool
+
     async def close(self) -> None:
-        await self._pool.close()
+        if self._pool is not None:
+            await self._pool.close()
+            self._pool = None
 
     @contextlib.asynccontextmanager
     async def tenant(self, org_id: UUID | str) -> AsyncIterator[asyncpg.Connection[Any]]:
         """A transaction in which row-level security shows exactly ``org_id``'s rows."""
         org = str(UUID(str(org_id)))  # refuses anything that is not a UUID
-        async with self._pool.acquire() as conn, conn.transaction():
+        pool = await self._ready()
+        async with pool.acquire() as conn, conn.transaction():
             await conn.execute("SELECT set_config('app.org_id', $1, true)", org)
             yield conn
 
     @contextlib.asynccontextmanager
     async def anonymous(self) -> AsyncIterator[asyncpg.Connection[Any]]:
         """A transaction with no tenant: RLS hides every tenant row from it."""
-        async with self._pool.acquire() as conn, conn.transaction():
+        pool = await self._ready()
+        async with pool.acquire() as conn, conn.transaction():
             await conn.execute("SELECT set_config('app.org_id', '', true)")
             yield conn
 

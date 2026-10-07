@@ -21,6 +21,7 @@ export function AuthCard({ title, children }: { title: string; children: ReactNo
 
 export function LoginForm() {
   const router = useRouter();
+  const ssoFailed = useSearchParams().get("error") === "sso";
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const action = useAction(async () => {
@@ -34,6 +35,11 @@ export function LoginForm() {
   }
   return (
     <AuthCard title="Sign in">
+      {ssoFailed && (
+        <p role="alert" className="mb-3 text-sm" style={{ color: "var(--bad)" }}>
+          Single sign-on failed or expired. Please try again.
+        </p>
+      )}
       <form onSubmit={submit}>
         <Field label="Email" id="email">
           <input id="email" type="email" required autoComplete="username" className="input" value={email} onChange={(e) => setEmail(e.target.value)} />
@@ -147,7 +153,8 @@ export function SsoForm() {
             id="slug"
             name="slug"
             required
-            pattern="[a-z0-9]([a-z0-9\-]{0,61}[a-z0-9])?"
+            pattern="[a-z0-9][a-z0-9\-]{1,38}"
+            maxLength={39}
             aria-describedby="slug-hint"
             className="input"
             value={slug}

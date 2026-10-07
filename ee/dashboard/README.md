@@ -23,6 +23,7 @@ Without it, pages load but every API call shows an "unreachable" error.
 | Variable | Default | Notes |
 | --- | --- | --- |
 | `CONTROL_PLANE_URL` | `http://localhost:8080` | Server-side only. Never sent to the browser. |
+| `CONTROL_PLANE_PUBLIC_URL` | `http://localhost:8080` | Browser-reachable control plane URL; used only to start SSO. |
 | `NEXT_PUBLIC_LEADERBOARD_URL` | `https://anilatambharii.github.io/tycheon/leaderboard/` | Embedded on `/leaderboard`; its origin is added to the CSP `frame-src` at build time. |
 
 ## Scripts
@@ -37,7 +38,7 @@ Without it, pages load but every API call shows an "unreachable" error.
 
 ## Security design
 
-- **The browser never holds the API session token.** `/api/auth/login`, `/api/auth/signup` and the SSO callback call
+- **The browser never holds the API session token.** `/api/auth/login`, `/api/auth/signup` and the SSO ticket exchange call
   the control plane and store the returned token in an `httpOnly`, `SameSite=Lax` cookie (`Secure` except on
   plain-http localhost). Responses to the browser contain no token. `/api/auth/logout` clears it.
 - **Proxy**: `app/api/cp/[...path]/route.ts` forwards browser calls to the control plane with
@@ -56,10 +57,18 @@ Without it, pages load but every API call shows an "unreachable" error.
 
 ## SSO
 
-`/sso` takes an organization slug and sends the browser to `/api/auth/sso/start`, which asks the control plane for
-`/auth/oidc/{slug}/login` and redirects to the identity provider. The identity provider must redirect back to
-`/api/auth/sso/callback/{slug}` on this dashboard; that route forwards the query string to the control plane
-callback, takes the returned token and sets the session cookie. Not verified against a live control plane.
+1. `/sso` takes an organization slug and sends the browser to `/api/auth/sso/start`. The slug is validated against
+   `^[a-z0-9][a-z0-9-]{1,38}$`, then the browser is redirected straight to
+   `${CONTROL_PLANE_PUBLIC_URL}/auth/oidc/{slug}/login`. This hop is not proxied, because the control plane sets
+   its state cookie on its own origin.
+2. The identity provider redirects back to the control plane, which redirects the browser to
+   `/api/auth/sso/complete?ticket=<jwt>` on this dashboard.
+3. `/api/auth/sso/complete` (server-side) rejects a missing ticket or one longer than 4000 characters, POSTs
+   `{ticket}` to `${CONTROL_PLANE_URL}/auth/sso/exchange`, sets the same httpOnly session cookie as password login
+   and redirects to `/`. Any failure redirects to `/login?error=sso` without echoing the ticket or the upstream
+   message. The ticket is single-use, valid for 60 s, and never logged.
+
+Not verified against a live control plane.
 
 ## Layout
 

@@ -1,1 +1,4 @@
-"""Tycheon Cloud fine-tuning (proprietary, see ee/LICENSE)."""
+"""Tycheon Cloud fine-tuning.
+
+Proprietary: see ee/LICENSE.
+"""

@@ -232,7 +232,7 @@ ignore = [
 # fixtures with a long if-chain on purpose.
 "tests/**" = ["S101", "ARG", "ERA001", "PLC0415", "PLR0911", "PLR0917"]
 "ee/control_plane/tycheon_cp/errors.py" = ["N818"]  # ApiProblem reads better than ApiProblemError
-"ee/tests/**" = ["S101", "ARG", "ERA001", "PLC0415", "PLR0911", "PLR0917", "S105", "S106", "S608"]
+"ee/tests/**" = ["E501", "S101", "ARG", "ERA001", "PLC0415", "PLR0911", "PLR0917", "S105", "S106", "S608"]
 # Foundation models are optional extras: importing torch, timesfm or chronos at
 # module level would make `import tycheon.models` require them, so those imports are
 # deliberately inside functions.
@@ -248,6 +248,7 @@ ignore = [
 # The leaderboard harness and the examples are CLIs: they report to stdout by design.
 "benchmarks/**" = ["T20", "PLC0415"]
 "examples/**" = ["T20", "PLC0415"]
+"ee/scripts/**" = ["T20", "PLC0415", "E501", "PLR0915"]  # a linear walkthrough script
 
 [tool.ruff.lint.isort]
 known-first-party = ["tycheon", "benchmarks", "tycheon_cp", "tycheon_ft"]
@@ -262,7 +263,7 @@ docstring-code-format = true
 # AGENTS.md: `mypy --strict` on src/.
 [tool.mypy]
 python_version = "3.11"
-files = ["src", "ee/control_plane", "ee/finetune"]
+files = ["src"]  # ee/ is checked by `make ee-types` (it needs the ee extra installed)
 strict = true
 warn_unreachable = true
 warn_no_return = true
@@ -287,7 +288,7 @@ ignore_missing_imports = true
 # ------------------------------------------------------------------ pytest
 [tool.pytest.ini_options]
 minversion = "9.0"
-testpaths = ["tests", "ee/tests"]
+testpaths = ["tests"]  # ee/tests need Postgres and the ee extra: see `make ee-test`
 pythonpath = ["ee/control_plane", "ee/finetune"]
 addopts = [
     "-ra",

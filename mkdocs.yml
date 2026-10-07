@@ -62,6 +62,7 @@ nav:
   - Agents: agents.md
   - Governance: governance.md
   - Serving: serving.md
+  - Tycheon Cloud: cloud.md
   - Leaderboard: leaderboard/index.md
   - Benchmark methodology: benchmark-methodology.md
   - Releasing: releasing.md

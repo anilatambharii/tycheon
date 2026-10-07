@@ -95,23 +95,23 @@ def make_kms(settings: Settings) -> Kms:
     return LocalKms(settings.local_kms_key or "")
 
 
-async def build_control_plane(
+def make_control_plane(
     settings: Settings,
     *,
-    db: Database | None = None,
+    db: Database,
     runtime: GovernedRuntime | None = None,
     private_models: PrivateModels | None = None,
     clock: Callable[[], datetime] | None = None,
     limiter: RateLimiter | None = None,
 ) -> ControlPlane:
-    database = db or await Database.connect(settings.database_url)
+    """Assemble the control plane around a database (which may connect lazily)."""
     plans = load_plans()
-    meter = Meter(database, plans, clock=clock)
+    meter = Meter(db, plans, clock=clock)
     rate = limiter or RateLimiter()
     blobs = LocalBlobStore(settings.storage_root)
     governed = runtime or GovernedRuntime()
     gateway = AnalyticsGateway(
-        db=database,
+        db=db,
         plans=plans,
         meter=meter,
         limiter=rate,
@@ -122,7 +122,7 @@ async def build_control_plane(
     )
     return ControlPlane(
         settings=settings,
-        db=database,
+        db=db,
         plans=plans,
         meter=meter,
         limiter=rate,
@@ -130,6 +130,26 @@ async def build_control_plane(
         blobs=blobs,
         runtime=governed,
         gateway=gateway,
+    )
+
+
+async def build_control_plane(
+    settings: Settings,
+    *,
+    db: Database | None = None,
+    runtime: GovernedRuntime | None = None,
+    private_models: PrivateModels | None = None,
+    clock: Callable[[], datetime] | None = None,
+    limiter: RateLimiter | None = None,
+) -> ControlPlane:
+    database = db or await Database.connect(settings.database_url)
+    return make_control_plane(
+        settings,
+        db=database,
+        runtime=runtime,
+        private_models=private_models,
+        clock=clock,
+        limiter=limiter,
     )
 
 
@@ -706,4 +726,4 @@ async def _mcp_call(
     return {"content": [{"type": "text", "text": json.dumps(output)}], "isError": False}
 
 
-__all__ = ["ControlPlane", "build_control_plane", "create_app"]
+__all__ = ["ControlPlane", "build_control_plane", "create_app", "make_control_plane"]

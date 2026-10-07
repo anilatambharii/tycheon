@@ -10,6 +10,7 @@ import hashlib
 import hmac
 import json
 import time
+import uuid
 from urllib.parse import parse_qs, urlparse
 
 import httpx
@@ -112,8 +113,8 @@ def claims(nonce, **over):
     base = {
         "iss": ISSUER,
         "aud": CLIENT_ID,
-        "sub": "idp-user-1",
-        "email": "ada@example.com",
+        "sub": f"idp-{uuid.uuid4().hex[:12]}",
+        "email": f"user-{uuid.uuid4().hex[:12]}@example.com",
         "email_verified": True,
         "nonce": nonce,
         "iat": now,
@@ -221,13 +222,14 @@ async def test_a_valid_sso_login_provisions_the_user_into_the_org(
 ) -> None:
     org = await enterprise_org(signup_org, set_org_plan)
     await configure(client, org, role="viewer")
-    res = await sign_in(client, idp, org)
+    who = {"sub": f"idp-{uuid.uuid4().hex[:8]}", "email": f"ada-{uuid.uuid4().hex[:8]}@example.com"}
+    res = await sign_in(client, idp, org, **who)
     assert res.status_code == 200, res.text
     body = res.json()
     assert body["org_id"] == org.org_id and body["role"] == "viewer"
     me = await client.get("/v1/me", headers={"Authorization": f"Bearer {body['token']}"})
-    assert me.json()["email"] == "ada@example.com"
-    again = await sign_in(client, idp, org)
+    assert me.json()["email"] == who["email"]
+    again = await sign_in(client, idp, org, **who)
     assert again.json()["user_id"] == body["user_id"]  # the same user, not a duplicate
 
 
@@ -389,3 +391,74 @@ async def test_sso_logins_never_land_in_another_org(client, signup_org, set_org_
 
 async def test_sso_for_an_org_without_it_does_not_exist(client) -> None:
     assert (await client.get("/auth/oidc/no-such-org/login")).status_code == 404
+
+
+# --------------------------------------------------------------- the browser hand-off
+async def browser_callback(client, idp, org, **over):
+    slug = await slug_of(client, org)
+    params = await start_login(client, slug)
+    over = dict(over)
+    idp.next_claims = claims(over.pop("nonce", params["nonce"]), **over)
+    return await client.get(
+        f"/auth/oidc/{slug}/callback",
+        params={"code": "abc", "state": params["state"]},
+        headers={"Accept": "text/html"},
+    )
+
+
+async def test_a_browser_is_sent_back_to_the_dashboard_with_a_ticket_not_a_session(
+    client, signup_org, set_org_plan, idp, cp
+) -> None:
+    org = await enterprise_org(signup_org, set_org_plan)
+    await configure(client, org)
+    res = await browser_callback(client, idp, org)
+    assert res.status_code == 302
+    target = urlparse(res.headers["location"])
+    assert f"{target.scheme}://{target.netloc}" == cp.settings.dashboard_url
+    assert target.path == "/api/auth/sso/complete"
+    ticket = parse_qs(target.query)["ticket"][0]
+    payload = jwt.decode(ticket, options={"verify_signature": False})
+    assert "token" not in json.dumps(payload) and payload["aud"] == "tycheon-sso-ticket"
+    assert payload["exp"] - payload["iat"] <= 60
+
+
+async def test_a_ticket_is_exchanged_for_a_session_exactly_once(
+    client, signup_org, set_org_plan, idp
+) -> None:
+    org = await enterprise_org(signup_org, set_org_plan)
+    await configure(client, org)
+    res = await browser_callback(client, idp, org)
+    ticket = parse_qs(urlparse(res.headers["location"]).query)["ticket"][0]
+    first = await client.post("/auth/sso/exchange", json={"ticket": ticket})
+    assert first.status_code == 200 and first.json()["org_id"] == org.org_id
+    me = await client.get("/v1/me", headers={"Authorization": f"Bearer {first.json()['token']}"})
+    assert me.status_code == 200
+    again = await client.post("/auth/sso/exchange", json={"ticket": ticket})
+    assert again.status_code == 401 and "already used" in again.json()["error"]["message"]
+
+
+async def test_forged_expired_or_foreign_tickets_are_refused(
+    client, signup_org, set_org_plan, idp, cp
+) -> None:
+    org = await enterprise_org(signup_org, set_org_plan)
+    now = int(time.time())
+    base = {
+        "jti": "j" * 20,
+        "org": org.org_id,
+        "sub": org.user_id,
+        "role": "owner",
+        "iat": now,
+        "exp": now + 60,
+        "aud": "tycheon-sso-ticket",
+    }
+    cases = {
+        "wrong secret": jwt.encode(base, "x" * 40, algorithm="HS256"),
+        "expired": jwt.encode({**base, "exp": now - 10}, cp.session_secret, algorithm="HS256"),
+        "wrong audience": jwt.encode(
+            {**base, "aud": "tycheon-cp"}, cp.session_secret, algorithm="HS256"
+        ),
+        "garbage": "not.a.jwt" + "x" * 20,
+    }
+    for label, ticket in cases.items():
+        res = await client.post("/auth/sso/exchange", json={"ticket": ticket})
+        assert res.status_code == 401, label

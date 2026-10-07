@@ -43,6 +43,11 @@ STATE_TTL = 600
 HTTP_TIMEOUT = 10.0
 
 
+class TicketIn(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    ticket: str = Field(min_length=20, max_length=4000)
+
+
 class SsoIn(BaseModel):
     model_config = ConfigDict(extra="forbid")
     issuer: str = Field(max_length=300)
@@ -95,6 +100,23 @@ def _state_token(cp: ControlPlane, slug: str, state: str, nonce: str, verifier: 
             "iat": now,
             "exp": now + STATE_TTL,
             "aud": "tycheon-oidc-state",
+        },
+        cp.session_secret,
+        algorithm="HS256",
+    )
+
+
+def _issue_ticket(cp: ControlPlane, session: Any) -> str:
+    now = int(time.time())
+    return jwt.encode(
+        {
+            "jti": secrets.token_urlsafe(24),
+            "org": session.org_id,
+            "sub": session.user_id,
+            "role": session.role,
+            "iat": now,
+            "exp": now + 60,
+            "aud": "tycheon-sso-ticket",
         },
         cp.session_secret,
         algorithm="HS256",
@@ -212,6 +234,7 @@ def register_sso(app: FastAPI, cp: ControlPlane) -> None:
 
     @router.get("/auth/oidc/{slug}/callback", tags=["sso"])
     async def callback(
+        request: Request,
         slug: str,
         code: str,
         state: str,
@@ -243,7 +266,27 @@ def register_sso(app: FastAPI, cp: ControlPlane) -> None:
             raise forbidden("Your email domain is not allowed to sign in to this organisation.")
         session = await _provision(cp, org_id, provider, email, str(claims["sub"]))
         out = _session_out(cp, session.org_id, session.user_id, session.role)
-        return JSONResponse(out.model_dump())
+        return _finish(cp, request, slug, out)
+
+    @router.post("/auth/sso/exchange", tags=["sso"])
+    async def exchange(body: TicketIn) -> JSONResponse:
+        """Redeem a browser sign-in ticket (once) for a session."""
+        try:
+            claims = jwt.decode(
+                body.ticket,
+                cp.session_secret,
+                algorithms=["HS256"],
+                audience="tycheon-sso-ticket",
+                options={"require": ["exp", "jti", "org", "sub", "role"]},
+            )
+        except jwt.PyJWTError as exc:
+            raise ApiProblem(401, "unauthorized", "That sign-in ticket is not valid.") from exc
+        async with cp.db.anonymous() as conn:
+            fresh = await conn.fetchval("SELECT cp_redeem_ticket($1)", str(claims["jti"]))
+        if not fresh:
+            raise ApiProblem(401, "unauthorized", "That sign-in ticket was already used.")
+        issued = _session_out(cp, claims["org"], claims["sub"], claims["role"])
+        return JSONResponse(issued.model_dump())
 
     app.include_router(router)
 
@@ -349,6 +392,19 @@ async def _exchange_code(
         return response, dict(response.json())
     except (httpx.HTTPError, ValueError) as exc:
         raise ApiProblem(502, "bad_gateway", "The identity provider did not respond.") from exc
+
+
+def _finish(cp: ControlPlane, request: Request, slug: str, out: Any) -> Response:
+    """JSON for API clients; for a browser, a redirect to the dashboard with a one-time ticket."""
+    if "text/html" not in request.headers.get("accept", ""):
+        return JSONResponse(out.model_dump())
+    # never the session itself in a URL: it would end up in history and logs
+    query = urlencode({"ticket": _issue_ticket(cp, out)})
+    done = RedirectResponse(
+        f"{cp.settings.dashboard_url}/api/auth/sso/complete?{query}", status_code=302
+    )
+    done.delete_cookie(STATE_COOKIE, path=f"/auth/oidc/{slug}")
+    return done
 
 
 async def _provision(
