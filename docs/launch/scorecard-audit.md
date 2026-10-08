@@ -69,7 +69,7 @@ Severity is my judgement of the risk to this project (High, Medium, Low, Info), 
 
 ### Dependency-Update-Tool: Medium
 
-- Found: no `.github/dependabot.yml` and no Renovate config. Repository setting: Dependabot security updates are **disabled**; the vulnerability-alerts endpoint returned 404, which I read as alerts being off.
+- Found at the time of the audit: no `.github/dependabot.yml` and no Renovate config (since added: actions, uv lock file, npm, Terraform and Docker, weekly). Repository setting: Dependabot security updates are **disabled**; the vulnerability-alerts endpoint returned 404, which I read as alerts being off.
 - Recommendation: add `.github/dependabot.yml` for `github-actions` (and decide separately about Python, given the project's upper-bound policy), and enable Dependabot alerts and security updates in the repository settings. This is also what makes `dependency-review.yml` useful (it currently carries `continue-on-error` until the dependency graph is on; SECURITY.md tracks that in issue #2).
 
 ### Vulnerabilities: Info (not evaluated)

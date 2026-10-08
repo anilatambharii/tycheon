@@ -1,0 +1,86 @@
+# Dependabot version updates. (Security updates and alerts are a repository setting and are on.)
+#
+# Every update arrives as a pull request that must pass the same required checks as any other
+# change, and merges only when a maintainer merges it. Titles use Conventional Commits with a
+# `chore(deps)` / `ci(deps)` / `build(deps)` type, so none of them bumps the release version.
+#
+# Python is deliberately limited to the lock file: `pyproject.toml` carries upper bounds on purpose
+# (a newer major version is a decision, discussed in an issue, not an automatic pull request).
+version: 2
+
+updates:
+  # Every workflow pins its actions by full commit SHA with the tag as a trailing comment;
+  # Dependabot keeps those pins fresh (it understands the `# vX.Y.Z` comment).
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+    open-pull-requests-limit: 5
+    commit-message:
+      prefix: "ci(deps)"
+    labels: [dependencies, ci]
+    groups:
+      actions:
+        patterns: ["*"]
+        update-types: [minor, patch]
+
+  # Python: refresh uv.lock inside the bounds already declared in pyproject.toml.
+  - package-ecosystem: uv
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+    open-pull-requests-limit: 5
+    versioning-strategy: lockfile-only
+    commit-message:
+      prefix: "build(deps)"
+    labels: [dependencies, python]
+    groups:
+      python-minor-and-patch:
+        update-types: [minor, patch]
+
+  # The Next.js dashboard (proprietary, ee/).
+  - package-ecosystem: npm
+    directory: /ee/dashboard
+    schedule:
+      interval: weekly
+      day: monday
+    open-pull-requests-limit: 5
+    commit-message:
+      prefix: "build(deps)"
+    labels: [dependencies, dashboard]
+    groups:
+      dashboard-minor-and-patch:
+        update-types: [minor, patch]
+
+  # Terraform providers, one lock file per root and example.
+  - package-ecosystem: terraform
+    directories:
+      - /deploy/terraform/aws
+      - /deploy/terraform/aws/examples/complete
+      - /deploy/terraform/aws/examples/customer-vpc
+      - /deploy/terraform/gcp
+      - /deploy/terraform/gcp/examples/complete
+    schedule:
+      interval: weekly
+      day: monday
+    open-pull-requests-limit: 3
+    commit-message:
+      prefix: "build(deps)"
+    labels: [dependencies, infrastructure]
+
+  # Container base images. The Dockerfiles take their base image from an ARG pinned by digest, which
+  # Dependabot may not be able to rewrite; if these entries open nothing, bump the digests by hand
+  # (the ARG lines at the top of each Dockerfile) when the scan gate or a security advisory asks.
+  - package-ecosystem: docker
+    directories:
+      - /
+      - /ee/dashboard
+    schedule:
+      interval: weekly
+      day: monday
+    open-pull-requests-limit: 3
+    commit-message:
+      prefix: "build(deps)"
+    labels: [dependencies, docker]
