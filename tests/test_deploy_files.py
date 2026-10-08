@@ -171,3 +171,22 @@ def test_terraform_never_defaults_a_secret() -> None:
         assert not re.search(
             r"(AKIA|ASIA)[0-9A-Z]{16}|-----BEGIN|password\s*=\s*\"[^$\"]+\"", text
         ), path
+
+
+def test_dependabot_covers_every_ecosystem_and_every_directory_exists() -> None:
+    config = yaml.safe_load((ROOT / ".github" / "dependabot.yml").read_text(encoding="utf-8"))
+    assert config["version"] == 2
+    ecosystems = {update["package-ecosystem"] for update in config["updates"]}
+    assert ecosystems == {"github-actions", "uv", "npm", "terraform", "docker"}
+    for update in config["updates"]:
+        directories = update.get("directories") or [update["directory"]]
+        for directory in directories:
+            assert (ROOT / directory.lstrip("/")).is_dir(), directory
+        # pull requests get a Conventional Commits title, and none of them is a release-bumping type
+        assert re.fullmatch(r"(ci|build|chore)\(deps\)", update["commit-message"]["prefix"])
+    python = next(u for u in config["updates"] if u["package-ecosystem"] == "uv")
+    # the bounds in pyproject.toml are a deliberate policy: only the lock file moves automatically
+    assert python["versioning-strategy"] == "lockfile-only"
+    terraform = next(u for u in config["updates"] if u["package-ecosystem"] == "terraform")
+    for directory in terraform["directories"]:
+        assert (ROOT / directory.lstrip("/") / ".terraform.lock.hcl").is_file(), directory

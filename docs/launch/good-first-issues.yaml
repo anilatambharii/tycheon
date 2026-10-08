@@ -654,34 +654,6 @@
     **Before you start**
 
     Read [CONTRIBUTING.md](CONTRIBUTING.md) (ground rules, Conventional Commits, the PR template and its leakage/baseline checklist). Say in a comment that you are taking the issue. Expected effort: 1 to 3 hours. Nothing here asks for, or should contain, a claim about returns or trading performance. Tycheon is for research and risk analytics; it is not investment advice.
-- title: 'ci: add a Dependabot config for GitHub Actions'
-  labels:
-  - good first issue
-  - security
-  - 'area: ci'
-  body: |
-    **Context**
-
-    There is no Dependabot or Renovate configuration in the repository, so pinned action SHAs (see the pinning issues) would never be refreshed automatically. Scorecard's Dependency-Update-Tool check looks for exactly this kind of configuration.
-
-    **What to do**
-
-    Add `.github/dependabot.yml` (new file) with a `github-actions` ecosystem entry at directory `/`, a weekly schedule, and a small `open-pull-requests-limit`. Use a Conventional Commits prefix in the config (`commit-message.prefix: "ci"`) so the PR titles match `CONTRIBUTING.md`. Do not add other ecosystems in this PR; the Python dependency policy (upper bounds, ask before adding heavy packages) is a separate discussion.
-
-    **Acceptance criteria**
-
-    - The file validates against GitHub's Dependabot schema (say how you checked).
-    - Only the `github-actions` ecosystem is configured.
-    - `tests/test_repo_layout.py` still passes.
-
-    **How to check**
-
-    Run `make check` (lint, format check, `mypy --strict`, fast tests). Without `make` (for example on Windows) run the same steps directly:
-    `uv run ruff check . && uv run ruff format --check . && uv run mypy && uv run pytest -m "not slow"`. For docs changes also run `uv run --group docs mkdocs build --strict`.
-
-    **Before you start**
-
-    Read [CONTRIBUTING.md](CONTRIBUTING.md) (ground rules, Conventional Commits, the PR template and its leakage/baseline checklist). Say in a comment that you are taking the issue. Expected effort: 1 to 3 hours. Nothing here asks for, or should contain, a claim about returns or trading performance. Tycheon is for research and risk analytics; it is not investment advice.
 - title: 'docs: add a tutorial for the portfolio risk report example'
   labels:
   - good first issue
