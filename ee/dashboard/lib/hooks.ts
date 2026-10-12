@@ -16,11 +16,12 @@ export function useAsync<T>(fn: () => Promise<T>): AsyncState<T> {
   const [loading, setLoading] = useState(true);
   const [tick, setTick] = useState(0);
   const fnRef = useRef(fn);
-  fnRef.current = fn;
+  useEffect(() => {
+    fnRef.current = fn;
+  });
 
   useEffect(() => {
     let live = true;
-    setLoading(true);
     fnRef.current().then(
       (d) => {
         if (!live) return;
@@ -39,7 +40,10 @@ export function useAsync<T>(fn: () => Promise<T>): AsyncState<T> {
     };
   }, [tick]);
 
-  const reload = useCallback(() => setTick((t) => t + 1), []);
+  const reload = useCallback(() => {
+    setLoading(true);
+    setTick((t) => t + 1);
+  }, []);
   return { data, error, loading, reload };
 }
 
@@ -60,7 +64,6 @@ export function useAction<A extends unknown[], R>(fn: (...args: A) => Promise<R>
         setBusy(false);
       }
     },
-    // eslint-disable-next-line react-hooks/exhaustive-deps
     [fn],
   );
   return { run, busy, error, clearError: () => setError(null) };
