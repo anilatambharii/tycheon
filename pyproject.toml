@@ -163,6 +163,9 @@ dev = [
     "pyyaml>=6.0",
     "pandas-stubs>=2.2",
     "types-pyyaml>=6.0",
+    # provider SDKs, so the real-provider code path can be tested over a mocked transport
+    "anthropic>=0.40,<1",
+    "openai>=1.50,<3",
 ]
 # Plotting for examples/. Deliberately NOT in any published extra, and
 # yfinance is deliberately absent from the lock altogether: it is for
