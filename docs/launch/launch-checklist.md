@@ -78,7 +78,7 @@ packages for the Python images, 225 for the dashboard).
 
 | # | Risk | Impact | Status / mitigation |
 |---|---|---|---|
-| 1 | `main` is **not protected** (no required reviews or status checks), `CONTRIBUTING.md` says it is; Dependabot security updates are off; no CODEOWNERS | anyone with write access can push to `main` and bypass every check | **Fix before launch** (settings, below) |
+| 1 | `main` is **not protected** (no required reviews or status checks), `CONTRIBUTING.md` says it is; no CODEOWNERS. *(Update: branch protection and Dependabot security updates were enabled after this was written, and `.github/dependabot.yml` for version updates was added.)* | anyone with write access can push to `main` and bypass every check | **Fix before launch** (settings, below) |
 | 2 | 40 actions in the older workflows are pinned by tag, and `publish.yml` uses a branch ref (`pypa/gh-action-pypi-publish@release/v1`) | supply-chain exposure; Scorecard "Pinned-Dependencies" high | list in `docs/launch/scorecard-audit.md`; the new workflows are pinned by SHA |
 | 3 | Nothing deployed anywhere; no real load, backup or failover has been exercised | unknown operational behaviour | stage first; run the restore drill and a failover on real infrastructure |
 | 4 | Stripe path unverified live; pricing numbers marked *default* in `plans.toml` are unconfirmed | wrong billing | give a test key, run `ee/scripts/acceptance_t5.py`; confirm the numbers |
@@ -97,7 +97,7 @@ packages for the Python images, 225 for the dashboard).
 1. Protect `main`: require a pull request, the required checks (`check (py3.11)`, `check (py3.12)`,
    `make check`, `pre-commit`, `cloud tests`, `dashboard`, `helm`, `terraform`, `kind`, `gitleaks`,
    `detect-secrets`), and at least one review; then correct the sentence in `CONTRIBUTING.md` if you do not.
-2. Enable Dependabot alerts and security updates; add `.github/dependabot.yml` (a good-first-issue covers it).
+2. ~~Enable Dependabot alerts and security updates; add `.github/dependabot.yml`.~~ Done.
 3. Create the `staging` and `production` environments (reviewers on production), set the variables and
    secrets listed in `docs/ops/cicd.md` once a cluster exists.
 4. Enable GitHub Discussions and create the categories in `docs/launch/discussions.md`; add repository topics.
