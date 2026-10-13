@@ -16,7 +16,7 @@ permissions:
 jobs:
   apply:
     runs-on: ubuntu-latest
-    timeout-minutes: 40
+    timeout-minutes: 25
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - uses: hashicorp/setup-terraform@dfe3c3f87815947d99a8997f908cb6525fc44e9e # v4.0.1
@@ -30,7 +30,7 @@ jobs:
           nohup "$RUNNER_TEMP/moto/bin/moto_server" -p 5000 > moto.log 2>&1 &
           for i in $(seq 1 60); do curl -sf http://127.0.0.1:5000/moto-api/ >/dev/null && exit 0; sleep 1; done
           echo "emulator did not start"; cat moto.log; exit 1
-      - name: Apply, re-plan, destroy
+      - name: Apply, re-plan, destroy (the part of the module the emulator supports)
         working-directory: deploy/terraform/aws/examples/simulated
         env:
           AWS_ACCESS_KEY_ID: simulated-not-a-key
@@ -39,11 +39,36 @@ jobs:
           TF_IN_AUTOMATION: "1"
           TF_INPUT: "0"
         run: |
+          # The emulator hangs creating an ElastiCache parameter group and does not implement
+          # EKS/RDS/ElastiCache clusters, so the apply is limited to what it does implement:
+          # network, security groups, KMS, S3, IAM, logs, secrets, WAF, launch templates and the
+          # database and cache subnet/parameter groups. Real AWS may still reject the rest.
+          T=module.tycheon
+          TARGETS=(
+            -target=$T.aws_nat_gateway.this -target=$T.aws_route.private_nat
+            -target=$T.aws_route.public_internet -target=$T.aws_route_table_association.private
+            -target=$T.aws_route_table_association.public -target=$T.aws_flow_log.this
+            -target=$T.aws_vpc_endpoint.s3 -target=$T.aws_default_security_group.this
+            -target=$T.aws_security_group.alb -target=$T.aws_security_group.db -target=$T.aws_security_group.redis
+            -target=$T.aws_vpc_security_group_ingress_rule.alb_https
+            -target=$T.aws_wafv2_web_acl_logging_configuration.this
+            -target=$T.aws_s3_bucket_policy.this -target=$T.aws_s3_bucket_lifecycle_configuration.this
+            -target=$T.aws_s3_bucket_server_side_encryption_configuration.this
+            -target=$T.aws_s3_bucket_public_access_block.this -target=$T.aws_s3_bucket_versioning.this
+            -target=$T.aws_s3_bucket_ownership_controls.this
+            -target=$T.aws_kms_alias.app -target=$T.aws_kms_alias.data
+            -target=$T.aws_iam_role.cluster -target=$T.aws_iam_role.node -target=$T.aws_iam_role.rds_monitoring
+            -target=$T.aws_iam_policy.lb_controller -target=$T.aws_launch_template.node
+            -target=$T.aws_secretsmanager_secret_version.redis_auth
+            -target=$T.aws_db_subnet_group.this -target=$T.aws_db_parameter_group.this
+            -target=$T.aws_elasticache_subnet_group.this
+            -target=$T.aws_cloudwatch_log_group.eks -target=$T.aws_cloudwatch_log_group.waf
+          )
           terraform init
-          terraform apply -auto-approve
-          echo "--- second plan must be empty (idempotent) ---"
-          terraform plan -detailed-exitcode
-          terraform destroy -auto-approve
+          timeout 900 terraform apply -auto-approve "${TARGETS[@]}"
+          echo "--- second plan of the same resources must be empty (idempotent) ---"
+          timeout 600 terraform plan -detailed-exitcode "${TARGETS[@]}"
+          timeout 900 terraform destroy -auto-approve "${TARGETS[@]}"
       - name: Emulator log
         if: failure()
         run: tail -n 200 moto.log

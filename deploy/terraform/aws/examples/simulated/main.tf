@@ -2,6 +2,8 @@
 # `terraform apply` and `terraform destroy` really execute every create/read/delete call against an
 # API. It checks dependency ordering, argument shapes and idempotency that `plan` cannot. It does
 # NOT prove anything about real AWS: no real EKS, RDS, KMS, IAM evaluation, quotas or networking.
+# The workflow applies only the resources the emulator implements (it has no EKS/RDS/ElastiCache
+# clusters and hangs on an ElastiCache parameter group); see .github/workflows/terraform-simulated-apply.yml.
 #
 #   pip install "moto[server]" && moto_server -p 5000 &
 #   terraform init && terraform apply -var-file=simulated.tfvars -auto-approve && terraform destroy -auto-approve -var-file=simulated.tfvars
