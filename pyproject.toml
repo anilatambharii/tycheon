@@ -118,7 +118,6 @@ serve = [
     # Keelgate's MCP adapter needs mcp>=2.3, so this extra follows it (T0 pinned mcp<2).
     "mcp>=2.3,<3",
     "keelgate[mcp]>=0.1,<0.2",
-    "psycopg[binary,pool]>=3.2,<4",
     "redis>=5.2,<9",
     "boto3>=1.35,<2",
 ]

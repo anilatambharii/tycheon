@@ -20,8 +20,8 @@ are narrow `SECURITY DEFINER` functions. A handler that forgets `WHERE org_id = 
 nothing. *Limit:* any code that can run SQL as the application role could set `app.org_id` itself;
 RLS defends against bugs, not against a compromised application process.
 
-**No ORM, no psycopg.** Plain SQL over `asyncpg` (Apache-2.0). The OSS `serve` extra already lists
-`psycopg` (LGPL), which is an open question for the maintainers; nothing in `ee/` uses it.
+**No ORM, no psycopg.** Plain SQL over `asyncpg` (Apache-2.0). The OSS `serve` extra used to list
+`psycopg` (LGPL); it was unused and was removed (see ADR 0010).
 
 **Data-plane calls go through the same governed runtime as the agents.** A request is
 authenticated, rate-limited, plan-gated and quota-reserved, then run as a Keelgate tool call (signed
