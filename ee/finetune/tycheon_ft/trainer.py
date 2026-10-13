@@ -54,17 +54,12 @@ class TrainResult:
 
 
 def resolve_device(request: str) -> str:
+    """A device that exists, or an error: an unavailable accelerator never falls back to CPU."""
     import torch  # noqa: PLC0415 - optional heavy dependency
 
-    if request == "auto":
-        if torch.cuda.is_available():
-            return "cuda"
-        if getattr(torch.backends, "mps", None) and torch.backends.mps.is_available():
-            return "mps"
-        return "cpu"
-    if request not in ("cpu", "cuda", "mps"):
-        raise ValueError(f"unknown device {request!r}")
-    return request
+    from tycheon.models.devices import resolve_device as resolve  # noqa: PLC0415
+
+    return resolve(request, torch)
 
 
 def _batches(
