@@ -81,9 +81,10 @@ async def test_erasing_removes_every_row_and_file_and_leaves_a_receipt(
     # claim that outlives the rows) cannot recreate anything
     assert (await client.get("/v1/usage", headers=a.key)).status_code == 401
     assert (await client.get("/v1/me", headers=a.session)).status_code >= 400
-    await client.post(
+    stale = await client.post(
         "/v1/api-keys", json={"name": "x", "scopes": ["analytics"]}, headers=a.session
     )
+    assert stale.status_code == 401
     assert all(v == 0 for v in (await rows(owner, a.org_id)).values())
 
 

@@ -23,6 +23,7 @@ from datetime import datetime
 from typing import Annotated, Any, Literal
 from uuid import UUID
 
+import asyncpg
 from fastapi import APIRouter, Depends, FastAPI, Header, Request
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import HTMLResponse, JSONResponse, Response
@@ -308,6 +309,26 @@ def _install_errors(app: FastAPI) -> None:
         )
         body = ErrorEnvelope(error=ErrorBody(code=code, message=str(exc.detail)[:200]))
         return JSONResponse(body.model_dump(), status_code=exc.status_code)
+
+    @app.exception_handler(asyncpg.ForeignKeyViolationError)
+    async def _foreign_key(_: Request, exc: asyncpg.ForeignKeyViolationError) -> JSONResponse:
+        # A signed session outlives its organisation's rows (erasure): the database refuses to
+        # recreate anything for it, and the caller learns to sign in again.
+        if str(exc.constraint_name or "").endswith("_org_id_fkey"):
+            return JSONResponse(
+                {
+                    "error": {
+                        "code": "unauthorized",
+                        "message": "That organisation no longer exists.",
+                        "details": [],
+                    }
+                },
+                status_code=401,
+            )
+        body = ErrorEnvelope(
+            error=ErrorBody(code="internal_error", message="The request could not be processed.")
+        )
+        return JSONResponse(body.model_dump(), status_code=500)
 
     @app.exception_handler(Exception)
     async def _unexpected(_: Request, __: Exception) -> JSONResponse:
