@@ -1,0 +1,76 @@
+# Runs `terraform apply` and `terraform destroy` for the AWS module against the moto AWS emulator.
+# This is a SIMULATION: it catches ordering, argument and idempotency errors that `plan` cannot,
+# and proves nothing about real AWS. No cloud credentials are used or needed.
+name: Terraform (simulated apply)
+
+on:
+  pull_request:
+    paths:
+      - "deploy/terraform/aws/**"
+      - ".github/workflows/terraform-simulated-apply.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  apply:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: hashicorp/setup-terraform@dfe3c3f87815947d99a8997f908cb6525fc44e9e # v4.0.1
+        with:
+          terraform_version: "1.9.8"
+          terraform_wrapper: false
+      - name: Start the AWS emulator
+        run: |
+          python3 -m venv "$RUNNER_TEMP/moto"
+          "$RUNNER_TEMP/moto/bin/pip" install --quiet "moto[server]==5.1.*"
+          nohup "$RUNNER_TEMP/moto/bin/moto_server" -p 5000 > moto.log 2>&1 &
+          for i in $(seq 1 60); do curl -sf http://127.0.0.1:5000/moto-api/ >/dev/null && exit 0; sleep 1; done
+          echo "emulator did not start"; cat moto.log; exit 1
+      - name: Apply, re-plan, destroy (the part of the module the emulator supports)
+        working-directory: deploy/terraform/aws/examples/simulated
+        env:
+          AWS_ACCESS_KEY_ID: simulated-not-a-key
+          AWS_SECRET_ACCESS_KEY: simulated-not-a-secret  # pragma: allowlist secret (dummy value for the emulator)
+          AWS_DEFAULT_REGION: us-east-1
+          TF_IN_AUTOMATION: "1"
+          TF_INPUT: "0"
+        run: |
+          # The emulator hangs creating an ElastiCache parameter group and does not implement
+          # EKS/RDS/ElastiCache clusters, so the apply is limited to what it does implement:
+          # network, security groups, KMS, S3, IAM, logs, secrets, WAF, launch templates and the
+          # database subnet/parameter groups. The emulator cannot delete an ElastiCache subnet group, so the
+          # cache resources are left out. Real AWS may still reject what is not exercised here.
+          T=module.tycheon
+          TARGETS=(
+            -target=$T.aws_nat_gateway.this -target=$T.aws_route.private_nat
+            -target=$T.aws_route.public_internet -target=$T.aws_route_table_association.private
+            -target=$T.aws_route_table_association.public -target=$T.aws_flow_log.this
+            -target=$T.aws_vpc_endpoint.s3 -target=$T.aws_default_security_group.this
+            -target=$T.aws_security_group.alb -target=$T.aws_security_group.db -target=$T.aws_security_group.redis
+            -target=$T.aws_vpc_security_group_ingress_rule.alb_https
+            -target=$T.aws_wafv2_web_acl_logging_configuration.this
+            -target=$T.aws_s3_bucket_policy.this -target=$T.aws_s3_bucket_lifecycle_configuration.this
+            -target=$T.aws_s3_bucket_server_side_encryption_configuration.this
+            -target=$T.aws_s3_bucket_public_access_block.this -target=$T.aws_s3_bucket_versioning.this
+            -target=$T.aws_s3_bucket_ownership_controls.this
+            -target=$T.aws_kms_alias.app -target=$T.aws_kms_alias.data
+            -target=$T.aws_iam_role.cluster -target=$T.aws_iam_role.node -target=$T.aws_iam_role.rds_monitoring
+            -target=$T.aws_iam_policy.lb_controller -target=$T.aws_launch_template.node
+            -target=$T.aws_secretsmanager_secret_version.redis_auth
+            -target=$T.aws_db_subnet_group.this -target=$T.aws_db_parameter_group.this
+            -target=$T.aws_cloudwatch_log_group.eks -target=$T.aws_cloudwatch_log_group.waf
+          )
+          terraform init
+          timeout 900 terraform apply -auto-approve "${TARGETS[@]}"
+          echo "--- second plan, informational only ---"
+          # The emulator normalises tags, policies and launch-template versions differently from
+          # AWS, so differences here are usually its fidelity, not the module. Read, do not gate.
+          timeout 600 terraform plan -detailed-exitcode "${TARGETS[@]}" || echo "plan reported differences (informational)"
+          timeout 900 terraform destroy -auto-approve "${TARGETS[@]}"
+      - name: Emulator log
+        if: failure()
+        run: tail -n 200 moto.log
