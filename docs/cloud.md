@@ -81,6 +81,8 @@ driven by a person); multi-replica behaviour.
 
 ## Known gaps
 
+* Organisation erasure exists (`POST /v1/org/erase`, [runbook](ops/runbooks/org-erasure.md)); backups are not rewritten and the Stripe cancel is unverified live.
+
 * Rate limiting is per process (no shared limiter yet).
 * Blob storage is the local filesystem; an S3-compatible store is not implemented.
 * Management actions are audited and role-checked but are not Keelgate tool calls.

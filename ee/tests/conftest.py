@@ -261,6 +261,8 @@ class FakeStripe:
         self.checkouts: list[dict] = []
         self.usage: list[dict] = []
         self.invoices: list[dict] = []
+        self.canceled: list[str] = []
+        self.fail_cancel = False
         self.catalog_calls = 0
 
     def ensure_catalog(self, plans):
@@ -291,6 +293,11 @@ class FakeStripe:
         self.usage.append(
             {"kind": kind, "customer": customer, "value": value, "identifier": identifier}
         )
+
+    def cancel_subscription(self, subscription_id):
+        if self.fail_cancel:
+            raise RuntimeError("stripe is down")
+        self.canceled.append(subscription_id)
 
     def draft_invoice(self, *, customer, description, amount_cents, currency):
         self.invoices.append(

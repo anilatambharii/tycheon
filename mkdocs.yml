@@ -83,6 +83,7 @@ nav:
           - Quota refusals: ops/runbooks/quota-lockout.md
           - Bad migration: ops/runbooks/bad-migration.md
           - Credentials leak: ops/runbooks/credentials-leak.md
+          - Organisation erasure: ops/runbooks/org-erasure.md
   - Leaderboard: leaderboard/index.md
   - Benchmark methodology: benchmark-methodology.md
   - Releasing: releasing.md

@@ -73,6 +73,8 @@ class StripeApi(Protocol):
         self, *, kind: str, customer: str, value: int, identifier: str, timestamp: int
     ) -> None: ...
 
+    def cancel_subscription(self, subscription_id: str) -> None: ...
+
     def draft_invoice(
         self, *, customer: str, description: str, amount_cents: int, currency: str
     ) -> str: ...
@@ -212,6 +214,10 @@ class RealStripe:
                 "timestamp": timestamp,
             }
         )
+
+    def cancel_subscription(self, subscription_id: str) -> None:
+        """Cancel immediately. The customer record stays (invoices and tax records)."""
+        self._client.v1.subscriptions.cancel(subscription_id)
 
     def draft_invoice(
         self, *, customer: str, description: str, amount_cents: int, currency: str

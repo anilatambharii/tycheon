@@ -4,6 +4,7 @@
 * ``serve``        run the API (``--factory`` target ``tycheon_cp.cli:app_factory`` for uvicorn)
 * ``report-usage`` send unreported usage to Stripe meters (run on a schedule)
 * ``purge``        apply per-plan retention (run on a schedule)
+* ``erase-pending`` finish removing stored files for organisations already erased
 * ``ensure-catalog`` create the Stripe products, prices and meters from ``plans.toml`` (test mode)
 
 Configuration is environment variables only (see ``Settings.from_env``); nothing is stored.
@@ -97,6 +98,7 @@ def main(argv: list[str] | None = None) -> int:
     serve.add_argument("--port", type=int, default=8080)
     sub.add_parser("report-usage")
     sub.add_parser("purge")
+    sub.add_parser("erase-pending")
     sub.add_parser("ensure-catalog")
     args = parser.parse_args(argv)
     try:
@@ -153,6 +155,14 @@ def _run(args: argparse.Namespace) -> int:  # noqa: PLR0911 - one return per sub
             return await purge(plane.db, plane.plans, plane.blobs)
 
         print("purged:", asyncio.run(_with_plane(run)))  # noqa: T201
+        return 0
+    if args.command == "erase-pending":
+        from tycheon_cp.erasure import finish_pending  # noqa: PLC0415
+
+        async def finish(plane: Any) -> int:
+            return await finish_pending(plane.db, plane.blobs)
+
+        print("files erased for receipts:", asyncio.run(_with_plane(finish)))  # noqa: T201
         return 0
     if args.command == "ensure-catalog":
         from tycheon_cp.billing_routes import build_billing  # noqa: PLC0415
