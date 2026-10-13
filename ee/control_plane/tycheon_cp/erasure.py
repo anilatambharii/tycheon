@@ -26,7 +26,6 @@ from typing import TYPE_CHECKING, Any
 
 import asyncpg
 
-from tycheon_cp.blob import org_key
 from tycheon_cp.errors import ApiProblem
 
 if TYPE_CHECKING:
@@ -86,7 +85,7 @@ async def erase_org(
 
 async def _erase_blobs(db: Database, blobs: BlobStore, receipt: UUID, org_id: UUID) -> bool:
     try:
-        await asyncio.to_thread(blobs.delete_prefix, org_key(str(org_id)))
+        await asyncio.to_thread(blobs.delete_org, str(org_id))
         async with db.anonymous() as conn:
             await conn.fetchval("SELECT cp_mark_blobs_erased($1)", receipt)
     except Exception as exc:

@@ -11,7 +11,6 @@ import asyncpg
 import pytest
 
 from tycheon_cp import erasure
-from tycheon_cp.blob import org_key
 from tycheon_cp.security import Session, issue_session
 
 pytestmark = [pytest.mark.postgres, pytest.mark.anyio]
@@ -64,7 +63,7 @@ async def test_erasing_removes_every_row_and_file_and_leaves_a_receipt(
     slug = await slug_of(owner, a.org_id)
     before = await rows(owner, a.org_id)
     assert before["users"] == 1 and before["api_keys"] == 1 and before["data_files"] == 1
-    org_dir = cp.blobs.directory(org_key(a.org_id))
+    org_dir = cp.blobs.root / "orgs" / a.org_id
     assert any(org_dir.rglob("*"))
 
     res = await erase(client, a, slug)
@@ -72,7 +71,7 @@ async def test_erasing_removes_every_row_and_file_and_leaves_a_receipt(
     assert res.json()["files_erased"] is True
 
     assert all(v == 0 for v in (await rows(owner, a.org_id)).values())
-    assert not any(cp.blobs.directory(org_key(a.org_id)).rglob("*"))
+    assert not org_dir.exists()
     receipt = await owner.fetchrow(
         "SELECT * FROM erasure_receipts WHERE org_id = $1::uuid", a.org_id
     )
@@ -119,7 +118,7 @@ async def test_only_a_signed_in_owner_may_erase(client, signup_org, owner, cp) -
         token = issue_session(cp.session_secret, Session(a.user_id, a.org_id, role), ttl_seconds=60)
         res = await erase(client, a, slug, {"Authorization": f"Bearer {token}"})
         assert res.status_code == 403, role
-    key = await a.make_key(("analytics", "mcp", "admin"))
+    key = await a.make_key()
     assert (await erase(client, a, slug, {"X-API-Key": key})).status_code in {401, 403}
     assert (await rows(owner, a.org_id))["orgs"] == 1
 
@@ -130,8 +129,8 @@ async def test_a_running_finetune_job_blocks_the_erasure(
     a = await signup_org()
     uploaded = await a.upload("MYCO", csv_factory())
     await owner.execute(
-        "INSERT INTO finetune_jobs (org_id, data_source_id, status, gpu_pool) "
-        "VALUES ($1::uuid, $2::uuid, 'running', 'cpu')",
+        "INSERT INTO finetune_jobs (org_id, data_source_id, symbols, params, status, gpu_pool) "
+        "VALUES ($1::uuid, $2::uuid, ARRAY['MYCO'], '{}'::jsonb, 'running', 'cpu')",
         a.org_id,
         uploaded["source_id"],
     )
@@ -173,18 +172,18 @@ async def test_failed_file_erasure_stays_pending_until_it_is_finished(
 ) -> None:
     a = await signup_org()
     await a.upload("MYCO", csv_factory())
-    real = cp.blobs.delete_prefix
+    real = cp.blobs.delete_org
 
-    def broken(prefix: str) -> None:
+    def broken(org_id: str) -> None:
         raise OSError("disk unavailable")
 
-    monkeypatch.setattr(cp.blobs, "delete_prefix", broken)
+    monkeypatch.setattr(cp.blobs, "delete_org", broken)
     res = await erase(client, a, await slug_of(owner, a.org_id))
     assert res.status_code == 200 and res.json()["files_erased"] is False
     assert (await rows(owner, a.org_id))["orgs"] == 0  # the rows are already gone
     assert await owner.fetchval("SELECT count(*) FROM cp_pending_erasures()") >= 1
 
-    monkeypatch.setattr(cp.blobs, "delete_prefix", real)
+    monkeypatch.setattr(cp.blobs, "delete_org", real)
     assert await erasure.finish_pending(cp.db, cp.blobs) >= 1
     assert await owner.fetchval(
         "SELECT blobs_erased_at IS NOT NULL FROM erasure_receipts WHERE org_id = $1::uuid",
