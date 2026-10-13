@@ -14,7 +14,6 @@ from datetime import UTC, datetime, timedelta
 
 import asyncpg
 import pytest
-from tests.conftest import METRICS_TOKEN
 
 from tycheon_cp import erasure, security
 from tycheon_cp.erasure_routes import billing_factory
@@ -25,6 +24,7 @@ pytestmark = [pytest.mark.postgres, pytest.mark.anyio]
 
 PASSWORD = "correct horse battery"  # pragma: allowlist secret
 WRONG_PASSWORD = "not the password"  # pragma: allowlist secret
+METRICS_TOKEN = "metrics-token-for-tests-0123456789abcdef0123"  # pragma: allowlist secret
 TENANT_TABLES = (
     "users",
     "api_keys",
