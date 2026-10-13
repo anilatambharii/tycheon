@@ -88,7 +88,7 @@ packages for the Python images, 225 for the dashboard).
 | 8 | No on-call rota, pager, status page, security mailbox, DPA, privacy notice, or vendor review; SOC 2 is *aligned*, not certified | customer trust, legal | see `docs/ops/soc2-controls.md`; these are organisational tasks |
 | 9 | Base-image findings without a published fix | residual vulnerabilities | disclosed; rescanned per build; consider a minimal base |
 | 10 | No way yet to delete an organisation and all its data on request | privacy obligations (GDPR erasure) | build the endpoint and runbook before taking EU customers |
-| 11 | The `psycopg` (LGPL) dependency in the open-source `serve` extra, from Phase T0 | licence compliance for the Apache-2.0 package | decide: keep, or move that code to asyncpg |
+| 11 | The `psycopg` (LGPL) dependency in the open-source `serve` extra, from Phase T0 | licence compliance for the Apache-2.0 package | **Resolved:** nothing imported it; removed from the `serve` extra ([ADR 0010](../adr/0010-drop-psycopg.md)) |
 | 12 | Management actions are audited but not Keelgate tool calls | governance coverage is uneven | recorded in ADR 0009 |
 
 ## 6. Before you announce (in this order)
@@ -107,7 +107,7 @@ packages for the Python images, 225 for the dashboard).
 
 **Things to decide or supply**
 7. A Stripe **test** key, to run the invoice preview and the catalogue creation.
-8. The `default` numbers in `plans.toml`; the `psycopg` question; whether to publish the blog post
+8. The `default` numbers in `plans.toml`; whether to publish the blog post
    (`docs/blog/leakage-proof-benchmark.md`, a draft with maintainer notes at the top).
 9. A real cloud account for staging; then run `terraform apply` in a throwaway account first.
 
