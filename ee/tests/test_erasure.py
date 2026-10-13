@@ -77,9 +77,14 @@ async def test_erasing_removes_every_row_and_file_and_leaves_a_receipt(
     )
     assert receipt["slug_sha256"] == hashlib.sha256(slug.encode()).hexdigest()
     assert receipt["actor_role"] == "owner" and receipt["blobs_erased_at"] is not None
-    # the session and the key the organisation held no longer work
+    # the key stops authenticating, the account is gone, and an old session token (a signed
+    # claim that outlives the rows) cannot recreate anything
+    assert (await client.get("/v1/usage", headers=a.key)).status_code == 401
     assert (await client.get("/v1/me", headers=a.session)).status_code >= 400
-    assert (await client.get("/v1/api-keys", headers=a.session)).status_code >= 400
+    await client.post(
+        "/v1/api-keys", json={"name": "x", "scopes": ["analytics"]}, headers=a.session
+    )
+    assert all(v == 0 for v in (await rows(owner, a.org_id)).values())
 
 
 async def test_the_receipt_holds_no_personal_data(client, signup_org, owner) -> None:
