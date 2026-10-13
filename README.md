@@ -14,7 +14,7 @@ desk actually uses. Tycheon is that missing layer.
 
 **For research and risk analytics. Not investment advice.**
 
-> **Status: v0.3.0, alpha.** The library, a governed agentic risk review, a REST API and an
+> **Status: v0.4.0, alpha.** The library, a governed agentic risk review, a REST API and an
 > MCP server exist and are tested. **The evidence so far is synthetic: on the bundled series
 > no model, Kronos included, is distinguishable from the random walk, and we publish that**
 > (see [Benchmark results](#benchmark-results) below). Multi-asset portfolio risk is always
@@ -111,7 +111,7 @@ Foundation models are optional extras, so the base install stays small
 (`import tycheon.models` never imports torch): `tycheon[kronos]`, `[timesfm]`, `[chronos]`.
 The `serve` and `agents` extras depend on [Keelgate](https://github.com/anilatambharii/keelgate),
 which this repo pins to a commit through its `uv` sources; to use the REST API, the MCP server or
-the agents, work from a clone (below), which is the path we test. PyPI lists `tycheon` 0.3.0 at the
+the agents, work from a clone (below), which is the path we test. PyPI lists `tycheon` 0.4.0 at the
 time of writing.
 
 ## Quickstart
