@@ -103,7 +103,9 @@ SECRET = "s" * 40
 
 def test_a_session_round_trips() -> None:
     token = issue_session(SECRET, Session("u1", "o1", "admin"), ttl_seconds=60)
-    assert read_session(SECRET, token) == Session("u1", "o1", "admin")
+    got = read_session(SECRET, token)
+    assert (got.user_id, got.org_id, got.role) == ("u1", "o1", "admin")
+    assert abs(got.issued_at - time.time()) < 5  # the sign-in time, used for re-authentication
 
 
 def test_sessions_reject_tampering_expiry_and_a_different_secret() -> None:
