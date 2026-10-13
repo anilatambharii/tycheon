@@ -1,0 +1,47 @@
+# Runs `terraform apply` and `terraform destroy` for the AWS module against the moto AWS emulator.
+# This is a SIMULATION: it catches ordering, argument and idempotency errors that `plan` cannot,
+# and proves nothing about real AWS. No cloud credentials are used or needed.
+name: Terraform (simulated apply)
+
+on:
+  pull_request:
+    paths:
+      - "deploy/terraform/aws/**"
+      - ".github/workflows/terraform-simulated-apply.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  apply:
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: hashicorp/setup-terraform@dfe3c3f87815947d99a8997f908cb6525fc44e9e # v4.0.1
+        with:
+          terraform_version: "1.9.8"
+          terraform_wrapper: false
+      - name: Start the AWS emulator
+        run: |
+          python3 -m pip install "moto[server]==5.1.*"
+          nohup moto_server -p 5000 > moto.log 2>&1 &
+          for i in $(seq 1 30); do curl -sf http://127.0.0.1:5000/moto-api/ >/dev/null && break; sleep 1; done
+      - name: Apply, re-plan, destroy
+        working-directory: deploy/terraform/aws/examples/simulated
+        env:
+          AWS_ACCESS_KEY_ID: simulated-not-a-key
+          AWS_SECRET_ACCESS_KEY: simulated-not-a-secret  # pragma: allowlist secret (dummy value for the emulator)
+          AWS_DEFAULT_REGION: us-east-1
+          TF_IN_AUTOMATION: "1"
+          TF_INPUT: "0"
+        run: |
+          terraform init
+          terraform apply -auto-approve
+          echo "--- second plan must be empty (idempotent) ---"
+          terraform plan -detailed-exitcode
+          terraform destroy -auto-approve
+      - name: Emulator log
+        if: failure()
+        run: tail -n 200 moto.log
