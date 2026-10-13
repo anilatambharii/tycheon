@@ -42,7 +42,8 @@ jobs:
           # The emulator hangs creating an ElastiCache parameter group and does not implement
           # EKS/RDS/ElastiCache clusters, so the apply is limited to what it does implement:
           # network, security groups, KMS, S3, IAM, logs, secrets, WAF, launch templates and the
-          # database and cache subnet/parameter groups. Real AWS may still reject the rest.
+          # database subnet/parameter groups. The emulator cannot delete an ElastiCache subnet group, so the
+          # cache resources are left out. Real AWS may still reject what is not exercised here.
           T=module.tycheon
           TARGETS=(
             -target=$T.aws_nat_gateway.this -target=$T.aws_route.private_nat
@@ -61,7 +62,6 @@ jobs:
             -target=$T.aws_iam_policy.lb_controller -target=$T.aws_launch_template.node
             -target=$T.aws_secretsmanager_secret_version.redis_auth
             -target=$T.aws_db_subnet_group.this -target=$T.aws_db_parameter_group.this
-            -target=$T.aws_elasticache_subnet_group.this
             -target=$T.aws_cloudwatch_log_group.eks -target=$T.aws_cloudwatch_log_group.waf
           )
           terraform init
