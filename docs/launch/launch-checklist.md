@@ -82,7 +82,7 @@ packages for the Python images, 225 for the dashboard).
 | 2 | 40 actions in the older workflows are pinned by tag, and `publish.yml` uses a branch ref (`pypa/gh-action-pypi-publish@release/v1`) | supply-chain exposure; Scorecard "Pinned-Dependencies" high | list in `docs/launch/scorecard-audit.md`; the new workflows are pinned by SHA |
 | 3 | Nothing deployed anywhere; no real load, backup or failover has been exercised | unknown operational behaviour | stage first; run the restore drill and a failover on real infrastructure |
 | 4 | Stripe path unverified live; pricing numbers marked *default* in `plans.toml` are unconfirmed | wrong billing | give a test key, run `ee/scripts/acceptance_t5.py`; confirm the numbers |
-| 5 | Calibration decay and forecast drift are only **proxied** by served-calibration metrics; no scheduled evaluation against realised outcomes | quality regressions could go unnoticed | add the nightly evaluation job that publishes coverage and CRPS as metrics |
+| 5 | Calibration decay and forecast drift are only **proxied** by served-calibration metrics; no scheduled evaluation against realised outcomes | quality regressions could go unnoticed | **Built** (`tycheon.calibration.monitor`, `nightly-calibration.yml`): runs on synthetic data in CI; point it at a real feed and a Prometheus textfile collector before relying on it |
 | 6 | Evidence of model quality is synthetic: on the bundled series **no model beats the random walk**, and the README says so | credibility if over-claimed | keep the honest framing; publish a real-data benchmark with licensed data before making any performance claim |
 | 7 | Rate limiting is per process; storage is a local filesystem volume (no S3); a dead fine-tune worker leaves its job `running`; quotas are hard limits with no overage | scale, resilience, billing | documented gaps in `docs/cloud.md` |
 | 8 | No on-call rota, pager, status page, security mailbox, DPA, privacy notice, or vendor review; SOC 2 is *aligned*, not certified | customer trust, legal | see `docs/ops/soc2-controls.md`; these are organisational tasks |
@@ -114,7 +114,7 @@ packages for the Python images, 225 for the dashboard).
 **Before real customers**
 10. On-call, paging and a status page; the security contact in `SECURITY.md`; a DPA and privacy notice.
 11. A restore drill on the real database; a failover test; a load test against the SLOs.
-12. The nightly calibration/coverage evaluation job (risk 5); organisation deletion (risk 10).
+12. Point the calibration monitor at a real feed (risk 5); organisation deletion (risk 10).
 
 ## 7. Launch day
 1. Merge the release PR; re-push the tag so the publish workflow runs (release-please tags do not trigger it);

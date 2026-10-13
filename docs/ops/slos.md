@@ -49,9 +49,12 @@ Everything else is a ticket, to be handled in working hours.
 * **Calibration decay and forecast drift are only proxied.** The control plane sees what it served:
   how many forecasts were calibrated, and each interval's holdout coverage as measured when it was
   fitted. It does not see what the market then did, so it cannot measure true out-of-sample decay.
-  That needs a scheduled evaluation against realised outcomes (the nightly benchmark is the natural
-  home) publishing its coverage and CRPS as metrics. That job does not exist yet; until it does, treat
-  the two quality alerts as early warnings, not measurements. The share of forecasts requested with
+  True out-of-sample decay is measured by the scheduled replay in `tycheon.calibration.monitor`
+  (`nightly-calibration.yml`, or your own CronJob on your own data): it publishes
+  `tycheon_eval_coverage`, `tycheon_eval_coverage_gap`, `tycheon_eval_crps` and
+  `tycheon_eval_calibrated` from a Prometheus textfile. The CI job runs only on the synthetic
+  series, so it guards the machinery; alerts on real data need the module pointed at your feed.
+  The served-forecast alerts stay early warnings. The share of forecasts requested with
   `calibrate=false` also counts as "not calibrated", so a customer who opts out raises the ratio.
 * **No tenant identifiers are exported.** Labels are route templates, status classes, meter kinds,
   model families and pool names; dedicated GPU pools are collapsed to one label. This is tested.

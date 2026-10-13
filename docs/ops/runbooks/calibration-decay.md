@@ -19,7 +19,8 @@ further from their nominal coverage on the holdout, than they should be. These a
    tells each customer, per forecast, whether it was calibrated, stale or uncalibrated.
 
 ## Actions
-* Run the evaluation on realised data: `make benchmark-small` (the leaderboard harness) against
+* Run the replay on realised data: `python -m tycheon.calibration.monitor` (rows with
+  `tycheon_eval_coverage_gap` above 0.1 mean real out-of-sample drift), then `make benchmark-small` (the leaderboard harness) against
   the affected series, and compare coverage with the last published run.
 * If calibration is genuinely degraded, recalibrate (refit on recent origins) or widen the window,
   and note it in the model card. Do **not** silently relax the tolerance.
