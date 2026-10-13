@@ -122,3 +122,10 @@ def test_yfinance_is_not_a_declared_dependency(pyproject: dict[str, Any]) -> Non
     assert not [d for d in declared if "yfinance" in d.lower()]
     groups = [d for deps in pyproject.get("dependency-groups", {}).values() for d in deps]
     assert not [d for d in groups if isinstance(d, str) and "yfinance" in d.lower()]
+
+
+def test_no_lgpl_psycopg_dependency() -> None:
+    """ADR 0010: the Apache-2.0 package must not depend on LGPL psycopg."""
+    text = (Path(__file__).resolve().parents[1] / "pyproject.toml").read_text(encoding="utf-8")
+    deps = [line for line in text.splitlines() if line.strip().startswith('"psycopg')]
+    assert deps == []
