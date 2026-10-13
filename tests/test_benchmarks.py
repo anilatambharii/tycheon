@@ -360,3 +360,30 @@ def test_a_model_that_fails_is_recorded_as_failed_and_the_run_continues(
     assert result["model_status"]["drift"]["status"] == "failed"
     assert "weights unavailable" in result["model_status"]["drift"]["reason"]
     assert result["model_status"]["random-walk"]["status"] == "ran"
+
+
+def test_simulated_csvs_load_through_the_user_csv_path_and_are_deterministic(
+    tmp_path: Path,
+) -> None:
+    import pandas as pd
+
+    from benchmarks.datasets import get_dataset, load_series
+    from benchmarks.simulate_csv import SYMBOLS, simulate
+
+    for i, name in enumerate(SYMBOLS):
+        simulate(name, n_days=300, seed=7 + i).to_csv(tmp_path / f"{name}.csv", index=False)
+    again = simulate("SIM-A", n_days=300, seed=7)
+    pd.testing.assert_frame_equal(again, pd.read_csv(tmp_path / "SIM-A.csv"), check_dtype=False)
+    dataset = get_dataset("user-csv-daily")
+    for name in SYMBOLS:
+        bars = load_series(dataset, name, tmp_path)
+        assert len(bars) == 300
+        assert bars["available_at"].is_monotonic_increasing
+        assert (bars["high"] >= bars[["open", "close"]].max(axis=1) - 1e-3).all()
+        assert (bars["low"] <= bars[["open", "close"]].min(axis=1) + 1e-3).all()
+
+
+def test_the_simulated_csv_config_is_valid_and_flags_what_it_is() -> None:
+    config = load_config(PROJECT_ROOT / "benchmarks" / "configs" / "simulated-csv.yaml")
+    assert config["dataset"] == "user-csv-daily" and "random-walk" in config["baselines"]
+    assert config["walk_forward"]["embargo"] >= max(config["horizons"])
