@@ -60,6 +60,8 @@ class Principal:
     role: Role | None = None
     user_id: UUID | None = None
     key_id: UUID | None = None
+    #: when the signed-in session was issued (unix seconds); 0 for API keys
+    issued_at: int = 0
 
     @property
     def actor(self) -> str:

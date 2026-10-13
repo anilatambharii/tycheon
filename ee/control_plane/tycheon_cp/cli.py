@@ -4,7 +4,10 @@
 * ``serve``        run the API (``--factory`` target ``tycheon_cp.cli:app_factory`` for uvicorn)
 * ``report-usage`` send unreported usage to Stripe meters (run on a schedule)
 * ``purge``        apply per-plan retention (run on a schedule)
-* ``erase-pending`` finish removing stored files for organisations already erased
+* ``erase-due``     carry out erasures whose grace period has ended, finish removing files,
+                   and back-fill the durable tombstone log (run every few minutes)
+* ``reapply-erasures``  after restoring a backup, erase again every organisation in the
+                   tombstone log (needs TYCHEON_CP_MIGRATION_URL, the owner role)
 * ``ensure-catalog`` create the Stripe products, prices and meters from ``plans.toml`` (test mode)
 
 Configuration is environment variables only (see ``Settings.from_env``); nothing is stored.
@@ -98,7 +101,8 @@ def main(argv: list[str] | None = None) -> int:
     serve.add_argument("--port", type=int, default=8080)
     sub.add_parser("report-usage")
     sub.add_parser("purge")
-    sub.add_parser("erase-pending")
+    sub.add_parser("erase-due")
+    sub.add_parser("reapply-erasures")
     sub.add_parser("ensure-catalog")
     args = parser.parse_args(argv)
     try:
@@ -108,7 +112,7 @@ def main(argv: list[str] | None = None) -> int:
         return 2
 
 
-def _run(args: argparse.Namespace) -> int:  # noqa: PLR0911 - one return per sub-command
+def _run(args: argparse.Namespace) -> int:  # noqa: PLR0911, PLR0912 - one branch per sub-command
     if args.command == "migrate":
         url = os.environ.get("TYCHEON_CP_MIGRATION_URL")
         if not url:
@@ -156,13 +160,29 @@ def _run(args: argparse.Namespace) -> int:  # noqa: PLR0911 - one return per sub
 
         print("purged:", asyncio.run(_with_plane(run)))  # noqa: T201
         return 0
-    if args.command == "erase-pending":
-        from tycheon_cp.erasure import finish_pending  # noqa: PLC0415
+    if args.command == "erase-due":
+        from tycheon_cp.erasure import run_due  # noqa: PLC0415
+        from tycheon_cp.erasure_routes import billing_factory  # noqa: PLC0415
 
-        async def finish(plane: Any) -> int:
-            return await finish_pending(plane.db, plane.blobs)
+        async def sweep(plane: Any) -> dict[str, int]:
+            return await run_due(plane, lambda: billing_factory(plane))
 
-        print("files erased for receipts:", asyncio.run(_with_plane(finish)))  # noqa: T201
+        print("erasure sweep:", asyncio.run(_with_plane(sweep)))  # noqa: T201
+        return 0
+    if args.command == "reapply-erasures":
+        from tycheon_cp.erasure import reapply, tombstone_dir  # noqa: PLC0415
+        from tycheon_cp.tombstones import Tombstones  # noqa: PLC0415
+
+        url = os.environ.get("TYCHEON_CP_MIGRATION_URL")
+        if not url:
+            raise ConfigError("TYCHEON_CP_MIGRATION_URL is required (the owner role)")
+        settings = Settings.from_env()
+        from tycheon_cp.blob import LocalBlobStore  # noqa: PLC0415
+
+        again = asyncio.run(
+            reapply(url, Tombstones(tombstone_dir(settings)), LocalBlobStore(settings.storage_root))
+        )
+        print("organisations erased again after the restore:", again)  # noqa: T201
         return 0
     if args.command == "ensure-catalog":
         from tycheon_cp.billing_routes import build_billing  # noqa: PLC0415

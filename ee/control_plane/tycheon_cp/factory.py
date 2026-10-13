@@ -25,6 +25,6 @@ def create_full_app(
     app = create_app(cp, lifespan=lifespan)
     register_sso(app, cp)
     register_billing(app, cp, stripe_api)
-    register_erasure(app, cp, stripe_api)
+    register_erasure(app, cp)
     register_finetune(app, cp)
     return app

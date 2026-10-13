@@ -51,7 +51,7 @@ from tycheon_cp.datasources import DataSourceError, validate_csv
 from tycheon_cp.db import Database
 from tycheon_cp.errors import ApiProblem, forbidden, not_found, unauthorized
 from tycheon_cp.metering import Meter, clean_idempotency_key
-from tycheon_cp.metrics import Metrics, authorised, queue_stats
+from tycheon_cp.metrics import Metrics, authorised, erasure_stats, queue_stats
 from tycheon_cp.plans import Plans, load_plans
 from tycheon_cp.ratelimit import RateLimiter
 from tycheon_cp.security import (
@@ -116,6 +116,7 @@ def make_control_plane(
     governed = runtime or GovernedRuntime()
     metrics = Metrics()
     metrics.set_queue_source(lambda: queue_stats(db))
+    metrics.set_erasure_source(lambda: erasure_stats(db))
     gateway = AnalyticsGateway(
         db=db,
         plans=plans,
@@ -381,6 +382,7 @@ class _Deps:
             scopes=frozenset(scopes),
             role=session.role,
             user_id=UUID(session.user_id),
+            issued_at=session.issued_at,
         )
 
     def session_principal(self, minimum: Role) -> Callable[..., Any]:
@@ -430,6 +432,7 @@ def _public_routes(cp: ControlPlane) -> APIRouter:
         if not authorised(presented, cp.settings.metrics_token):
             raise not_found("resource")
         await cp.metrics.refresh_queue()
+        await cp.metrics.refresh_erasure()
         return Response(cp.metrics.render(), media_type="text/plain; version=0.0.4")
 
     @router.get("/health", tags=["service"])

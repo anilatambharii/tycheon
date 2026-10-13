@@ -75,6 +75,8 @@ class StripeApi(Protocol):
 
     def cancel_subscription(self, subscription_id: str) -> None: ...
 
+    def redact_customer(self, customer: str) -> None: ...
+
     def draft_invoice(
         self, *, customer: str, description: str, amount_cents: int, currency: str
     ) -> str: ...
@@ -216,8 +218,54 @@ class RealStripe:
         )
 
     def cancel_subscription(self, subscription_id: str) -> None:
-        """Cancel immediately. The customer record stays (invoices and tax records)."""
-        self._client.v1.subscriptions.cancel(subscription_id)
+        """Cancel immediately and bill any un-invoiced metered usage. Idempotent.
+
+        An already-cancelled or missing subscription counts as done, so a retry after a partial
+        failure can finish. ``invoice_now`` raises the final invoice for usage reported so far.
+        """
+        try:
+            current = self._client.v1.subscriptions.retrieve(subscription_id)
+            if getattr(current, "status", None) == "canceled":
+                return
+            self._client.v1.subscriptions.cancel(
+                subscription_id, {"invoice_now": True, "prorate": False}
+            )
+        except Exception as exc:
+            if getattr(exc, "code", None) == "resource_missing":
+                return
+            raise
+
+    def redact_customer(self, customer: str) -> None:
+        """Remove the contact details Stripe holds for the customer.
+
+        Finalised invoices keep the snapshot they were issued with (tax and accounting law
+        requires it); this clears what is not needed for that: name, email, phone, address,
+        description and our organisation id.
+        """
+        try:
+            self._client.v1.customers.update(
+                customer,
+                {
+                    "name": "",
+                    "email": "",
+                    "phone": "",
+                    "description": "erased",
+                    "address": {
+                        "line1": "",
+                        "line2": "",
+                        "city": "",
+                        "state": "",
+                        "postal_code": "",
+                        "country": "",
+                    },
+                    "shipping": "",
+                    "metadata": {"tycheon_org_id": ""},
+                },
+            )
+        except Exception as exc:
+            if getattr(exc, "code", None) == "resource_missing":
+                return
+            raise
 
     def draft_invoice(
         self, *, customer: str, description: str, amount_cents: int, currency: str
@@ -351,37 +399,62 @@ class Billing:
         """Send committed-but-unreported usage to Stripe meters. Returns how many were sent."""
         async with self.db.anonymous() as conn:
             orgs = [r["org_id"] for r in await conn.fetch("SELECT org_id FROM cp_list_orgs()")]
+        return sum([await self._report_org(org_id, batch) for org_id in orgs])
+
+    async def drain_org_usage(
+        self, org_id: UUID, *, batch: int = 500, max_rounds: int = 10_000
+    ) -> int:
+        """Report *all* of one organisation's pending usage, or raise.
+
+        Used before an organisation is erased: its usage rows are deleted with it, so anything
+        left unreported would never be billed.
+        """
         sent = 0
-        for org_id in orgs:
+        for _ in range(max_rounds):
+            sent_now = await self._report_org(org_id, batch)
+            sent += sent_now
+            if sent_now == 0:
+                break
+        async with self.db.tenant(org_id) as conn:
+            customer = await conn.fetchval("SELECT stripe_customer_id FROM subscriptions")
+            left = await conn.fetchval(
+                "SELECT count(*) FROM usage_events WHERE reported_at IS NULL"
+            )
+        if customer and left:
+            raise BillingError(f"{left} usage events could not be reported")
+        return sent
+
+    async def _report_org(self, org_id: UUID, batch: int) -> int:
+        async with self.db.tenant(org_id) as conn:
+            customer = await conn.fetchval("SELECT stripe_customer_id FROM subscriptions")
+            if not customer:
+                return 0
+            rows = await conn.fetch(
+                "SELECT id, kind, quantity, occurred_at FROM usage_events "
+                "WHERE reported_at IS NULL ORDER BY id LIMIT $1",
+                batch,
+            )
+        sent = 0
+        for row in rows:
+            identifier = f"tycheon-{org_id}-{row['id']}"
+            await asyncio.to_thread(
+                functools.partial(
+                    self.api.report_usage,
+                    kind=row["kind"],
+                    customer=str(customer),
+                    value=int(row["quantity"]),
+                    identifier=identifier,
+                    timestamp=int(row["occurred_at"].timestamp()),
+                )
+            )
             async with self.db.tenant(org_id) as conn:
-                customer = await conn.fetchval("SELECT stripe_customer_id FROM subscriptions")
-                if not customer:
-                    continue
-                rows = await conn.fetch(
-                    "SELECT id, kind, quantity, occurred_at FROM usage_events "
-                    "WHERE reported_at IS NULL ORDER BY id LIMIT $1",
-                    batch,
+                await conn.execute(
+                    "UPDATE usage_events SET reported_at = now(), stripe_identifier = $2 "
+                    "WHERE id = $1",
+                    row["id"],
+                    identifier,
                 )
-            for row in rows:
-                identifier = f"tycheon-{org_id}-{row['id']}"
-                await asyncio.to_thread(
-                    functools.partial(
-                        self.api.report_usage,
-                        kind=row["kind"],
-                        customer=str(customer),
-                        value=int(row["quantity"]),
-                        identifier=identifier,
-                        timestamp=int(row["occurred_at"].timestamp()),
-                    )
-                )
-                async with self.db.tenant(org_id) as conn:
-                    await conn.execute(
-                        "UPDATE usage_events SET reported_at = now(), stripe_identifier = $2 "
-                        "WHERE id = $1",
-                        row["id"],
-                        identifier,
-                    )
-                sent += 1
+            sent += 1
         return sent
 
     # ---------------------------------------------------------------------- webhooks

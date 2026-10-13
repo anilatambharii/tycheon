@@ -13,6 +13,7 @@ from __future__ import annotations
 import asyncio
 import hashlib
 import tempfile
+import time
 from collections import OrderedDict
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
@@ -47,11 +48,19 @@ class PrivateModelResolver:
     """Implements the control plane's ``PrivateModels`` protocol over the registry."""
 
     def __init__(
-        self, db: Database, blobs: BlobStore, base: BaseModels, *, cache_size: int = 4
+        self,
+        db: Database,
+        blobs: BlobStore,
+        base: BaseModels,
+        *,
+        cache_size: int = 4,
+        revalidate_seconds: float = 30.0,
     ) -> None:
         self.db, self.blobs, self.base = db, blobs, base
         self._cache: OrderedDict[tuple[str, str], Forecaster] = OrderedDict()
+        self._validated: dict[tuple[str, str], float] = {}
         self._cache_size = cache_size
+        self._revalidate_seconds = revalidate_seconds
         self._tokenizer: Any | None = None
         self._lock = asyncio.Lock()
 
@@ -70,6 +79,21 @@ class PrivateModelResolver:
         key = (str(org_id), str(model_id))
         async with self._lock:
             if key in self._cache:
+                if time.monotonic() - self._validated.get(key, 0.0) > self._revalidate_seconds:
+                    # A cached model is only served while the database still says it may be: this
+                    # is what stops an archived model, or one whose organisation was erased and
+                    # whose rows are gone, from living on in another replica's memory.
+                    try:
+                        current = await registry.get_model(self.db, org_id, model_id, internal=True)
+                    except ApiProblem as exc:
+                        self._drop(key)
+                        raise ModelUnavailableError("No such model.") from exc
+                    if current["status"] != "promoted":
+                        self._drop(key)
+                        raise ModelUnavailableError(
+                            f"That model is {current['status']}; only promoted models can be used."
+                        )
+                    self._validated[key] = time.monotonic()
                 self._cache.move_to_end(key)
                 return self._cache[key]
             try:
@@ -82,9 +106,22 @@ class PrivateModelResolver:
                 )
             forecaster = await asyncio.to_thread(self._build, row)
             self._cache[key] = forecaster
+            self._validated[key] = time.monotonic()
             while len(self._cache) > self._cache_size:
-                self._cache.popitem(last=False)
+                oldest, _ = self._cache.popitem(last=False)
+                self._validated.pop(oldest, None)
             return forecaster
+
+    def _drop(self, key: tuple[str, str]) -> None:
+        self._cache.pop(key, None)
+        self._validated.pop(key, None)
+
+    def evict_org(self, org_id: UUID | str) -> int:
+        """Forget every cached model of one organisation. Returns how many were dropped."""
+        keys = [k for k in self._cache if k[0] == str(org_id)]
+        for key in keys:
+            self._drop(key)
+        return len(keys)
 
     def _build(self, row: dict[str, Any]) -> Forecaster:
         from tycheon.models.kronos.vendor import load_upstream  # noqa: PLC0415

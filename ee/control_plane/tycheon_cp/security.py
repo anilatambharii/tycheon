@@ -107,6 +107,8 @@ class Session:
     user_id: str
     org_id: str
     role: Role
+    #: when the token was issued (unix seconds); 0 when unknown
+    issued_at: int = 0
 
 
 def issue_session(secret: str, session: Session, *, ttl_seconds: int) -> str:
@@ -137,7 +139,9 @@ def read_session(secret: str, token: str | None) -> Session:
         raise AuthError("your session is not valid; sign in again") from exc
     if claims["role"] not in ROLE_RANK:
         raise AuthError("your session is not valid; sign in again")
-    return Session(str(claims["sub"]), str(claims["org"]), claims["role"])
+    return Session(
+        str(claims["sub"]), str(claims["org"]), claims["role"], int(claims.get("iat", 0))
+    )
 
 
 def require_role(session: Session, minimum: Role) -> None:

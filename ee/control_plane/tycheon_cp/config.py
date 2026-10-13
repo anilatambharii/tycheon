@@ -42,6 +42,13 @@ class Settings:
     max_upload_bytes: int = 20_000_000
     #: route Enterprise fine-tune jobs to ``dedicated-<org>`` worker pools instead of ``shared``
     dedicated_gpu_pools: bool = False
+    #: days between an erasure request and its execution (0 = at the next scheduled run)
+    erasure_grace_days: int = 14
+    #: durable, append-only tombstone log; default is under storage_root, production should use a
+    #: separate write-once volume so a restore cannot lose it
+    erasure_log_dir: Path | None = None
+    #: HMAC key for erasure receipts; derived from the session secret when unset
+    erasure_receipt_key: str | None = field(default=None, repr=False)
 
     def __post_init__(self) -> None:
         if len(self.session_secret) < MIN_SESSION_SECRET:
@@ -50,6 +57,8 @@ class Settings:
             )
         if self.metrics_token is not None and len(self.metrics_token) < MIN_SESSION_SECRET:
             raise ConfigError("the metrics token must be at least 32 characters")
+        if not 0 <= self.erasure_grace_days <= 90:
+            raise ConfigError("the erasure grace period must be between 0 and 90 days")
         if self.operator_token is not None and len(self.operator_token) < MIN_SESSION_SECRET:
             raise ConfigError("the operator token must be at least 32 characters")
         if self.kms == "local":
@@ -95,4 +104,9 @@ class Settings:
             operator_token=env.get("TYCHEON_CP_OPERATOR_TOKEN"),
             metrics_token=env.get("TYCHEON_CP_METRICS_TOKEN"),
             dedicated_gpu_pools=env.get("TYCHEON_CP_DEDICATED_GPU_POOLS", "") == "true",
+            erasure_grace_days=int(env.get("TYCHEON_CP_ERASURE_GRACE_DAYS", "14")),
+            erasure_log_dir=Path(env["TYCHEON_CP_ERASURE_LOG_DIR"])
+            if env.get("TYCHEON_CP_ERASURE_LOG_DIR")
+            else None,
+            erasure_receipt_key=env.get("TYCHEON_CP_ERASURE_RECEIPT_KEY"),
         )

@@ -1,46 +1,82 @@
 # Runbook: erase an organisation (right to erasure)
 
-**When:** a customer asks to delete their account and data (for example a GDPR Article 17
-request), or an owner uses the dashboard or API to close the account.
+**When:** a customer closes their account or asks for their data to be deleted. Erasure is
+**scheduled, not immediate**, and the customer can take their data with them first.
 
-## What it does
-`POST /v1/org/erase` with `{"confirm_slug": "<the organisation's slug>"}`, signed in as the
-**owner** (an API key or any other role is refused). Irreversible. In order:
+Tycheon is normally the *processor* of a customer's data, and the customer the *controller*. This
+covers closing an organisation. A person who is only a user of a customer and asks Tycheon to delete
+their data should be pointed at that customer; Tycheon deletes on the customer's instruction.
 
-1. **Stripe:** committed usage is reported and the subscription is cancelled. If either step fails
-   the request fails with `502` and **nothing is erased**, so the customer is not left billed for a
-   deleted account. The Stripe *customer* record is kept: invoices and tax records have their own
-   retention rules and are the customer's and Tycheon's to keep.
-2. **Database:** one function (`cp_erase_org`) deletes the organisation. Every tenant table
-   (users, API keys, credentials, data sources and files, usage, subscription, SSO config, fine-tune
-   jobs, models, routing and the **audit log**) cascades from it. It refuses (`409`) while a fine-tune
-   job is `running`: cancel it and retry. It only works inside the organisation's own tenant context.
-3. **Receipt:** `erasure_receipts` keeps an opaque organisation id, a SHA-256 of the slug, the role
-   that asked and the timestamps. No name, email or slug is stored.
-4. **Stored files:** CSV uploads and model artifacts are removed by prefix. If this fails the API still
-   returns `200` with `files_erased: false` and the receipt stays **pending**.
+## The flow
+1. **Export (optional but offered first).** The owner calls `GET /v1/org/export` (add
+   `?include_models=true` for the fine-tuned model files). One ZIP: users, keys (no secrets), data
+   sources and the uploaded CSVs, usage, invoices, fine-tune jobs, model metadata, routing and the
+   audit log, plus a manifest. Password hashes, key secrets, stored credential secrets and Stripe ids
+   are never included. One export per minute.
+2. **Request.** The owner calls `POST /v1/org/erase` with `confirm_slug` and `password` (an account
+   that signs in with SSO must have signed in within 15 minutes instead). It returns `202` with the
+   date it will run: `TYCHEON_CP_ERASURE_GRACE_DAYS` from now (default 14, 0 to 90). Nothing is
+   deleted yet. Owners and admins are notified, and the request is in the audit log.
+3. **Cancel.** Any admin can `POST /v1/org/erase/cancel` until it runs. `GET /v1/org/erasure` shows
+   the state and, if the job is stuck, why.
+4. **Execute.** The `erase-due` CronJob (every 10 minutes) runs `python -m tycheon_cp.cli erase-due`.
+   For each request whose date has passed, in this order:
+   1. It stops with *blocked* if a fine-tune job is running. Stripe is not touched. Cancel the job.
+   2. **Stripe:** all of the organisation's usage is reported, the subscription is cancelled with a
+      final invoice (`invoice_now`), and the customer's name, email, phone and address are cleared.
+      Each call is safe to repeat; a failure leaves the erasure pending and it is retried. Finalised
+      invoices keep their snapshot because tax and accounting law requires it.
+   3. **Database:** `cp_erase_org` deletes the organisation and every tenant row (users, keys,
+      credentials, data, usage, SSO configuration, jobs, models, the audit log). The database itself
+      refuses before the date, or from another tenant's context.
+   4. **Receipt and tombstone:** `erasure_receipts` keeps opaque ids, a keyed hash of the slug, the
+      requester's pseudonymous id and role, the request date and a count of audit rows. A tombstone
+      with the same content is written to the durable log outside the database.
+   5. **Files** are removed. If that fails the receipt stays *pending* and the next run finishes it.
+   6. The loaded fine-tuned models of the organisation are evicted; other API replicas drop them on
+      next use (within about 30 seconds of a request) or at restart.
+   7. Owners and admins are told it has happened.
 
-## Operator steps
-* Verify the requester is the account owner (the API already does when they call it themselves).
-* If you erase on their behalf, have the owner call the endpoint or sign in as them with their consent;
-  there is deliberately no operator override.
-* Check pending file erasures and finish them:
+## Operating it
+* **Alerts** (see [SLOs](../slos.md)): `TycheonErasureScheduled` (ticket, informational),
+  `TycheonErasureOverdue` (page: the job is failing or blocked), `TycheonErasureFilesPending`.
+  Metrics are counts only: `tycheon_erasures_scheduled`, `tycheon_erasures_overdue`,
+  `tycheon_erasure_oldest_overdue_seconds`, `tycheon_erasure_files_pending`.
+* **Overdue.** Read the CronJob logs and `GET /v1/org/erasure` (the `blocked_reason`). The usual
+  causes are a running fine-tune job, Stripe being unreachable, or billing not being configured while
+  a subscription exists.
+* **Mail.** The control plane has no mail transport. Until a real `Notifier` is installed
+  (`cp.extras["notifier"]`), the default only logs how many people would have been told; the same
+  facts are visible to admins through the API. Do not take customers before this is wired.
+* **Tombstone log.** Set `TYCHEON_CP_ERASURE_LOG_DIR` to a write-once volume (an object-lock bucket
+  through a CSI driver) that a database restore does not touch. The default is inside the storage
+  root, which is **not** durable enough for production.
+* **No operator override.** An owner who has left the company cannot be bypassed by one person. If
+  you must erase without them, two named people approve it in writing, then one inserts the request
+  through a reviewed SQL change as the database owner; the normal job and grace period still apply.
+  Record the approvals with the receipt.
 
-  ```bash
-  python -m tycheon_cp.cli erase-pending      # prints how many receipts it completed
-  ```
+## After restoring a backup
+The restored database may contain organisations that were erased since the backup was taken.
+**Before the restored system takes traffic**, replay the tombstone log:
 
-  Run it from a CronJob daily, or after any `files_erased: false` response. A receipt that stays
-  pending (`SELECT * FROM cp_pending_erasures()`) means the blob store is failing: fix that first.
-* Tell the customer the date. **Backups** are not rewritten: erased data ages out of database
-  snapshots with the backup retention in [backup and restore](../backup-restore.md). If you restore
-  from a backup older than an erasure, **re-run the erasure for every receipt newer than that
-  backup** before the restored system takes traffic.
+```bash
+TYCHEON_CP_MIGRATION_URL=<owner connection string> python -m tycheon_cp.cli reapply-erasures
+```
 
-## Not covered
-* Data the customer sent to Stripe or to their own market-data vendor.
-* Logs: request logs carry no tenant identifiers or payloads by design (see SLOs), so none are
-  rewritten.
-* Verified only against a recording Stripe fake; `cancel_subscription` has not run against Stripe.
+It erases again every organisation in the log (and its files) and recreates any receipt the restore
+lost. The function it calls is deliberately not available to the application role.
+
+## What this does not do
+* **Backups** are not rewritten. Erased data stays in database snapshots until they expire (see
+  [backup and restore](../backup-restore.md) for the retention); state that period to the customer.
+* Data held by **Stripe** beyond what invoices require is cleared; the invoices themselves remain.
+  Stripe is a sub-processor and must be listed as such in the DPA and the processing record.
+* **Logs**: request logs carry no tenant identifiers or payloads; infrastructure logs (load
+  balancer, flow logs) hold network addresses for their own retention period.
+* **Stale sessions** of an erased organisation fail with `401` on any write; reads of an erased
+  account return nothing. They expire within the session lifetime (8 hours).
+* **Live Stripe**: the Stripe calls (`retrieve`, `cancel` with `invoice_now`, customer update) are
+  tested against a mocked SDK only. Verify with a test key before relying on them.
 
 For research and risk analytics. Not investment advice.
