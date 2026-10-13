@@ -1,0 +1,47 @@
+# Out-of-sample calibration check. Replays a forecaster over the newest realised bars,
+# fits the conformal calibrator on the older origins and measures coverage on the newest
+# (`tycheon.calibration.monitor`). The result is uploaded as Prometheus text and JSON; the job
+# fails when coverage drifts past the gate or a series cannot be scored.
+#
+# It runs on the bundled SYNTHETIC series, so it guards the machinery, not any market. To
+# monitor your own data, run the module against your provider and scrape the .prom file with a
+# Prometheus textfile collector (docs/ops/runbooks/calibration-decay.md).
+name: Nightly (calibration)
+
+on:
+  schedule:
+    - cron: "41 3 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  TYCHEON_ENV: ci
+  TYCHEON_DATA_PROVIDER: sample
+  TYCHEON_ALLOW_YFINANCE: "false"
+  TYCHEON_ALLOW_LIVE_EXECUTION: "false"
+
+jobs:
+  calibration:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: astral-sh/setup-uv@38f3f104447c67c051c4a08e39b64a148898af3a # v4
+        with:
+          enable-cache: true
+          cache-dependency-glob: uv.lock
+      - run: uv python install 3.12
+      - run: uv sync --frozen --python 3.12
+      - name: Replay and score the newest origins
+        run: >
+          uv run python -m tycheon.calibration.monitor
+          --models random-walk garch --horizon 5 --origins 80 --max-gap 0.12
+          --out calibration-monitor
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        if: always()
+        with:
+          name: calibration-monitor
+          path: calibration-monitor/
+          retention-days: 30

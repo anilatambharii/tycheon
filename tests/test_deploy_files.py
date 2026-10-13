@@ -16,7 +16,7 @@ ROOT = Path(__file__).resolve().parents[1]
 WORKFLOWS = ROOT / ".github" / "workflows"
 CHART = ROOT / "deploy" / "helm" / "tycheon"
 DOCKERFILES = [ROOT / "Dockerfile", ROOT / "ee" / "dashboard" / "Dockerfile"]
-PINNED_WORKFLOWS = ["images.yml", "deploy-verify.yml", "scorecard.yml"]
+PINNED_WORKFLOWS = ["images.yml", "deploy-verify.yml", "scorecard.yml", "nightly-calibration.yml"]
 
 
 @pytest.mark.parametrize("path", DOCKERFILES, ids=lambda p: str(p.relative_to(ROOT)))

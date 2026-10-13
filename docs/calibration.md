@@ -59,6 +59,21 @@ nominal level and per horizon step), mean interval width, PIT histogram, reliabi
 quantile score and CRPS (fair estimator from samples). Plots (`reliability_svg`, `pit_svg`,
 `coverage_svg`) need the `report` extra and return inline SVG.
 
+## Monitoring calibration on a schedule
+
+Served-forecast metrics only show what was served. To see whether intervals still hold
+against what then happened, replay a forecaster over the newest realised bars:
+
+```bash
+python -m tycheon.calibration.monitor --models random-walk garch --horizon 5 --max-gap 0.12
+```
+
+The calibrator is fitted on the older origins and scored on the newest ones, which it never
+saw. The command writes `calibration.prom` (for a Prometheus textfile collector) and
+`calibration.json`, and exits non-zero if coverage drifts past `--max-gap` or a series is too
+short to score (no evidence is not a pass). `nightly-calibration.yml` runs it on the bundled
+**synthetic** series, so it guards the machinery, not any market.
+
 ## What it does not do
 
 - Conformal coverage is *marginal*, not conditional: it does not promise coverage in the
