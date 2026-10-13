@@ -7,6 +7,20 @@ All notable changes to Tycheon are recorded here. The format follows
 
 For research and risk analytics. Not investment advice.
 
+## [0.5.0](https://github.com/anilatambharii/tycheon/compare/v0.4.0...v0.5.0) (2026-10-13)
+
+
+### Features
+
+* **calibration:** scheduled out-of-sample calibration monitor ([4fdaa97](https://github.com/anilatambharii/tycheon/commit/4fdaa97192d47b8e2f8fe1558d0dc5077508ca29))
+* **calibration:** scheduled out-of-sample calibration monitor ([767618c](https://github.com/anilatambharii/tycheon/commit/767618cd231dbe6f9d8ddc3250f18dd81dfb8925))
+
+
+### Documentation
+
+* **readme:** update status and PyPI version to 0.4.0 ([ec51b17](https://github.com/anilatambharii/tycheon/commit/ec51b17cdf895a73b9efdfe0323435707f2c645e))
+* **readme:** update status and PyPI version to 0.4.0 ([9407f92](https://github.com/anilatambharii/tycheon/commit/9407f928e336dfdb2f87848982d27bfb0de5429e))
+
 ## [0.4.0](https://github.com/anilatambharii/tycheon/compare/v0.3.0...v0.4.0) (2026-10-07)
 
 
