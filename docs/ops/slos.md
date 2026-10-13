@@ -31,6 +31,9 @@ for the analytic call itself; a first call with a cold model cache can be slower
 | `TycheonErrorBudgetSlowBurn` | ticket | above 6x the budget over 30 min **and** 6 h | [error budget burn](runbooks/error-budget-burn.md) |
 | `TycheonForecastLatencyHigh` | page | forecast p99 above 2.5 s for 15 min | [high latency](runbooks/high-latency.md) |
 | `TycheonUncalibratedShareHigh` | ticket | more than 20% of forecasts not calibrated for 2 h | [calibration decay](runbooks/calibration-decay.md) |
+| `TycheonErasureOverdue` | page | an organisation erasure is more than an hour past due for 15 min | [organisation erasure](runbooks/org-erasure.md) |
+| `TycheonErasureScheduled` | ticket | an erasure is waiting out its grace period | [organisation erasure](runbooks/org-erasure.md) |
+| `TycheonErasureFilesPending` | ticket | stored files of an erased organisation not removed for 1 h | [organisation erasure](runbooks/org-erasure.md) |
 | `TycheonCoverageGapHigh` | ticket | p90 coverage gap above 5 points for 1 h | [calibration decay](runbooks/calibration-decay.md) |
 | `TycheonGpuIdle` | ticket | GPUs allocated but under 10% utilised for 1 h | [GPU under-utilised](runbooks/gpu-underutilised.md) |
 | `TycheonGpuSaturated` | ticket | GPUs over 95% utilised for 2 h | [queue stuck](runbooks/queue-stuck.md) |

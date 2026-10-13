@@ -81,6 +81,8 @@ driven by a person); multi-replica behaviour.
 
 ## Known gaps
 
+* Organisation erasure is two-phase (`POST /v1/org/erase` schedules it, a CronJob carries it out; [runbook](ops/runbooks/org-erasure.md)) and `GET /v1/org/export` returns the data first. Backups are not rewritten, no mail transport is wired (a `Notifier` must be supplied), and the Stripe calls are unverified live.
+
 * Rate limiting is per process (no shared limiter yet).
 * Blob storage is the local filesystem; an S3-compatible store is not implemented.
 * Management actions are audited and role-checked but are not Keelgate tool calls.

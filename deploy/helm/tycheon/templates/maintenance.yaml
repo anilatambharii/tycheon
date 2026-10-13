@@ -1,0 +1,79 @@
+{{- /* Scheduled control-plane jobs: usage reporting, retention, and organisation erasure.
+        They run the same image, secrets, service account and data volume as the control plane
+        (erasure removes stored files, so it must see the same volume). */ -}}
+{{- if and .Values.controlPlane.enabled .Values.maintenance.enabled }}
+{{- $full := include "tycheon.fullname" . -}}
+{{- $cp := .Values.controlPlane -}}
+{{- $m := .Values.maintenance -}}
+{{- $image := include "tycheon.image" (dict "root" . "image" .Values.image.cloud) -}}
+{{- $env := merge (dict "HF_HOME" "/cache/huggingface" "TYCHEON_CP_STORAGE_ROOT" "/data") $cp.config -}}
+{{- $jobs := list
+      (dict "name" "erase-due" "cfg" $m.eraseDue "command" "erase-due")
+      (dict "name" "report-usage" "cfg" $m.reportUsage "command" "report-usage")
+      (dict "name" "purge" "cfg" $m.purge "command" "purge") -}}
+{{- range $job := $jobs }}
+{{- if $job.cfg.enabled }}
+---
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: {{ $full }}-{{ $job.name }}
+  labels:
+    {{- include "tycheon.labels" $ | nindent 4 }}
+    app.kubernetes.io/component: {{ $job.name }}
+spec:
+  schedule: {{ $job.cfg.schedule | quote }}
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 5
+  startingDeadlineSeconds: 300
+  jobTemplate:
+    spec:
+      backoffLimit: 1
+      activeDeadlineSeconds: {{ $m.deadlineSeconds }}
+      template:
+        metadata:
+          labels:
+            {{- include "tycheon.labels" $ | nindent 12 }}
+            app.kubernetes.io/component: {{ $job.name }}
+        spec:
+          restartPolicy: Never
+          serviceAccountName: {{ $full }}-control-plane
+          automountServiceAccountToken: false
+          enableServiceLinks: false
+          securityContext: {{- include "tycheon.podSecurityContext" $ | nindent 12 }}
+          {{- include "tycheon.pullSecrets" $ | nindent 10 }}
+          containers:
+            - name: {{ $job.name }}
+              image: {{ $image | quote }}
+              imagePullPolicy: {{ $.Values.image.pullPolicy }}
+              command: ["python", "-m", "tycheon_cp.cli", {{ $job.command | quote }}]
+              env:
+                {{- range $k, $v := $env }}
+                - { name: {{ $k }}, value: {{ $v | quote }} }
+                {{- end }}
+              envFrom:
+                - secretRef: { name: {{ $cp.existingSecret }} }
+              securityContext: {{- include "tycheon.containerSecurityContext" $ | nindent 16 }}
+              resources: {{- toYaml $m.resources | nindent 16 }}
+              volumeMounts:
+                - { name: tmp, mountPath: /tmp }
+                - { name: data, mountPath: /data }
+                - { name: model-cache, mountPath: /cache }
+          volumes:
+            - { name: tmp, emptyDir: { sizeLimit: 512Mi } }
+            - name: data
+              {{- if $cp.storage.persistence.enabled }}
+              persistentVolumeClaim: { claimName: {{ $full }}-data }
+              {{- else }}
+              emptyDir: {}
+              {{- end }}
+            - name: model-cache
+              {{- if $.Values.modelCache.enabled }}
+              persistentVolumeClaim: { claimName: {{ $full }}-model-cache }
+              {{- else }}
+              emptyDir: {}
+              {{- end }}
+{{- end }}
+{{- end }}
+{{- end }}
