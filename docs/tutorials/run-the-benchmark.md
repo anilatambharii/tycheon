@@ -94,6 +94,36 @@ Two things will happen that are deliberate: the run is marked *not redistributab
 the results only if your licence allows), and a static universe of real symbols gets a
 **survivorship-bias warning**, because a list chosen with hindsight contains only survivors.
 
+### Try the CSV path without any data
+
+`benchmarks/simulate_csv.py` writes **simulated** CSVs (fat-tailed GARCH returns, missing days, one
+weakly mean-reverting series) so you can exercise the bring-your-own-data path end to end:
+
+```bash
+uv run python -m benchmarks.simulate_csv --out ./sim_csvs
+uv run python -m benchmarks.run --config benchmarks/configs/simulated-csv.yaml --execute     --data-dir ./sim_csvs --out ./sim_results --no-render
+```
+
+A run of this on 2026-10-13 (4 series, horizon 5, 192 pooled origins, CPU, about 5 minutes, Tycheon
+0.4.0, Kronos not included) printed both the survivorship and the not-redistributable warnings and
+gave, against the random walk (MASE below 1 beats it; both Diebold-Mariano tests must have
+p < 0.05 to count as a win):
+
+| Model | MASE | 90% coverage | DM p (sq. error) | DM p (CRPS) | Outcome |
+|---|--:|--:|--:|--:|---|
+| random-walk | 1.019 | 91.1% | n/a | n/a | the reference |
+| drift | 1.074 | 90.6% | 0.871 | 0.990 | indistinguishable |
+| seasonal-naive | 1.033 | 90.6% | 0.714 | 0.919 | indistinguishable |
+| arima | 1.063 | 92.7% | 0.859 | 0.991 | indistinguishable |
+| garch | 1.033 | 90.6% | 0.795 | 0.048 | indistinguishable (one test only) |
+| tycheon-ensemble | 1.026 | 90.1% | 0.630 | 0.080 | indistinguishable |
+| tycheon-calibrated | 1.110 | 88.0% | 0.999 | 0.997 | **worse** than the random walk |
+
+This is random data, so no model *should* win and none did; the useful facts are that the CSV path
+works, the warnings fire, and the calibrated forecaster's interval coverage stayed near nominal
+(88% for 90%) while its point error was worse than doing nothing. It says nothing about markets and
+is not published to the leaderboard.
+
 ## 7. Add a model
 
 Add `benchmarks/configs/models/<id>.yaml` (copy a neighbour) and list the id under `models:`
