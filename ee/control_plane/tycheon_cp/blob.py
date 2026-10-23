@@ -28,6 +28,10 @@ class BlobStore(Protocol):
 
     def delete_prefix(self, prefix: str) -> None: ...
 
+    def delete_org(self, org_id: str) -> None:
+        """Remove everything stored for one organisation."""
+        ...
+
     def directory(self, prefix: str) -> Path:
         """A local directory for ``prefix`` (created if missing) for libraries that need paths."""
         ...
@@ -74,6 +78,15 @@ class LocalBlobStore:
             shutil.rmtree(path)
         elif path.is_file():
             path.unlink()
+
+    def delete_org(self, org_id: str) -> None:
+        if not _PART.fullmatch(org_id):
+            raise BlobError("a storage path part is not a plain identifier")
+        path = self.root.joinpath("orgs", org_id).resolve()
+        if self.root not in path.parents:
+            raise BlobError("a storage key resolves outside the store")
+        if path.is_dir():
+            shutil.rmtree(path)
 
     def directory(self, prefix: str) -> Path:
         path = self._path(prefix.rstrip("/"))

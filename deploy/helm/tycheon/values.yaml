@@ -69,6 +69,20 @@ controlPlane:
   tolerations: []
   affinity: {}
 
+# Scheduled control-plane jobs (need controlPlane.enabled). erase-due carries out organisation
+# erasures whose grace period has ended (it is the only thing that does, so keep it on), finishes
+# removing stored files and back-fills the durable erasure log. report-usage sends metered usage to
+# Stripe; purge applies per-plan retention.
+maintenance:
+  enabled: true
+  deadlineSeconds: 1800
+  resources:
+    requests: { cpu: 100m, memory: 256Mi }
+    limits:   { memory: 1Gi }
+  eraseDue:    { enabled: true, schedule: "*/10 * * * *" }
+  reportUsage: { enabled: true, schedule: "*/15 * * * *" }
+  purge:       { enabled: true, schedule: "30 3 * * *" }
+
 # Database migrations: a Job run before every install and upgrade, as the owner role.
 # Secret key read: TYCHEON_CP_MIGRATION_URL.
 migrations:

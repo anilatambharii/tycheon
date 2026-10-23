@@ -46,7 +46,7 @@ operating), **Gap** (not done).
 |---|---|---|---|
 | C1.1 Identify and protect | Customer data is stored per tenant and never shared; licensed market data is never redistributed (customers bring their own); credentials envelope-encrypted | Built | `docs/cloud.md`, `ee/tests/test_api.py` |
 | C1.1 | No tenant identifiers in metrics, traces scrubbed of credentials | Built | `test_metrics.py`, the collector's `attributes/scrub` processor |
-| C1.2 Disposal | Per-plan retention deletes expired operational data; deleting a data source deletes its files | Built | `retention.py`, `ee/tests/test_retention_cli.py` |
+| C1.2 Disposal | Per-plan retention deletes expired operational data; deleting a data source deletes its files; an organisation can be exported and then erased after a grace period, with a durable tombstone log and receipts ([runbook](runbooks/org-erasure.md)) | Built; backups age out on their own schedule | `retention.py`, `erasure.py`, `ee/tests/test_retention_cli.py`, `ee/tests/test_erasure.py` |
 | C1.2 | Deleting an organisation and all its data on request | **Gap**: no endpoint or runbook yet | n/a |
 
 ## Other things an auditor will ask for that do not exist

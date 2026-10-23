@@ -88,7 +88,10 @@ class Metrics:
         )
         self._queue_cache: tuple[float, list[tuple[str, int, int, float]]] = (0.0, [])
         self._queue_source: Callable[[], Awaitable[list[tuple[str, int, int, float]]]] | None = None
+        self._erasure_cache: tuple[float, tuple[int, int, float, int]] = (0.0, (0, 0, 0.0, 0))
+        self._erasure_source: Callable[[], Awaitable[tuple[int, int, float, int]]] | None = None
         r.register(_QueueCollector(self))
+        r.register(_ErasureCollector(self))
 
     # ----------------------------------------------------------------------- recording
     def observe_request(self, route: str, method: str, status: int, seconds: float) -> None:
@@ -111,6 +114,22 @@ class Metrics:
         self, source: Callable[[], Awaitable[list[tuple[str, int, int, float]]]]
     ) -> None:
         self._queue_source = source
+
+    def set_erasure_source(
+        self, source: Callable[[], Awaitable[tuple[int, int, float, int]]]
+    ) -> None:
+        self._erasure_source = source
+
+    async def refresh_erasure(self, now: float | None = None) -> None:
+        if self._erasure_source is None:
+            return
+        moment = time.monotonic() if now is None else now
+        if moment - self._erasure_cache[0] < QUEUE_TTL_SECONDS:
+            return
+        try:
+            self._erasure_cache = (moment, await self._erasure_source())
+        except Exception:  # a database blip must not break the scrape of everything else
+            self.refusals.labels("metrics_erasure_unavailable").inc()
 
     async def refresh_queue(self, now: float | None = None) -> None:
         if self._queue_source is None:
@@ -158,6 +177,41 @@ class _QueueCollector:
             yield family
 
 
+class _ErasureCollector:
+    """Organisation erasures as gauges. Counts only: no tenant is identifiable."""
+
+    def __init__(self, metrics: Metrics) -> None:
+        self._m = metrics
+
+    def collect(self) -> Any:
+        scheduled, overdue, oldest, pending = self._m._erasure_cache[1]
+        for name, doc, value in (
+            (
+                "tycheon_erasures_scheduled",
+                "Organisation erasures waiting out their grace period",
+                scheduled,
+            ),
+            (
+                "tycheon_erasures_overdue",
+                "Erasures more than an hour past due and not carried out",
+                overdue,
+            ),
+            (
+                "tycheon_erasure_oldest_overdue_seconds",
+                "Age of the longest-overdue erasure",
+                oldest,
+            ),
+            (
+                "tycheon_erasure_files_pending",
+                "Erased organisations whose stored files are not yet removed",
+                pending,
+            ),
+        ):
+            family = GaugeMetricFamily(name, doc)
+            family.add_metric([], float(value))
+            yield family
+
+
 def _pool_label(pool: str) -> str:
     """``dedicated-<org id>`` would identify a tenant: collapse dedicated pools to one label."""
     return "dedicated" if pool.startswith("dedicated-") else pool
@@ -183,3 +237,14 @@ def authorised(presented: str | None, token: str | None) -> bool:
     if not token or not presented:
         return False
     return hmac.compare_digest(presented.encode(), token.encode())
+
+
+async def erasure_stats(db: Database) -> tuple[int, int, float, int]:
+    async with db.anonymous() as conn:
+        row = await conn.fetchrow("SELECT * FROM cp_erasure_stats()")
+    return (
+        int(row["scheduled"]),
+        int(row["overdue"]),
+        float(row["oldest_overdue_seconds"]),
+        int(row["pending_files"]),
+    )

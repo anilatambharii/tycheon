@@ -87,7 +87,7 @@ packages for the Python images, 225 for the dashboard).
 | 7 | Rate limiting is per process; storage is a local filesystem volume (no S3); a dead fine-tune worker leaves its job `running`; quotas are hard limits with no overage | scale, resilience, billing | documented gaps in `docs/cloud.md` |
 | 8 | No on-call rota, pager, status page, security mailbox, DPA, privacy notice, or vendor review; SOC 2 is *aligned*, not certified | customer trust, legal | see `docs/ops/soc2-controls.md`; these are organisational tasks |
 | 9 | Base-image findings without a published fix | residual vulnerabilities | disclosed; rescanned per build; consider a minimal base |
-| 10 | No way yet to delete an organisation and all its data on request | privacy obligations (GDPR erasure) | build the endpoint and runbook before taking EU customers |
+| 10 | ~~No way to delete an organisation~~ **Built** (two-phase: export, request with re-authentication, grace period, scheduled execution, receipts, durable tombstone log with restore replay, alerts; [runbook](../ops/runbooks/org-erasure.md)). Tested on a real Postgres in CI; the Stripe calls only against a mocked SDK. Backups are not rewritten, and **no mail transport is wired** (a `Notifier` must be supplied) | privacy obligations (GDPR erasure, Art. 28(3)(g) return-or-delete) | set `TYCHEON_CP_ERASURE_LOG_DIR` to a write-once volume; wire a Notifier; verify the Stripe calls with a test key; review with counsel and update the DPA and sub-processor list before taking EU customers |
 | 11 | The `psycopg` (LGPL) dependency in the open-source `serve` extra, from Phase T0 | licence compliance for the Apache-2.0 package | **Resolved:** nothing imported it; removed from the `serve` extra ([ADR 0010](../adr/0010-drop-psycopg.md)) |
 | 12 | Management actions are audited but not Keelgate tool calls | governance coverage is uneven | recorded in ADR 0009 |
 
@@ -114,7 +114,7 @@ packages for the Python images, 225 for the dashboard).
 **Before real customers**
 10. On-call, paging and a status page; the security contact in `SECURITY.md`; a DPA and privacy notice.
 11. A restore drill on the real database; a failover test; a load test against the SLOs.
-12. Point the calibration monitor at a real feed (risk 5); organisation deletion (risk 10).
+12. Point the calibration monitor at a real feed (risk 5); organisation deletion is built (risk 10): review it.
 
 ## 7. Launch day
 1. Merge the release PR; re-push the tag so the publish workflow runs (release-please tags do not trigger it);

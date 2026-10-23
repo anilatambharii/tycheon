@@ -78,6 +78,31 @@ spec:
           annotations:
             summary: "Served intervals miss their nominal coverage by more than {{ $a.coverageGap }} at the 90th percentile"
             runbook_url: {{ $.Values.prometheusRule.runbookBase }}/calibration-decay.md
+    - name: tycheon.privacy
+      rules:
+        # A scheduled erasure is a destructive customer action: someone should know it is coming,
+        # and one that is overdue means the scheduled job is not running.
+        - alert: TycheonErasureScheduled
+          expr: tycheon_erasures_scheduled > 0
+          for: 5m
+          labels: { severity: ticket, slo: privacy }
+          annotations:
+            summary: "An organisation erasure is waiting out its grace period"
+            runbook_url: {{ $.Values.prometheusRule.runbookBase }}/org-erasure.md
+        - alert: TycheonErasureOverdue
+          expr: tycheon_erasures_overdue > 0
+          for: 15m
+          labels: { severity: page, slo: privacy }
+          annotations:
+            summary: "An erasure is more than an hour past due: the erase-due job is failing or blocked (billing, running fine-tune job)"
+            runbook_url: {{ $.Values.prometheusRule.runbookBase }}/org-erasure.md
+        - alert: TycheonErasureFilesPending
+          expr: tycheon_erasure_files_pending > 0
+          for: 1h
+          labels: { severity: ticket, slo: privacy }
+          annotations:
+            summary: "Stored files of an erased organisation are still not removed"
+            runbook_url: {{ $.Values.prometheusRule.runbookBase }}/org-erasure.md
     - name: tycheon.gpu-and-cost
       rules:
         # GPU utilisation comes from the NVIDIA DCGM exporter (not part of this chart).
