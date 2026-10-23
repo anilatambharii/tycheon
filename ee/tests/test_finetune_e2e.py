@@ -494,3 +494,21 @@ def test_registry_rejects_an_unknown_routing_shape() -> None:
     assert registry.parse_ft("ft:00000000-0000-0000-0000-000000000001") is not None
     assert registry.parse_ft("ft:not-a-uuid") is None and registry.parse_ft("routed") is None
     assert json.dumps({"default_model": "random-walk"})
+
+
+async def test_a_gpu_worker_on_a_cpu_only_host_fails_the_job_visibly(
+    client, signup_org, set_org_plan, csv_factory, cp, tiny_base
+) -> None:
+    """GPU simulation on CPU: asking for CUDA where none exists must fail loudly, never fall back."""
+    import torch
+
+    if torch.cuda.is_available():
+        pytest.skip("this host has a GPU; the simulation targets CPU-only hosts")
+    org, source = await ready_org(client, signup_org, set_org_plan, csv_factory)
+    job = (await submit(client, org, source)).json()
+    gpu_ctx = WorkerContext(db=cp.db, blobs=cp.blobs, meter=cp.meter, base=tiny_base, device="cuda")
+    assert await work_once(gpu_ctx, f"dedicated-{org.org_id}")
+    failed = (await client.get(f"/v1/finetune/jobs/{job['id']}", headers=org.session)).json()
+    assert failed["status"] == "failed"
+    assert "CUDA is not available" in failed["error"] and "Traceback" not in failed["error"]
+    assert (await client.get("/v1/models", headers=org.session)).json() == []

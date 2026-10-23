@@ -1,0 +1,38 @@
+# The bring-your-own-data path, exercised on SIMULATED CSVs (not market data):
+#   python -m benchmarks.simulate_csv --out ./sim_csvs
+#   python -m benchmarks.run --config benchmarks/configs/simulated-csv.yaml --execute --data-dir ./sim_csvs
+# It proves the CSV reader, the conservative availability default and the warnings work. It says
+# nothing about markets. Kronos is left out to keep the run to minutes on CPU.
+name: simulated-csv
+description: user-csv-daily on simulated fat-tailed GARCH series (CPU, minutes).
+
+dataset: user-csv-daily
+universe_kind: static
+universe: [SIM-A, SIM-B, SIM-MR, SIM-C]
+
+horizons: [5]
+
+models:
+  - tycheon-ensemble
+  - tycheon-calibrated
+
+baselines:
+  - random-walk
+  - drift
+  - seasonal-naive
+  - arima
+  - garch
+
+walk_forward:
+  folds: 4
+  train_window: 756
+  test_window: 63
+  embargo: 5
+  refit: fold
+  n_samples: 100
+  max_history: 500
+  seed: 0
+
+costs:
+  spread_bps: 2
+  slippage_bps: 1

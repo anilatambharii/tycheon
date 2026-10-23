@@ -217,7 +217,7 @@ variable "cpu_node_group" {
   default = {}
 
   validation {
-    condition     = var.cpu_node_group.instance_types == null || (length(var.cpu_node_group.instance_types) > 0 && alltrue([for t in var.cpu_node_group.instance_types : length(trimspace(t)) > 0]))
+    condition     = var.cpu_node_group.instance_types == null || (length(coalesce(var.cpu_node_group.instance_types, ["x"])) > 0 && alltrue([for t in coalesce(var.cpu_node_group.instance_types, ["x"]) : length(trimspace(t)) > 0]))
     error_message = "cpu_node_group.instance_types must be a non-empty list of non-empty instance types."
   }
   validation {
@@ -229,7 +229,7 @@ variable "cpu_node_group" {
     error_message = "cpu_node_group.disk_size_gb must be between 20 and 16000."
   }
   validation {
-    condition     = (var.cpu_node_group.min_size == null || var.cpu_node_group.min_size >= 1) && (var.cpu_node_group.max_size == null || var.cpu_node_group.max_size >= 1)
+    condition     = (var.cpu_node_group.min_size == null || coalesce(var.cpu_node_group.min_size, 1) >= 1) && (var.cpu_node_group.max_size == null || coalesce(var.cpu_node_group.max_size, 1) >= 1)
     error_message = "The CPU pool hosts system pods and must keep min_size >= 1."
   }
 }
