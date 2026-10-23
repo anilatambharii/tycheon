@@ -43,7 +43,7 @@ jobs:
       TYCHEON_TEST_DATABASE_URL: postgresql://tycheon_owner:owner-dev-pw@localhost:5432/tycheon_test?sslmode=disable
       TYCHEON_TEST_APP_URL: postgresql://tycheon_app:app-dev-pw@localhost:5432/tycheon_test?sslmode=disable
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - uses: astral-sh/setup-uv@v4
         with:
           enable-cache: true
@@ -66,7 +66,7 @@ jobs:
       run:
         working-directory: ee/dashboard
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - uses: actions/setup-node@v4
         with:
           node-version: "22"

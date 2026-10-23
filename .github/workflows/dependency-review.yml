@@ -13,7 +13,7 @@ jobs:
     name: review dependency changes
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - uses: actions/dependency-review-action@v4
         # Non-blocking until the repository Dependency graph setting is turned
         # on; the action errors out without it and would red-flag every PR.
