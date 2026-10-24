@@ -7,6 +7,33 @@ All notable changes to Tycheon are recorded here. The format follows
 
 For research and risk analytics. Not investment advice.
 
+## [0.5.0](https://github.com/anilatambharii/tycheon/compare/v0.4.0...v0.5.0) (2026-10-23)
+
+
+### Features
+
+* **benchmarks:** simulated CSV generator and config for the user-csv path ([7e9975f](https://github.com/anilatambharii/tycheon/commit/7e9975f738533f98ac6c200df4b3f86a771ab19f))
+* **benchmarks:** simulated CSV generator and config to exercise the user-csv path ([17804d1](https://github.com/anilatambharii/tycheon/commit/17804d1e6352af61a9f3b7a4590dcfa0ba158066))
+* **calibration:** scheduled out-of-sample calibration monitor ([4fdaa97](https://github.com/anilatambharii/tycheon/commit/4fdaa97192d47b8e2f8fe1558d0dc5077508ca29))
+* **calibration:** scheduled out-of-sample calibration monitor ([767618c](https://github.com/anilatambharii/tycheon/commit/767618cd231dbe6f9d8ddc3250f18dd81dfb8925))
+* **ee:** organisation erasure (owner-only), receipts and runbook ([0621fac](https://github.com/anilatambharii/tycheon/commit/0621faca894a2117aa18ea517eed2ede238c87b2))
+* **ee:** organisation erasure (owner-only), receipts, erase-pending CLI and runbook ([cc41bd4](https://github.com/anilatambharii/tycheon/commit/cc41bd4d6b5d5ce20db2fac095e759562e1a2f09))
+* **ee:** two-phase erasure with export, grace period, re-authentication, durable log and fixes from review ([dc865b7](https://github.com/anilatambharii/tycheon/commit/dc865b7d442132514e4f866da1d37092fb18d920))
+
+
+### Bug Fixes
+
+* **ee:** a session for an erased organisation gets 401, not a server error ([4897736](https://github.com/anilatambharii/tycheon/commit/4897736900471b0cc7afd8e7973502787c3c115c))
+* **ee:** erase an organisation's whole file tree; correct the erasure tests ([d7971da](https://github.com/anilatambharii/tycheon/commit/d7971da52944ef292e8cc97ff88141bbba5bfdb0))
+* **ee:** the trainer refuses an unavailable accelerator instead of failing inside torch ([5d8e37f](https://github.com/anilatambharii/tycheon/commit/5d8e37f714fb643ea9e5297e9787885aaa064b8c))
+* **terraform:** make null-guarded validations safe on Terraform 1.9 (no short-circuit) ([f2d35ce](https://github.com/anilatambharii/tycheon/commit/f2d35cec523cee70d13c7e3c43dca8d5df42d88c))
+
+
+### Documentation
+
+* **readme:** update status and PyPI version to 0.4.0 ([ec51b17](https://github.com/anilatambharii/tycheon/commit/ec51b17cdf895a73b9efdfe0323435707f2c645e))
+* **readme:** update status and PyPI version to 0.4.0 ([9407f92](https://github.com/anilatambharii/tycheon/commit/9407f928e336dfdb2f87848982d27bfb0de5429e))
+
 ## [0.4.0](https://github.com/anilatambharii/tycheon/compare/v0.3.0...v0.4.0) (2026-10-07)
 
 
