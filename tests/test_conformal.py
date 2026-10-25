@@ -416,3 +416,75 @@ def test_adaptive_calibrator_reports_its_effective_levels(shifted) -> None:
     j_hi, j_lo = shifted_scores.levels.index(0.95), shifted_scores.levels.index(0.05)
     assert tau[j_hi, 0] > 0.95 and tau[j_lo, 0] < 0.05
     assert 0.0 <= rep.state["degenerate_fraction"] <= 1.0
+
+
+# ------------------------------------------------------------------ widen-only (risk figures)
+def test_outward_only_clamps_each_side_and_keeps_missing_values() -> None:
+    from tycheon.calibration.conformal import outward_only
+
+    levels = (0.05, 0.25, 0.5, 0.75, 0.95)
+    delta = np.array([[0.02], [0.02], [0.02], [-0.02], [-0.02]])  # every shift points inward/up
+    got = outward_only(levels, delta)
+    assert got[:, 0].tolist() == [0.0, 0.0, 0.0, 0.0, 0.0]
+    delta = np.array([[-0.03], [-0.01], [0.04], [0.01], [0.03]])  # tails move outward
+    got = outward_only(levels, delta)
+    assert got[:, 0].tolist() == [-0.03, -0.01, 0.0, 0.01, 0.03]  # the median level never shifts
+    nan = np.array([[np.nan], [-0.01], [0.0], [0.01], [np.nan]])
+    out = outward_only(levels, nan)
+    assert np.isnan(out[0, 0]) and np.isnan(out[4, 0]) and out[1, 0] == -0.01
+    batched = np.stack([delta, -delta])  # (n, levels, horizon) is handled too
+    assert outward_only(levels, batched).shape == batched.shape
+
+
+@pytest.fixture(scope="module")
+def wide_model(gaussian_cls):
+    """1.6 times the true sigma: honestly too wide, so ordinary calibration would narrow it."""
+    return gaussian_cls("wide", sigma=1.6 * SIGMA, drift=0.0)
+
+
+@pytest.fixture(scope="module")
+def scores_wide(known_bars, wide_model, as_of_a) -> ScoreSet:
+    bars = known_bars.iloc[: SPLIT_AT + 1]
+    return collect_scores(
+        wide_model, bars, as_of=as_of_a, horizon=H, n_origins=600, max_history=40, n_samples=80
+    )
+
+
+def test_ordinary_calibration_narrows_a_too_wide_forecast(scores_wide) -> None:
+    report = ConformalCalibrator(SplitConformal()).fit(scores_wide).report
+    ninety = report.coverage_at(0.9)
+    assert ninety.width_calibrated < 0.8 * ninety.width_raw  # it tightened the range a lot
+
+
+def test_widen_only_never_makes_the_range_narrower(scores_wide) -> None:
+    cal = ConformalCalibrator(SplitConformal(), widen_only=True).fit(scores_wide)
+    ninety = cal.report.coverage_at(0.9)
+    assert ninety.width_calibrated >= ninety.width_raw - 1e-12
+    assert ninety.calibrated >= ninety.raw - 1e-12  # so coverage can only go up
+    delta = cal.adjustment.delta
+    levels = np.asarray(cal.adjustment.levels)
+    assert (delta[levels < 0.5] <= 0).all() and (delta[levels > 0.5] >= 0).all()
+    assert (delta[levels == 0.5] == 0).all()
+
+
+def test_widen_only_still_widens_a_too_narrow_forecast(scores_a) -> None:
+    """Where calibration would widen anyway, the clamp changes nothing that matters."""
+    plain = ConformalCalibrator(SplitConformal()).fit(scores_a)
+    clamped = ConformalCalibrator(SplitConformal(), widen_only=True).fit(scores_a)
+    p, c = plain.report.coverage_at(0.9), clamped.report.coverage_at(0.9)
+    assert c.width_calibrated > c.width_raw and p.width_calibrated > p.width_raw
+    assert abs(c.calibrated - 0.9) < 0.08  # the narrow, biased model is still repaired
+
+
+def test_a_widen_only_calibrated_forecast_is_never_inside_the_raw_one(
+    known_bars, wide_model, scores_wide, as_of_a
+) -> None:
+    cal = ConformalCalibrator(SplitConformal(), widen_only=True).fit(scores_wide)
+    history = known_bars.iloc[: SPLIT_AT + 1]
+    raw = wide_model.predict(history.iloc[-40:], H, 200, as_of_a, seed=3)
+    out = cal.calibrate(raw)
+    for tau in (0.05, 0.1, 0.25):
+        assert out.quantile(tau)[-1] <= raw.quantile(tau)[-1] + 1e-9
+    for tau in (0.75, 0.9, 0.95):
+        assert out.quantile(tau)[-1] >= raw.quantile(tau)[-1] - 1e-9
+    assert out.samples.min() <= raw.samples.min() + 1e-9

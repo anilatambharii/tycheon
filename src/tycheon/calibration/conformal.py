@@ -86,6 +86,25 @@ class Calibrator(Protocol):
     def replay(self, scores: ScoreSet) -> Replay: ...
 
 
+def outward_only(levels: tuple[float, ...], delta: Floats) -> Floats:
+    """Clamp a quantile shift so it can only move the tails outward.
+
+    ``delta`` has the quantile levels on its second-to-last axis (``(levels, horizon)`` or
+    ``(n, levels, horizon)``). Levels below the median may only move down, levels above it only
+    up, and the median level not at all; ``NaN`` (not enough scores yet) is kept. The result
+    never makes a distribution narrower or shifts its centre, so a risk figure computed from it
+    is never smaller than the uncalibrated one for want of a few calm or rising periods.
+    """
+    tau = np.asarray(levels, dtype=np.float64)
+    shape = [1] * delta.ndim
+    shape[-2] = tau.size
+    tau = tau.reshape(shape)
+    clamped = np.where(
+        tau < 0.5, np.minimum(delta, 0.0), np.where(tau > 0.5, np.maximum(delta, 0.0), 0.0)
+    )
+    return np.asarray(np.where(np.isnan(delta), np.nan, clamped), dtype=np.float64)
+
+
 def _score_tensor(scores: ScoreSet) -> Floats:
     """``(n, levels, horizon)`` scores ``y - q_tau``."""
     return np.asarray(scores.realized[:, None, :] - scores.base_logq, dtype=np.float64)
@@ -235,6 +254,10 @@ class ConformalCalibrator:
         reference_coverage: The nominal level whose achieved coverage decides the status.
         tolerance: Allowed gap between achieved and nominal coverage. Default
             ``max(0.05, 2 * sqrt(c * (1 - c) / n_holdout))``, i.e. about two standard errors.
+        widen_only: Let calibration move the tails outward only (see :func:`outward_only`). Use it
+            for risk figures. The holdout report and the status then describe the intervals that
+            are actually served, so a calibrator that would have narrowed them reports the
+            conservative coverage it delivers, not the coverage it would have had.
     """
 
     def __init__(
@@ -246,8 +269,10 @@ class ConformalCalibrator:
         reference_coverage: float = 0.9,
         coverages: tuple[float, ...] = DEFAULT_COVERAGES,
         tolerance: float | None = None,
+        widen_only: bool = False,
     ) -> None:
         self.method = method
+        self.widen_only = widen_only
         self.holdout_fraction = holdout_fraction
         self.min_holdout = min_holdout
         self.reference_coverage = reference_coverage
@@ -262,6 +287,12 @@ class ConformalCalibrator:
     def fit(self, scores: ScoreSet) -> ConformalCalibrator:
         """Replay history, evaluate the most recent origins, and keep the final adjustment."""
         replay = self.method.replay(scores)
+        if self.widen_only:
+            replay = replace(
+                replay,
+                delta_used=outward_only(scores.levels, replay.delta_used),
+                final_delta=outward_only(scores.levels, replay.final_delta),
+            )
         holdout = max(self.min_holdout, math.ceil(self.holdout_fraction * scores.n))
         holdout = min(holdout, max(scores.n - 1, 1))
         covs = tuple(_central_pairs(scores.levels, self.coverages))

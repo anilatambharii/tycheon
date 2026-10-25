@@ -74,6 +74,13 @@ saw. The command writes `calibration.prom` (for a Prometheus textfile collector)
 short to score (no evidence is not a pass). `nightly-calibration.yml` runs it on the bundled
 **synthetic** series, so it guards the machinery, not any market.
 
+## Widen-only calibration for risk
+
+`ConformalCalibrator(..., widen_only=True)` clamps every shift so that lower quantile levels can only
+move down and upper levels only up (the median level not at all). The clamp is applied before the
+holdout is evaluated, so the reported coverage and status describe the intervals that are served.
+The risk service uses it; forecasts do not. See [ADR 0011](adr/0011-risk-calibration-widens-only.md).
+
 ## What it does not do
 
 - Conformal coverage is *marginal*, not conditional: it does not promise coverage in the
