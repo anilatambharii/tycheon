@@ -17,6 +17,15 @@ it.
 - Tested against closed forms: Gaussian and lognormal VaR/ES, and Brownian-motion expected
   drawdown with the discrete-monitoring correction.
 
+## Calibration for risk only widens
+
+The service layer calibrates a risk run with `widen_only=True`: calibration may move the tails
+outward, never inward, and never shifts the median. A calibrator that has just seen a calm or rising
+stretch would otherwise shrink VaR and ES on the strength of a few dozen past forecasts, which is
+the wrong direction to be wrong in. With the same seed, a calibrated risk figure is at least the
+uncalibrated one. The response says so in its warnings. Forecast intervals are still calibrated in
+both directions. See [ADR 0011](adr/0011-risk-calibration-widens-only.md).
+
 ## Portfolios and the dependence assumption
 
 `aggregate_portfolio` values a buy-and-hold portfolio along joint paths. Assets are forecast
