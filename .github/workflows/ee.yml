@@ -44,7 +44,7 @@ jobs:
       TYCHEON_TEST_APP_URL: postgresql://tycheon_app:app-dev-pw@localhost:5432/tycheon_test?sslmode=disable
     steps:
       - uses: actions/checkout@v7
-      - uses: astral-sh/setup-uv@v4
+      - uses: astral-sh/setup-uv@v7
         with:
           enable-cache: true
           cache-dependency-glob: uv.lock
