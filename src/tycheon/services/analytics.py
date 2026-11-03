@@ -114,6 +114,7 @@ def _forecast_for(
     calibrate: bool,
     n_samples: int,
     n_origins: int,
+    widen_only: bool = False,
 ) -> tuple[ForecastDistribution, CalibrationReport | None, pd.DataFrame]:
     ctx = current()
     try:
@@ -132,6 +133,7 @@ def _forecast_for(
                     n_origins=n_origins,
                     n_samples=n_samples,
                     max_history=cap,
+                    widen_only=widen_only,
                 )
             except DataValidationError:
                 # too little history to replay: fall through to the raw, honestly labelled forecast
@@ -285,6 +287,7 @@ def run_risk(args: RiskIn) -> RiskOut:
             calibrate=args.calibrate,
             n_samples=args.n_samples,
             n_origins=args.n_origins,
+            widen_only=True,  # risk figures are never made smaller by calibration
         )
         forecasts[symbol], bars_by_symbol[symbol] = dist, bars
         if report is not None:
@@ -363,7 +366,15 @@ def run_risk(args: RiskIn) -> RiskOut:
             )
             for symbol, asset in data["assets"].items()
         ],
-        warnings=[str(w) for w in data["warnings"]],
+        warnings=[str(w) for w in data["warnings"]]
+        + (
+            [
+                "calibration may only widen the tails for risk figures, never narrow them: VaR and "
+                "ES are not made smaller by a short run of calm or rising prices"
+            ]
+            if args.calibrate
+            else []
+        ),
         report_id=report_id,
     )
 

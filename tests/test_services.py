@@ -379,3 +379,19 @@ def test_the_private_model_name_pattern_rejects_path_tricks() -> None:
     for bad in ("ft:", "ft:../x", "ft:a/b", "FT:abc", "routed2", "ft:" + "a" * 70):
         with pytest.raises(ValidationError):
             ForecastIn(symbol="SYN-GBM", model=bad)
+
+
+def test_calibration_never_makes_risk_figures_smaller(data) -> None:
+    """Risk uses widen-only calibration: VaR and ES are at least the uncalibrated figures."""
+    positions = {"SYN-GARCH": 100_000}
+
+    def loss(out, kind: str, level: float) -> float:
+        return next(m.loss_fraction for m in out.var_es if m.kind == kind and m.level == level)
+
+    with bind(ctx(data)):
+        raw = run_risk(RiskIn(positions=positions, calibrate=False, model="garch"))
+        cal = run_risk(RiskIn(positions=positions, calibrate=True, model="garch"))
+    for kind, level in (("VaR", 0.95), ("ES", 0.95), ("VaR", 0.99), ("ES", 0.99)):
+        assert loss(cal, kind, level) >= loss(raw, kind, level) - 1e-9, (kind, level)
+    assert any("only widen the tails" in w for w in cal.warnings)
+    assert not any("only widen the tails" in w for w in raw.warnings)
