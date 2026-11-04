@@ -1,0 +1,144 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Tycheon Demo</title>
+<style>
+  :root { --bg:#ffffff; --fg:#1b1f24; --muted:#5b6570; --line:#d8dde3; --accent:#1f5fbf; --warn:#9a5b00; --card:#f6f8fa; }
+  @media (prefers-color-scheme: dark) {
+    :root { --bg:#0f1318; --fg:#e6e9ed; --muted:#9aa4af; --line:#2a313a; --accent:#6aa6ff; --warn:#f0b35a; --card:#171c22; }
+  }
+  * { box-sizing: border-box; }
+  body { margin:0; background:var(--bg); color:var(--fg); font:15px/1.5 system-ui, sans-serif; }
+  main { max-width: 760px; margin: 0 auto; padding: 20px 16px 48px; }
+  h1 { font-size: 22px; margin: 0 0 4px; }
+  h2 { font-size: 16px; margin: 28px 0 8px; }
+  p.lead { color: var(--muted); margin: 0 0 16px; }
+  .notice { border:1px solid var(--line); background:var(--card); padding:10px 12px; border-radius:6px; color:var(--muted); }
+  form { display:grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap:10px; align-items:end; margin:12px 0; }
+  label { display:flex; flex-direction:column; font-size:13px; color:var(--muted); gap:4px; }
+  select, input { font:inherit; padding:7px 8px; border:1px solid var(--line); border-radius:6px; background:var(--bg); color:var(--fg); }
+  button { font:inherit; padding:8px 14px; border:0; border-radius:6px; background:var(--accent); color:#fff; cursor:pointer; }
+  button:disabled { opacity:.6; cursor:wait; }
+  table { border-collapse: collapse; width:100%; margin:8px 0; }
+  th, td { text-align:left; padding:6px 8px; border-bottom:1px solid var(--line); font-variant-numeric: tabular-nums; }
+  th { color:var(--muted); font-weight:500; }
+  .out { margin-top:8px; }
+  .err { color:var(--warn); }
+  .tag { display:inline-block; padding:1px 8px; border:1px solid var(--line); border-radius:10px; font-size:12px; }
+  footer { margin-top:32px; color:var(--muted); font-size:13px; }
+  a { color:var(--accent); }
+</style>
+</head>
+<body>
+<main>
+  <h1>Tycheon</h1>
+  <p class="lead">Kronos forecasts the path; Tycheon tells you how much to trust it.</p>
+  <p class="notice">Synthetic data only. The series below are generated, so nothing here says anything about real markets.
+  For research and risk analytics. Not investment advice.</p>
+
+  <h2>Forecast</h2>
+  <form id="f">
+    <label>Series
+      <select name="symbol">
+        <option>SYN-GBM</option><option>SYN-GARCH</option><option>SYN-REGIME</option><option>SYN-JUMP</option>
+      </select></label>
+    <label>Model
+      <select name="model"><option>random-walk</option><option>drift</option><option>garch</option></select></label>
+    <label>Bars ahead
+      <input name="horizon" type="number" min="1" max="20" value="5"></label>
+    <label>Calibrate
+      <select name="calibrate"><option value="true">yes</option><option value="false">no (raw)</option></select></label>
+    <button>Forecast</button>
+  </form>
+  <div id="fout" class="out"></div>
+
+  <h2>Risk (VaR and Expected Shortfall)</h2>
+  <form id="r">
+    <label>Series
+      <select name="symbol">
+        <option>SYN-GBM</option><option>SYN-GARCH</option><option>SYN-REGIME</option><option>SYN-JUMP</option>
+      </select></label>
+    <label>Position value
+      <input name="value" type="number" min="1" max="1000000000" value="100000"></label>
+    <label>Model
+      <select name="model"><option>random-walk</option><option>drift</option><option>garch</option></select></label>
+    <label>Bars ahead
+      <input name="horizon" type="number" min="1" max="20" value="5"></label>
+    <button>Measure risk</button>
+  </form>
+  <div id="rout" class="out"></div>
+
+  <footer>
+    Open source (Apache-2.0):
+    <a href="https://github.com/anilatambharii/tycheon" target="_blank" rel="noopener">github.com/anilatambharii/tycheon</a>.
+    Risk calibration only ever widens the tails, never narrows them.
+  </footer>
+</main>
+<script>
+const pct = (x) => (x * 100).toFixed(2) + "%";
+const num = (x) => Number(x).toLocaleString(undefined, { maximumFractionDigits: 2 });
+const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ "&":"&amp;", "<":"&lt;", ">":"&gt;", '"':"&quot;", "'":"&#39;" }[c]));
+
+async function call(path, body, button, target) {
+  button.disabled = true;
+  target.innerHTML = "Working…";
+  try {
+    const res = await fetch(path, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
+    const data = await res.json();
+    if (!res.ok || data.error) {
+      target.innerHTML = '<span class="err">' + esc(data.error || data.detail || "Request failed") + "</span>";
+      return null;
+    }
+    return data;
+  } catch (e) {
+    target.innerHTML = '<span class="err">Could not reach the demo.</span>';
+    return null;
+  } finally {
+    button.disabled = false;
+  }
+}
+
+document.getElementById("f").addEventListener("submit", async (ev) => {
+  ev.preventDefault();
+  const f = new FormData(ev.target), out = document.getElementById("fout");
+  const d = await call("/api/forecast", {
+    symbol: f.get("symbol"), model: f.get("model"),
+    horizon: parseInt(f.get("horizon"), 10), calibrate: f.get("calibrate") === "true",
+  }, ev.target.querySelector("button"), out);
+  if (!d) return;
+  const h = d.horizon_end;
+  out.innerHTML =
+    '<p><span class="tag">' + esc(d.calibration_status) + "</span> model " + esc(d.model_id) +
+    " · as of " + esc(d.as_of.slice(0, 10)) + " · last close " + num(d.last_close) + "</p>" +
+    "<table><tr><th>After " + d.horizon + " bars</th><th>Level</th><th>Return</th></tr>" +
+    "<tr><td>Median</td><td>" + num(h.median) + "</td><td>" + pct(h.median_return) + "</td></tr>" +
+    "<tr><td>50% interval</td><td>" + num(h.lower_50) + " to " + num(h.upper_50) + "</td><td></td></tr>" +
+    "<tr><td>90% interval</td><td>" + num(h.lower_90) + " to " + num(h.upper_90) + "</td><td>" +
+    pct(h.lower_90_return) + " to " + pct(h.upper_90_return) + "</td></tr></table>" +
+    '<p class="lead">' + esc(d.disclaimer) + "</p>";
+});
+
+document.getElementById("r").addEventListener("submit", async (ev) => {
+  ev.preventDefault();
+  const f = new FormData(ev.target), out = document.getElementById("rout");
+  const positions = {}; positions[f.get("symbol")] = parseFloat(f.get("value"));
+  const d = await call("/api/risk", {
+    positions, model: f.get("model"), horizon: parseInt(f.get("horizon"), 10), calibrate: true,
+  }, ev.target.querySelector("button"), out);
+  if (!d) return;
+  const total = d.total_value;
+  const rows = d.var_es.map((m) =>
+    "<tr><td>" + esc(m.kind) + " " + Math.round(m.level * 100) + "%</td><td>" + pct(m.loss_fraction) +
+    "</td><td>" + num(m.loss_fraction * total) + "</td><td>" + (m.reliable ? "" : "few tail paths") + "</td></tr>").join("");
+  out.innerHTML =
+    '<p><span class="tag">' + esc(d.portfolio_calibration_status) + "</span> over " + d.horizon +
+    " bars · annualized volatility " + pct(d.annualized_volatility) + "</p>" +
+    "<table><tr><th>Measure</th><th>Loss</th><th>Amount</th><th></th></tr>" + rows + "</table>" +
+    (d.warnings.length ? '<p class="lead">' + d.warnings.map(esc).join("<br>") + "</p>" : "") +
+    '<p class="lead">' + esc(d.disclaimer) + "</p>";
+});
+</script>
+</body>
+</html>

@@ -239,6 +239,7 @@ ignore = [
 # Foundation models are optional extras: importing torch, timesfm or chronos at
 # module level would make `import tycheon.models` require them, so those imports are
 # deliberately inside functions.
+"deploy/huggingface/deploy.py" = ["T201", "S603", "S607", "PLC0415"]  # a command-line script
 "src/tycheon/models/**" = ["PLC0415"]
 # Plotting needs the optional matplotlib extra, imported lazily.
 "src/tycheon/_svg.py" = ["PLC0415"]
