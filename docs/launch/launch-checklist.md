@@ -60,7 +60,7 @@ packages for the Python images, 225 for the dashboard).
 * **Any real cloud:** `terraform apply`, the ALB with its WAF, IRSA / workload identity, RDS or Cloud SQL
   behaviour, quotas and name collisions, GPU node availability and scale-from-zero, the GCP plan with
   real credentials, cluster autoscaler, EFS/Filestore for shared storage.
-* **The CUDA image on a GPU:** it was built locally (9.76 GB; PyTorch 2.6.0+cu124 with the CUDA 12.4 libraries
+* **The CUDA image on a GPU:** it was built locally (9.76 GB; PyTorch 2.6.0+cu124 with the CUDA 12.4 libraries (since moved to the cu128 backend and PyTorch 2.10, which fixes CVE-2026-24747)
   present, no GPU visible on this machine) but was not scanned, and nothing has run on a GPU. Fine-tuning has
   only ever run on CPU (real Kronos-mini, 8 steps).
 * **Live Stripe:** nothing has talked to Stripe (the code refuses live keys; a test key is needed).

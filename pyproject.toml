@@ -107,7 +107,7 @@ chronos = [
 ]
 # CUDA wheels are not on PyPI proper. This extra installs the accelerator-side
 # libraries; point your resolver at the PyTorch index for the CUDA build, e.g.
-#   uv pip install "tycheon[gpu]" --torch-backend=cu124
+#   uv pip install "tycheon[gpu]" --torch-backend=cu128
 gpu = [
     "torch>=2.5,<3",
     "accelerate>=1.1,<2",

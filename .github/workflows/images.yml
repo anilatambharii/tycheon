@@ -54,7 +54,7 @@ jobs:
         include:
           - { name: api,        image: tycheon-api,       context: ".",            file: Dockerfile,                target: api,   torch: cpu,   suffix: "",      big: false }
           - { name: cloud,      image: tycheon-cloud,     context: ".",            file: Dockerfile,                target: cloud, torch: cpu,   suffix: "",      big: false }
-          - { name: cloud-cuda, image: tycheon-cloud,     context: ".",            file: Dockerfile,                target: cloud, torch: cu124, suffix: "-cuda", big: true }
+          - { name: cloud-cuda, image: tycheon-cloud,     context: ".",            file: Dockerfile,                target: cloud, torch: cu128, suffix: "-cuda", big: true }
           - { name: dashboard,  image: tycheon-dashboard, context: ee/dashboard,    file: ee/dashboard/Dockerfile,   target: "",    torch: cpu,   suffix: "",      big: false }
     outputs:
       pushed: ${{ steps.meta.outputs.push }}
