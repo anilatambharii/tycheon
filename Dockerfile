@@ -6,13 +6,13 @@
 #   --target cloud   Tycheon Cloud control plane, MCP endpoint and fine-tune worker (proprietary)
 #
 #   --build-arg TORCH_BACKEND=cpu     CPU-only PyTorch (default; small)
-#   --build-arg TORCH_BACKEND=cu124   PyTorch with the CUDA 12.4 runtime libraries bundled in the
+#   --build-arg TORCH_BACKEND=cu128   PyTorch with the CUDA 12.8 runtime libraries bundled in the
 #                                     wheels (large). The host needs an NVIDIA driver and the
 #                                     NVIDIA container runtime; no CUDA base image is required.
 #
 # Build from the repository root, for example:
 #   docker build --target api   -t tycheon-api:dev .
-#   docker build --target cloud -t tycheon-cloud:dev --build-arg TORCH_BACKEND=cu124 .
+#   docker build --target cloud -t tycheon-cloud:dev --build-arg TORCH_BACKEND=cu128 .
 #
 # Properties, each checked by `deploy/docker/verify_image.sh`: the process runs as an unprivileged
 # user (uid 10001), nothing is writable except /data, /tmp and the model cache, there is no
@@ -54,6 +54,7 @@ FROM ${PYTHON_IMAGE} AS runtime
 # libgomp1: LightGBM and PyTorch's CPU kernels need the OpenMP runtime.
 # libatomic1: Keelgate's Rego engine (regopy) is linked against it.
 RUN apt-get update \
+ && apt-get upgrade -y \
  && apt-get install -y --no-install-recommends libgomp1 libatomic1 ca-certificates \
  && rm -rf /var/lib/apt/lists/* \
  && groupadd --gid 10001 tycheon \
