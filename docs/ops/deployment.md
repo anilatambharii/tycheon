@@ -25,7 +25,7 @@ authenticated per API key with the `mcp` scope and gated by plan.
 ```
 docker build --target api   -t tycheon-api:dev   .                         # CPU
 docker build --target cloud -t tycheon-cloud:dev .                         # CPU
-docker build --target cloud --build-arg TORCH_BACKEND=cu124 -t tycheon-cloud:dev-cuda .   # GPU (large)
+docker build --target cloud --build-arg TORCH_BACKEND=cu128 -t tycheon-cloud:dev-cuda .   # GPU (large)
 docker build -t tycheon-dashboard:dev ee/dashboard
 ```
 
