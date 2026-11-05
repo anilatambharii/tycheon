@@ -89,6 +89,6 @@ def build_sample_fundamentals(root: Path) -> FundamentalsStore:
             # a restatement of the second-to-last quarter, published much later
             restated = frame.iloc[[-2]].copy()
             restated["value"] = restated["value"] * 1.08
-            restated["available_at"] = restated.index + RESTATEMENT_LAG
+            restated["available_at"] = pd.DatetimeIndex(restated.index) + RESTATEMENT_LAG
             store.put(series_id(symbol, metric), restated)
     return FundamentalsStore(store)

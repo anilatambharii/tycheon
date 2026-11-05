@@ -20,6 +20,7 @@ from __future__ import annotations
 
 import math
 import operator
+import warnings
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
 from typing import TYPE_CHECKING, Any, Literal, Protocol, runtime_checkable
@@ -373,13 +374,16 @@ def _infer_step(index: pd.DatetimeIndex) -> pd.offsets.BaseOffset | pd.Timedelta
     """The step between bars: a pandas offset when one fits, else the median spacing."""
     tail = index[-min(len(index), 64) :]
     if len(tail) >= 3:
-        inferred = pd.infer_freq(tail)
+        with warnings.catch_warnings():
+            # pandas 3.1 warns that infer_freq will return an offset; to_offset takes either
+            warnings.filterwarnings("ignore", message=".*will return a BaseOffset.*")
+            inferred = pd.infer_freq(tail)
         if inferred is not None:
             return pd.tseries.frequencies.to_offset(inferred)
     deltas = pd.Series(tail[1:] - tail[:-1])
     median = pd.Timedelta(deltas.median())
     # Daily-ish bars that never land on a weekend are business-day bars.
-    if median >= pd.Timedelta(days=1) and bool((tail.dayofweek < 5).all()):
+    if median >= pd.Timedelta(days=1) and bool((tail.day_of_week < 5).all()):
         return pd.offsets.BDay()
     return median
 
