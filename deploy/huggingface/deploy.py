@@ -3,7 +3,7 @@
     uv run python deploy/huggingface/deploy.py            # stage only, print what would be pushed
     uv run --with huggingface_hub python deploy/huggingface/deploy.py --push
 
-The token is read from the HF_TOKEN environment variable (a local, gitignored .env is fine) and is
+The token is read from HF_TOKEN in the environment or the repo's gitignored .env and is
 never printed. This script never changes the Space's visibility: that stays a manual step.
 """
 
@@ -21,6 +21,20 @@ HERE = Path(__file__).resolve().parent
 ROOT = HERE.parents[1]
 DEFAULT_REPO = "AmbhariiLabs/tycheon-demo"
 FORBIDDEN = ("ee", ".env", "third_party", "tests", ".git")
+
+
+def load_dotenv_token() -> str | None:
+    """HF_TOKEN from the environment, else from the repo's gitignored .env (never printed)."""
+    token = os.environ.get("HF_TOKEN")
+    if token:
+        return token
+    env = ROOT / ".env"
+    if env.is_file():
+        for line in env.read_text(encoding="utf-8").splitlines():
+            name, sep, value = line.partition("=")
+            if sep and name.strip() == "HF_TOKEN" and value.strip():
+                return value.strip().strip("\"'")
+    return None
 
 
 def stage(target: Path) -> list[Path]:
