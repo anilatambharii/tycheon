@@ -67,9 +67,9 @@ def main() -> int:
         if not args.push:
             print("dry run: nothing uploaded (pass --push)")
             return 0
-        token = os.environ.get("HF_TOKEN")
+        token = load_dotenv_token()
         if not token:
-            sys.stderr.write("error: set HF_TOKEN in the environment\n")
+            sys.stderr.write("error: set HF_TOKEN in the environment or in .env\n")
             return 2
         from huggingface_hub import HfApi
 
