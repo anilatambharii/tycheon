@@ -7,6 +7,27 @@ All notable changes to Tycheon are recorded here. The format follows
 
 For research and risk analytics. Not investment advice.
 
+## [0.6.0](https://github.com/anilatambharii/tycheon/compare/v0.5.0...v0.6.0) (2026-11-05)
+
+
+### Features
+
+* **deploy:** Hugging Face demo Space ([278f301](https://github.com/anilatambharii/tycheon/commit/278f3015381e2bd41ddc2297e8ff004248527f96))
+* **deploy:** Hugging Face demo Space (synthetic data, rate limited front door) ([9fceac7](https://github.com/anilatambharii/tycheon/commit/9fceac7cef8141e1000ee5275c359c01acd84bda))
+* **deploy:** read HF_TOKEN from the gitignored .env; document it ([ee0359b](https://github.com/anilatambharii/tycheon/commit/ee0359b7a1d520009552182c9ef9cf8e314837d1))
+* **deploy:** static Hugging Face demo from precomputed results ([e1de7cd](https://github.com/anilatambharii/tycheon/commit/e1de7cd93a3695fbd8f061fc18f9068081b2140b))
+
+
+### Bug Fixes
+
+* compatibility with pandas 3.1 (infer_freq warning, day_of_week, DatetimeIndex typing) ([652ecbe](https://github.com/anilatambharii/tycheon/commit/652ecbe0d9b6d5dc9f7c8312dabdad128190dd6d))
+* **deploy:** move the demo page out of the gitignored site/ folder ([ef300ae](https://github.com/anilatambharii/tycheon/commit/ef300ae3dd6c93b05b4f2b498c74fb3050877af8))
+* **deploy:** push path reads HF_TOKEN from .env too ([bbc2818](https://github.com/anilatambharii/tycheon/commit/bbc28183610ee379981f5c45ce325404a38d38bc))
+* **images:** clear Trivy gate (libssl3 upgrade, CUDA image on cu128 / torch 2.10) ([5b1c875](https://github.com/anilatambharii/tycheon/commit/5b1c875884bcfbdd132b27d9abc13a50d75c9029))
+* **images:** clear Trivy gate on main (libssl3, torch) ([0fdb200](https://github.com/anilatambharii/tycheon/commit/0fdb2009aadc4072ac33c75998f25e9a6d26c36b))
+* **risk:** calibration may only widen the tails used for VaR and ES ([0c1d39e](https://github.com/anilatambharii/tycheon/commit/0c1d39ece3d6c099628566307306ebcc7fe0279a))
+* **risk:** calibration may only widen the tails used for VaR and ES ([00a7ae8](https://github.com/anilatambharii/tycheon/commit/00a7ae80c1dc1f6318eb5fd321cfa6a0c020128b))
+
 ## [0.5.0](https://github.com/anilatambharii/tycheon/compare/v0.4.0...v0.5.0) (2026-10-23)
 
 
