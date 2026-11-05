@@ -44,7 +44,7 @@ def stage(target: Path) -> list[Path]:
     import build_static
 
     shutil.copy2(HERE / "README.md", target / "README.md")
-    shutil.copy2(HERE / "site" / "index.html", target / "index.html")
+    shutil.copy2(HERE / "page" / "index.html", target / "index.html")
     build_static.write(target / "data.json")
     files = sorted(p for p in target.rglob("*") if p.is_file())
     extra = [p.name for p in files if p.name not in ALLOWED or p.parent != target]

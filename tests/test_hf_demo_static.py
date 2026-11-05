@@ -58,7 +58,7 @@ def test_data_is_synthetic_labelled_and_serialisable(small: dict) -> None:
 
 
 def test_the_page_states_the_limits_and_the_disclaimer() -> None:
-    html = (HF / "site" / "index.html").read_text(encoding="utf-8")
+    html = (HF / "page" / "index.html").read_text(encoding="utf-8")
     assert DISCLAIMER in html
     assert "synthetic" in html.lower() and "precomputed" in html.lower()
     assert "<script src" not in html  # nothing is loaded from elsewhere
