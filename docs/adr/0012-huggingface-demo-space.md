@@ -5,25 +5,29 @@ Date: 2026-11-04. Status: accepted.
 ## Context
 
 Tycheon needs a place where people can try calibrated forecasts and risk figures without installing
-anything. Hugging Face Spaces is where the forecasting-model community already looks.
+anything. Hugging Face Spaces is where the forecasting-model community already looks. The
+organisation's free tier has no CPU quota for a running (Docker) Space, and we do not add paid
+infrastructure for a demo.
 
 ## Decision
 
-* One Docker Space, `AmbhariiLabs/tycheon-demo`, built from `deploy/huggingface/`. It runs the
-  open-source package only. Tycheon Cloud (`ee/`) is never staged: `deploy.py` refuses to.
-* The real Tycheon API listens on loopback with a random per-boot key. The only public surface is a
-  small front door (`app/proxy.py`) that serves one page and forwards a fixed allowlist: four
-  synthetic series, the random-walk, drift and GARCH models, bounded horizons and sizes.
+* One **static** Space, `AmbhariiLabs/tycheon-demo`, built from `deploy/huggingface/`. A static
+  Space needs no hardware.
+* Every number on the page is precomputed by `build_static.py` with the real services (the same
+  `/v1/forecast` and `/v1/risk` code paths) over a fixed grid: four bundled synthetic series, the
+  random-walk, drift and GARCH models, a few horizons, calibrated and raw side by side. The page
+  says so.
 * Synthetic data only. Licensed or scraped market data is not redistributed and `yfinance` is off.
-* Calls are rate limited per client and capped in concurrency. Uploads are not accepted.
-* The wheel is built from the commit being deployed and shipped inside the Space, so the demo never
-  runs a version that differs from the repository.
-* Deployment is a manual script with a token from the environment. Making the Space public is a
-  manual step by a person.
+* There is no server, so there is nothing to rate limit and no upload surface. Tycheon Cloud (`ee/`)
+  is never staged: `deploy.py` writes exactly three files (`README.md`, `index.html`, `data.json`)
+  and refuses anything else.
+* Deployment is a manual script with a token from the environment or a gitignored `.env`. Making
+  the Space public is a manual step by a person.
 
 ## Consequences
 
-* The demo says nothing about real markets, and says so on the page.
+* The demo is not interactive beyond the grid, and says nothing about real markets. Visitors who
+  want their own data install the package.
 * No foundation-model weights are downloaded or hosted; Kronos, TimesFM and Chronos stay out.
-* The front door duplicates a few bounds that the API also enforces, on purpose: it is the part
-  exposed to strangers.
+* If the organisation later gets hardware quota, a live Space can be added; the precomputed one
+  stays useful as a fast landing page.

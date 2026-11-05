@@ -1,10 +1,11 @@
-"""Stage and push the demo Space.
+"""Build and push the static demo Space.
 
-    uv run python deploy/huggingface/deploy.py            # stage only, print what would be pushed
-    uv run --with huggingface_hub python deploy/huggingface/deploy.py --push
+    uv run --extra serve python deploy/huggingface/deploy.py            # build, print the file list
+    uv run --extra serve --with huggingface_hub python deploy/huggingface/deploy.py --push
 
-The token is read from HF_TOKEN in the environment or the repo's gitignored .env and is
-never printed. This script never changes the Space's visibility: that stays a manual step.
+The results are computed by ``build_static.py`` from the checkout being deployed. The token is read
+from HF_TOKEN in the environment or the repo's gitignored .env and is never printed. This script
+never changes the Space's visibility: that stays a manual step.
 """
 
 from __future__ import annotations
@@ -12,7 +13,6 @@ from __future__ import annotations
 import argparse
 import os
 import shutil
-import subprocess
 import sys
 import tempfile
 from pathlib import Path
@@ -20,7 +20,9 @@ from pathlib import Path
 HERE = Path(__file__).resolve().parent
 ROOT = HERE.parents[1]
 DEFAULT_REPO = "AmbhariiLabs/tycheon-demo"
-FORBIDDEN = ("ee", ".env", "third_party", "tests", ".git")
+ALLOWED = {"README.md", "index.html", "data.json"}
+
+sys.path.insert(0, str(HERE))
 
 
 def load_dotenv_token() -> str | None:
@@ -38,18 +40,16 @@ def load_dotenv_token() -> str | None:
 
 
 def stage(target: Path) -> list[Path]:
-    """Copy the Space files and one wheel of this checkout into ``target``."""
-    for name in ("Dockerfile", "start.sh", "README.md"):
-        shutil.copy2(HERE / name, target / name)
-    shutil.copytree(HERE / "app", target / "app", ignore=shutil.ignore_patterns("__pycache__"))
-    wheel_dir = target / "wheel"
-    wheel_dir.mkdir()
-    subprocess.run(["uv", "build", "--wheel", "--out-dir", str(wheel_dir)], cwd=ROOT, check=True)
+    """Write exactly the files the Space serves into ``target``."""
+    import build_static
+
+    shutil.copy2(HERE / "README.md", target / "README.md")
+    shutil.copy2(HERE / "site" / "index.html", target / "index.html")
+    build_static.write(target / "data.json")
     files = sorted(p for p in target.rglob("*") if p.is_file())
-    for path in files:
-        top = path.relative_to(target).parts[0]
-        if top in FORBIDDEN or path.suffix in {".pem", ".key"}:
-            raise SystemExit(f"refusing to stage {path.relative_to(target)}")
+    extra = [p.name for p in files if p.name not in ALLOWED or p.parent != target]
+    if extra:
+        raise SystemExit(f"refusing to stage {extra}")
     return files
 
 
@@ -63,7 +63,7 @@ def main() -> int:
         target = Path(tmp)
         files = stage(target)
         for path in files:
-            print(f"  {path.relative_to(target).as_posix()}  ({path.stat().st_size:,} bytes)")
+            print(f"  {path.name}  ({path.stat().st_size:,} bytes)")
         if not args.push:
             print("dry run: nothing uploaded (pass --push)")
             return 0
@@ -78,7 +78,9 @@ def main() -> int:
             repo_id=args.repo,
             repo_type="space",
             folder_path=str(target),
-            commit_message="Deploy Tycheon demo",
+            # the Space is a mirror of this folder: files from the earlier Docker attempt go
+            delete_patterns=["Dockerfile", "start.sh", "app/**", "wheel/**"],
+            commit_message="Deploy Tycheon static demo",
         )
         print(f"pushed to https://huggingface.co/spaces/{args.repo}")
     return 0
