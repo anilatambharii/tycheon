@@ -112,7 +112,7 @@ def test_forecast_times_continue_the_history(forecaster, syn_gbm) -> None:
     assert d.index[0] > last
     assert d.last_observation == last
     assert d.index.is_monotonic_increasing
-    assert (d.index.dayofweek < 5).all(), "business-day history must forecast business days"
+    assert (d.index.day_of_week < 5).all(), "business-day history must forecast business days"
 
 
 def test_the_median_is_a_sensible_price(forecaster, syn_gbm) -> None:

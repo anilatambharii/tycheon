@@ -85,7 +85,7 @@ def calendar_features(index: pd.DatetimeIndex) -> NDArray[np.float32]:
     exchange local time, because that is the clock Kronos was trained against.
     """
     return np.column_stack(
-        [index.minute, index.hour, index.dayofweek, index.day, index.month]
+        [index.minute, index.hour, index.day_of_week, index.day, index.month]
     ).astype(np.float32)
 
 

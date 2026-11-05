@@ -277,14 +277,14 @@ def test_as_of_must_be_timezone_aware(bars_factory) -> None:
 def test_business_day_series_continue_over_weekends() -> None:
     index = pd.bdate_range("2024-01-01", periods=30, tz="UTC")
     future = forecast_index(index, 6)
-    assert (future.dayofweek < 5).all()
+    assert (future.day_of_week < 5).all()
     assert future[0] == index[-1] + pd.offsets.BDay()
 
 
 def test_business_day_series_with_holidays_are_still_business_days() -> None:
     index = pd.bdate_range("2024-01-01", periods=40, tz="UTC").delete([5, 17])  # irregular
     future = forecast_index(index, 5)
-    assert (future.dayofweek < 5).all()
+    assert (future.day_of_week < 5).all()
 
 
 def test_calendar_daily_and_hourly_cadences_are_continued() -> None:
