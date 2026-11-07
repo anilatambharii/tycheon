@@ -1,0 +1,27 @@
+cff-version: 1.2.0
+message: "If you use Tycheon in research, please cite it using these metadata."
+title: "Tycheon: calibrated forecasting and risk analytics"
+type: software
+abstract: >-
+  Tycheon is an open-source library that adds calibrated uncertainty (conformal prediction
+  intervals) and forecast-to-risk translation (VaR, Expected Shortfall, drawdown probability)
+  on top of forecasting models such as Kronos, with leakage-proof walk-forward evaluation and a
+  random-walk baseline reported with every result. For research and risk analytics. Not
+  investment advice.
+authors:
+  - family-names: Prasad
+    given-names: Anil
+    affiliation: Ambharii Labs
+repository-code: "https://github.com/anilatambharii/tycheon"
+url: "https://github.com/anilatambharii/tycheon"
+license: Apache-2.0
+version: 0.6.0
+date-released: 2026-11-05
+keywords:
+  - forecasting
+  - time series
+  - conformal prediction
+  - calibration
+  - value at risk
+  - expected shortfall
+  - backtesting
