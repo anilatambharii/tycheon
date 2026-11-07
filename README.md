@@ -10,11 +10,14 @@ desk actually uses. Tycheon is that missing layer.
 
 [![License](https://img.shields.io/badge/license-Apache--2.0-blue.svg)](LICENSE)
 [![Python](https://img.shields.io/badge/python-3.11%20%7C%203.12-blue.svg)](pyproject.toml)
+[![PyPI](https://img.shields.io/pypi/v/tycheon.svg)](https://pypi.org/project/tycheon/)
+[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.24041298.svg)](https://doi.org/10.5281/zenodo.24041298)
 [![OpenSSF Scorecard](https://api.scorecard.dev/projects/github.com/anilatambharii/tycheon/badge)](https://scorecard.dev/viewer/?uri=github.com/anilatambharii/tycheon)
 
 **For research and risk analytics. Not investment advice.**
 
-> **Status: v0.4.0, alpha.** The library, a governed agentic risk review, a REST API and an
+> **Status: v0.6.0, alpha.** Try the [live demo](https://huggingface.co/spaces/AmbhariiLabs/tycheon-demo)
+> (precomputed, synthetic data). The library, a governed agentic risk review, a REST API and an
 > MCP server exist and are tested. **The evidence so far is synthetic: on the bundled series
 > no model, Kronos included, is distinguishable from the random walk, and we publish that**
 > (see [Benchmark results](#benchmark-results) below). Multi-asset portfolio risk is always
@@ -111,8 +114,7 @@ Foundation models are optional extras, so the base install stays small
 (`import tycheon.models` never imports torch): `tycheon[kronos]`, `[timesfm]`, `[chronos]`.
 The `serve` and `agents` extras depend on [Keelgate](https://github.com/anilatambharii/keelgate),
 which this repo pins to a commit through its `uv` sources; to use the REST API, the MCP server or
-the agents, work from a clone (below), which is the path we test. PyPI lists `tycheon` 0.4.0 at the
-time of writing.
+the agents, work from a clone (below), which is the path we test. The PyPI package is `tycheon` 0.6.0.
 
 ## Quickstart
 
@@ -373,3 +375,8 @@ with code, and no PR lands without them. Report vulnerabilities privately, per
 this software is a recommendation to buy or sell any security, and no part of it
 is personalized financial advice. Past calibration does not guarantee future
 coverage.
+
+## Citing
+
+If you use Tycheon in research, please cite it (see `CITATION.cff`). The DOI
+[10.5281/zenodo.24041298](https://doi.org/10.5281/zenodo.24041298) always resolves to the latest version.

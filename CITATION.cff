@@ -15,6 +15,7 @@ authors:
 repository-code: "https://github.com/anilatambharii/tycheon"
 url: "https://github.com/anilatambharii/tycheon"
 license: Apache-2.0
+doi: 10.5281/zenodo.24041298
 version: 0.6.0
 date-released: 2026-11-05
 keywords:
