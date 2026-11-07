@@ -7,6 +7,16 @@ All notable changes to Tycheon are recorded here. The format follows
 
 For research and risk analytics. Not investment advice.
 
+## [0.6.1](https://github.com/anilatambharii/tycheon/compare/v0.6.0...v0.6.1) (2026-11-07)
+
+
+### Documentation
+
+* add CITATION.cff ([70cc147](https://github.com/anilatambharii/tycheon/commit/70cc1475b61208479b45aea8dd729753b491fcff))
+* add CITATION.cff for GitHub's Cite button and Zenodo ([64f9111](https://github.com/anilatambharii/tycheon/commit/64f911122a7aa21485b38b91d63b03ba7f41ed68))
+* add DOI, PyPI and demo links; status v0.6.0 ([82e9244](https://github.com/anilatambharii/tycheon/commit/82e924475a75d639402aaf59dbbd3a0adcb5e2ac))
+* add DOI, PyPI and demo links; update status to v0.6.0 ([b30fb3a](https://github.com/anilatambharii/tycheon/commit/b30fb3aee97fafd67c3303f4fcd91c9542574bcd))
+
 ## [0.6.0](https://github.com/anilatambharii/tycheon/compare/v0.5.0...v0.6.0) (2026-11-05)
 
 
