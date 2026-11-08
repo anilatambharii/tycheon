@@ -77,9 +77,9 @@ returns the **close** as the forecast target, and keeps the other channels in
 
 ## Calibration
 
-Uncalibrated (`calibration_status="uncalibrated"`). Conformal calibration and reliability
-diagnostics arrive in Phase T2; until then treat the intervals as the model's opinion, not a
-measured coverage.
+Uncalibrated as built (`calibration_status="uncalibrated"`): the spread of the sample paths is whatever the pre-trained model believes. Calibration is available for any forecaster: wrap it with `ConformalCalibrator` (split or
+adaptive conformal) and the forecast carries a status (`calibrated`, `stale` or `uncalibrated`)
+earned on a holdout it was not fitted on. See [calibration](../calibration.md). In the small benchmark (`benchmarks/results/small/0.1.0.json`: Tycheon 0.1.0, three synthetic series, horizon 5, 108 pooled walk-forward origins), zero-shot Kronos-mini's nominal 90% interval contained 57.4% of outcomes, so its raw intervals were overconfident on that data. It ran with 20 sample paths, against 100 for the other models, so its tail quantiles are noisy.
 
 ## How Tycheon runs it
 
@@ -93,7 +93,6 @@ series of differing lengths (upstream requires equal lengths).
 
 ## Baseline comparison
 
-Not yet evaluated. Walk-forward evaluation against the random walk, with a Diebold-Mariano test,
-arrives in Phase T3. Nothing on this card claims that Kronos-mini beats the random walk.
+Measured in the small benchmark (`benchmarks/results/small/0.1.0.json`: Tycheon 0.1.0, three synthetic series, horizon 5, 108 pooled walk-forward origins). Pooled MASE against the no-change forecast: 1.025. Achieved coverage of the nominal 90% interval: 57.4%. One-sided Diebold-Mariano p-values that it has lower loss than the random walk: 0.685 (squared error) and 0.756 (CRPS), so it is **indistinguishable from the random walk**. Its 57.4% directional accuracy and IC of 0.168 are within what noise produces with 108 origins. It ran zero-shot with 20 sample paths and 256 bars of history. Synthetic data: this shows how the machinery behaves, not whether the model forecasts real markets.
 
 For research and risk analytics. Not investment advice.

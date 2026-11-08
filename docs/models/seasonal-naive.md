@@ -36,7 +36,9 @@ series without seasonality its error is large, which the leaderboard should show
 
 ## Calibration
 
-Uncalibrated: the spread is the Gaussian one implied by the seasonal differences.
+Uncalibrated as built: the spread is the Gaussian one implied by the seasonal differences. Calibration is available for any forecaster: wrap it with `ConformalCalibrator` (split or
+adaptive conformal) and the forecast carries a status (`calibrated`, `stale` or `uncalibrated`)
+earned on a holdout it was not fitted on. See [calibration](../calibration.md).
 
 ## How Tycheon runs it
 
@@ -44,6 +46,6 @@ Pure NumPy, no downloads, milliseconds per forecast, seeded and reproducible.
 
 ## Baseline comparison
 
-Reported alongside the random walk in every evaluation (Phase T3); not yet measured.
+Measured in the small benchmark (`benchmarks/results/small/0.1.0.json`: Tycheon 0.1.0, three synthetic series, horizon 5, 108 pooled walk-forward origins). Pooled MASE against the no-change forecast: 1.012. Achieved coverage of the nominal 90% interval: 85.2%. One-sided Diebold-Mariano p-values that it has lower loss than the random walk: 0.618 (squared error) and 0.269 (CRPS), so it is **indistinguishable from the random walk**. It had the lowest pooled MASE in that run, a difference that is not statistically distinguishable. Synthetic data: this shows how the machinery behaves, not whether the model forecasts real markets.
 
 For research and risk analytics. Not investment advice.

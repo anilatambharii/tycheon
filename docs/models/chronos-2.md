@@ -46,7 +46,9 @@ package's own autoregressive unrolling.
 
 ## Calibration
 
-Uncalibrated. The quantiles are the model's own. Conformal calibration arrives in Phase T2.
+Uncalibrated as built: the quantiles are the model's own. Calibration is available for any forecaster: wrap it with `ConformalCalibrator` (split or
+adaptive conformal) and the forecast carries a status (`calibrated`, `stale` or `uncalibrated`)
+earned on a holdout it was not fitted on. See [calibration](../calibration.md). Chronos-2 returns marginal quantiles only, so calibration applies to its quantiles, and it cannot feed path-based risk measures (see [ADR 0005](../adr/0005-risk-and-portfolio-dependence.md)).
 
 ## How Tycheon runs it
 
@@ -57,8 +59,7 @@ real weights in the nightly slow suite (see the verification note below).
 
 ## Baseline comparison
 
-Not yet evaluated. Walk-forward evaluation against the random walk, with a Diebold-Mariano
-test, arrives in Phase T3; nothing here claims Chronos-2 beats it.
+Not in the published benchmark run. Nothing on this card claims that Chronos-2 beats the random walk. Run it yourself with `make benchmark-small` after adding it to a config; every result is reported against the random walk with Diebold-Mariano tests. See [benchmark methodology](../benchmark-methodology.md).
 
 ## Verification note
 

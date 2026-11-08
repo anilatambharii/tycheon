@@ -36,8 +36,9 @@ from "the series simply went up".
 
 ## Calibration
 
-Uncalibrated: the interval is the one implied by the estimated drift and volatility, not a
-measured coverage.
+Uncalibrated as built: the interval is the one implied by the estimated drift and volatility. Calibration is available for any forecaster: wrap it with `ConformalCalibrator` (split or
+adaptive conformal) and the forecast carries a status (`calibrated`, `stale` or `uncalibrated`)
+earned on a holdout it was not fitted on. See [calibration](../calibration.md).
 
 ## How Tycheon runs it
 
@@ -46,6 +47,6 @@ Pure NumPy, no downloads, milliseconds per forecast, seeded and reproducible. Re
 
 ## Baseline comparison
 
-Reported alongside the random walk in every evaluation (Phase T3); not yet measured.
+Measured in the small benchmark (`benchmarks/results/small/0.1.0.json`: Tycheon 0.1.0, three synthetic series, horizon 5, 108 pooled walk-forward origins). Pooled MASE against the no-change forecast: 1.024. Achieved coverage of the nominal 90% interval: 79.6%. One-sided Diebold-Mariano p-values that it has lower loss than the random walk: 0.850 (squared error) and 0.905 (CRPS), so it is **indistinguishable from the random walk**. Synthetic data: this shows how the machinery behaves, not whether the model forecasts real markets.
 
 For research and risk analytics. Not investment advice.

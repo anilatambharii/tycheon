@@ -45,10 +45,10 @@ Cards also say what it is for, how Tycheon runs it, and how it compares with the
 - **Publisher claims are attributed.** Training-data and licence statements are quoted from
   the publisher's own card and repository, with the date they were read. Tycheon does not
   restate them as its own findings.
-- **No skill claims.** Until walk-forward evaluation exists (Phase T3), every card's
-  baseline-comparison section says so. Nothing here asserts that any model beats the
-  random walk.
-- **Every forecast is uncalibrated** until Phase T2 adds conformal calibration; each card
-  says so, and so does every `ForecastDistribution`.
+- **No skill claims.** Each card's baseline-comparison section reports the published walk-forward
+  result against the random walk with Diebold-Mariano tests, or says the model was not in the run.
+  Nothing here asserts that any model beats the random walk.
+- **Every forecast is uncalibrated as built.** Conformal calibration (`ConformalCalibrator`) can wrap
+  any forecaster, and a forecast is only labelled `calibrated` when a holdout supports it.
 
 For research and risk analytics. Not investment advice.
