@@ -48,7 +48,6 @@ the distribution, and calibration then measures whether the intervals around it 
 
 ## Baseline comparison
 
-The zero-correction (base) forecast is the baseline in the acceptance test. Evaluation against
-the random walk with Diebold-Mariano tests arrives in Phase T3; not yet measured.
+The zero-correction (base) forecast is the baseline in the acceptance test: the correction is only used if it beats no correction out of sample. It is not in the published benchmark run. Nothing on this card claims that the residual-corrected forecaster beats the random walk. Run it yourself with `make benchmark-small` after adding it to a config; every result is reported against the random walk with Diebold-Mariano tests. See [benchmark methodology](../benchmark-methodology.md).
 
 For research and risk analytics. Not investment advice.

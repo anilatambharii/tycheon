@@ -42,8 +42,9 @@ and Tycheon publishes that result whichever way it goes.
 
 ## Calibration
 
-Uncalibrated (`calibration_status="uncalibrated"`): the interval is the Gaussian one implied
-by the estimated volatility, not a measured coverage. Calibration arrives in Phase T2.
+Uncalibrated as built: the interval is the Gaussian one implied by the estimated volatility, not a measured coverage. Calibration is available for any forecaster: wrap it with `ConformalCalibrator` (split or
+adaptive conformal) and the forecast carries a status (`calibrated`, `stale` or `uncalibrated`)
+earned on a holdout it was not fitted on. See [calibration](../calibration.md). Raw coverage of its 90% interval in the small benchmark (`benchmarks/results/small/0.1.0.json`: Tycheon 0.1.0, three synthetic series, horizon 5, 108 pooled walk-forward origins): 79.6%.
 
 ## How Tycheon runs it
 
@@ -53,7 +54,6 @@ recorded in the forecast metadata. Requires the `close` column and at least thre
 
 ## Baseline comparison
 
-This *is* the baseline. Its own performance is reported by construction in every evaluation
-(Phase T3).
+This *is* the baseline. It is mandatory in every benchmark config. In the small benchmark (`benchmarks/results/small/0.1.0.json`: Tycheon 0.1.0, three synthetic series, horizon 5, 108 pooled walk-forward origins) its pooled MASE was 1.014 rather than 1.000. The benchmark scores the median of the sampled paths (100 here), which is close to, not exactly, the last close; that sampling noise adds a little error to a forecast that is otherwise exactly the no-change one. A simulation of the same setup gives noise of the size that accounts for a gap of this order, so it is not evidence of a bug.
 
 For research and risk analytics. Not investment advice.

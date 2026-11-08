@@ -37,7 +37,9 @@ is itself informative.
 
 ## Calibration
 
-Uncalibrated: the spread is the fitted model's own.
+Uncalibrated as built: the spread is the fitted model's own. Calibration is available for any forecaster: wrap it with `ConformalCalibrator` (split or
+adaptive conformal) and the forecast carries a status (`calibrated`, `stale` or `uncalibrated`)
+earned on a holdout it was not fitted on. See [calibration](../calibration.md).
 
 ## How Tycheon runs it
 
@@ -46,6 +48,6 @@ development laptop). Seeded and reproducible through an explicit generator.
 
 ## Baseline comparison
 
-Reported alongside the random walk in every evaluation (Phase T3); not yet measured.
+Not in the published benchmark run. Nothing on this card claims that ARIMA beats the random walk. Run it yourself with `make benchmark-small` after adding it to a config; every result is reported against the random walk with Diebold-Mariano tests. See [benchmark methodology](../benchmark-methodology.md).
 
 For research and risk analytics. Not investment advice.

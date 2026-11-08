@@ -77,9 +77,9 @@ returns the **close** as the forecast target, and keeps the other channels in
 
 ## Calibration
 
-Uncalibrated (`calibration_status="uncalibrated"`). Conformal calibration and reliability
-diagnostics arrive in Phase T2; until then treat the intervals as the model's opinion, not a
-measured coverage.
+Uncalibrated as built (`calibration_status="uncalibrated"`): the spread of the sample paths is whatever the pre-trained model believes. Calibration is available for any forecaster: wrap it with `ConformalCalibrator` (split or
+adaptive conformal) and the forecast carries a status (`calibrated`, `stale` or `uncalibrated`)
+earned on a holdout it was not fitted on. See [calibration](../calibration.md).
 
 ## How Tycheon runs it
 
@@ -93,7 +93,6 @@ series of differing lengths (upstream requires equal lengths).
 
 ## Baseline comparison
 
-Not yet evaluated. Walk-forward evaluation against the random walk, with a Diebold-Mariano test,
-arrives in Phase T3. Nothing on this card claims that Kronos-base beats the random walk.
+Not in the published benchmark run. Nothing on this card claims that Kronos-base beats the random walk. Run it yourself with `make benchmark-small` after adding it to a config; every result is reported against the random walk with Diebold-Mariano tests. See [benchmark methodology](../benchmark-methodology.md).
 
 For research and risk analytics. Not investment advice.

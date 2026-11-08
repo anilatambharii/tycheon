@@ -48,8 +48,6 @@ holdout coverage that justifies (or withdraws) the `calibrated` label.
 
 ## Baseline comparison
 
-The random walk is a member and its weight is reported per regime. When it carries most of
-the weight, that is the honest finding. Full evaluation with Diebold-Mariano tests arrives in
-Phase T3; not yet measured.
+The random walk is a member and its weight is reported per regime. When it carries most of the weight, that is the honest finding. Measured in the small benchmark (`benchmarks/results/small/0.1.0.json`: Tycheon 0.1.0, three synthetic series, horizon 5, 108 pooled walk-forward origins). Pooled MASE against the no-change forecast: 1.041. Achieved coverage of the nominal 90% interval: 83.3%. One-sided Diebold-Mariano p-values that it has lower loss than the random walk: 0.991 (squared error) and 0.343 (CRPS), so it is **indistinguishable from the random walk**. The same ensemble calibrated with adaptive conformal prediction (`tycheon-calibrated`) reached 86.1% coverage of the 90% interval, the closest to nominal in that run, with the widest interval; it was also indistinguishable from the random walk (p = 0.787 and 0.797). Synthetic data: this shows how the machinery behaves, not whether the model forecasts real markets.
 
 For research and risk analytics. Not investment advice.
