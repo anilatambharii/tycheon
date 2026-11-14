@@ -36,6 +36,10 @@ preferred-citation:
       affiliation: Ambharii Labs
       orcid: "https://orcid.org/0009-0008-0693-4003"
   doi: 10.5281/zenodo.24045159
+  identifiers:
+    - type: doi
+      value: 10.2139/ssrn.7689081
+      description: SSRN version of the paper
   year: 2026
   status: preprint
   publisher:
