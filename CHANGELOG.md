@@ -7,6 +7,24 @@ All notable changes to Tycheon are recorded here. The format follows
 
 For research and risk analytics. Not investment advice.
 
+## [0.6.1](https://github.com/anilatambharii/tycheon/compare/v0.6.0...v0.6.1) (2026-11-14)
+
+
+### Documentation
+
+* add CITATION.cff ([70cc147](https://github.com/anilatambharii/tycheon/commit/70cc1475b61208479b45aea8dd729753b491fcff))
+* add CITATION.cff for GitHub's Cite button and Zenodo ([64f9111](https://github.com/anilatambharii/tycheon/commit/64f911122a7aa21485b38b91d63b03ba7f41ed68))
+* add DOI, PyPI and demo links; status v0.6.0 ([82e9244](https://github.com/anilatambharii/tycheon/commit/82e924475a75d639402aaf59dbbd3a0adcb5e2ac))
+* add DOI, PyPI and demo links; update status to v0.6.0 ([b30fb3a](https://github.com/anilatambharii/tycheon/commit/b30fb3aee97fafd67c3303f4fcd91c9542574bcd))
+* add press kit page with SSRN link and downloadable images ([5e37a64](https://github.com/anilatambharii/tycheon/commit/5e37a64d4078c980860873f7af7fee93b36f6e76))
+* add press kit page with SSRN link and downloadable images ([cb9837b](https://github.com/anilatambharii/tycheon/commit/cb9837b6302f14f991c433f95d52323c519fc1bb))
+* add SSRN DOI for the paper to README and CITATION.cff ([bdf82b3](https://github.com/anilatambharii/tycheon/commit/bdf82b3d0c3b2e2cd35673457b401e18853b38be))
+* add SSRN DOI for the paper to README and CITATION.cff ([65cdba6](https://github.com/anilatambharii/tycheon/commit/65cdba611f65f5b0ce41685548fcdb2f14083e92))
+* cite the paper (preferred-citation) and add author ORCID ([d144ea4](https://github.com/anilatambharii/tycheon/commit/d144ea455015651b5e3a16f5bd691c6791df2e7b))
+* cite the paper (preferred-citation) and add author ORCID ([7b0068f](https://github.com/anilatambharii/tycheon/commit/7b0068f48fc8a77a169a733ff72ef377736f5dc0))
+* **models:** refresh model cards with published calibration and benchmark results ([ba041fb](https://github.com/anilatambharii/tycheon/commit/ba041fb1418efe1e6af0d1ca1d092d65ab9ef45e))
+* **models:** refresh model cards with published calibration and benchmark results ([1e9969b](https://github.com/anilatambharii/tycheon/commit/1e9969b6f5ef901a0e2e22974abdc73d28a5c22d))
+
 ## [0.6.0](https://github.com/anilatambharii/tycheon/compare/v0.5.0...v0.6.0) (2026-11-05)
 
 
