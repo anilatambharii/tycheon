@@ -65,6 +65,7 @@ nav:
   - Serving: serving.md
   - Tycheon Cloud: cloud.md
   - Examples gallery: gallery.md
+  - Press kit: press.md
   - Operations:
       - Overview: ops/index.md
       - Deployment: ops/deployment.md
