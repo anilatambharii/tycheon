@@ -383,4 +383,4 @@ If you use Tycheon in research, please cite it (see `CITATION.cff`). The DOI
 
 The accompanying paper is a preprint:
 A. Prasad, *Tycheon: Calibrated Uncertainty, Risk Translation and Leakage-Guarded Evaluation for Financial
-Time-Series Foundation Models* (2026), [10.5281/zenodo.24045159](https://doi.org/10.5281/zenodo.24045159).
+Time-Series Foundation Models* (2026), [10.5281/zenodo.24045159](https://doi.org/10.5281/zenodo.24045159). It is also available on SSRN: [10.2139/ssrn.7689081](https://doi.org/10.2139/ssrn.7689081).
