@@ -188,7 +188,7 @@ class BoundToolset(GovernedToolset):
 class GovernedRuntime:
     """Keelgate's gateway, audit chain, approvals and grants, assembled for Tycheon."""
 
-    def __init__(self, config: RuntimeConfig = RuntimeConfig()) -> None:  # noqa: B008
+    def __init__(self, config: RuntimeConfig = RuntimeConfig()) -> None:
         self.config = config
         self._owns_state = config.state_dir is None
         self.state_dir = (
