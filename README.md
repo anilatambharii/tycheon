@@ -113,8 +113,9 @@ pip install "tycheon[report]"       # + the HTML risk report
 Foundation models are optional extras, so the base install stays small
 (`import tycheon.models` never imports torch): `tycheon[kronos]`, `[timesfm]`, `[chronos]`.
 The `serve` and `agents` extras depend on [Keelgate](https://github.com/anilatambharii/keelgate),
-which this repo pins to a commit through its `uv` sources; to use the REST API, the MCP server or
-the agents, work from a clone (below), which is the path we test. The PyPI package is `tycheon` 0.6.0.
+`keelgate>=0.2,<0.3` from PyPI. The published `tycheon` 0.6.0 still asks for the 0.1 series, so
+until the next release, work from a clone (below) to use the REST API, the MCP server or the
+agents. The PyPI package is `tycheon` 0.6.0.
 
 ## Quickstart
 
@@ -347,9 +348,8 @@ More in [`docs/safety.md`](docs/safety.md) and [`SECURITY.md`](SECURITY.md).
 policy gates, capabilities, approvals, audit, durable loops, telemetry and
 evals. Tycheon depends on it as a library (the `agents` and `serve` extras), and every
 Keelgate import is confined to
-[`src/tycheon/governance/`](src/tycheon/governance/README.md). Keelgate is not on
-PyPI yet, so those extras are installed from a pinned commit for now; see
-[governance](docs/governance.md).
+[`src/tycheon/governance/`](src/tycheon/governance/README.md). Tycheon's metrics
+plug into `keelgate eval run`; see [governance](docs/governance.md).
 
 ## Open core
 

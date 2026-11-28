@@ -66,14 +66,14 @@ tycheon-serve = "tycheon.serve.cli:serve_main"
 tycheon-mcp = "tycheon.serve.cli:mcp_main"
 
 # Tycheon's financial metrics, registered for Keelgate's outcome-metric plugin point. The group
-# name is part of Keelgate's integration contract. Keelgate's OutcomeMetric protocol is not
-# implemented yet, so these classes follow a small shape of Tycheon's own: see tycheon.metrics.
+# name is part of Keelgate's integration contract. The targets are thin adapters to Keelgate's
+# OutcomeMetric protocol; the maths is in tycheon.metrics. Loading them needs Keelgate.
 [project.entry-points."keelgate.outcome_metrics"]
-crps = "tycheon.metrics:CRPS"
-coverage = "tycheon.metrics:IntervalCoverage"
-mase_vs_rw = "tycheon.metrics:MASEvsRandomWalk"
-dm_test = "tycheon.metrics:DieboldMarianoVsRandomWalk"
-qlike = "tycheon.metrics:QLIKE"
+crps = "tycheon.governance._outcome_metrics:CRPSOutcome"
+coverage = "tycheon.governance._outcome_metrics:CoverageGapOutcome"
+mase_vs_rw = "tycheon.governance._outcome_metrics:MASEvsRandomWalkOutcome"
+dm_test = "tycheon.governance._outcome_metrics:DieboldMarianoOutcome"
+qlike = "tycheon.governance._outcome_metrics:QLIKEOutcome"
 
 [project.urls]
 Homepage = "https://github.com/anilatambharii/tycheon"
@@ -117,7 +117,7 @@ serve = [
     "uvicorn[standard]>=0.32,<1",
     # Keelgate's MCP adapter needs mcp>=2.3, so this extra follows it (T0 pinned mcp<2).
     "mcp>=2.3,<3",
-    "keelgate[mcp]>=0.1,<0.2",
+    "keelgate[mcp]>=0.2,<0.3",
     "redis>=5.2,<9",
     "boto3>=1.35,<2",
 ]
@@ -126,12 +126,10 @@ report = [
     "matplotlib>=3.9,<4",
 ]
 # The governed agentic workflow (Phase T4). Keelgate is imported only from
-# src/tycheon/governance/ (enforced by tests/test_architecture.py). Keelgate is not on PyPI
-# yet: [tool.uv.sources] below pins a commit for development and CI, and a published
-# tycheon[agents] needs `keelgate>=0.1,<0.2` to exist on PyPI first.
+# src/tycheon/governance/ (enforced by tests/test_architecture.py).
 agents = [
     "tycheon[serve]",
-    "keelgate>=0.1,<0.2",
+    "keelgate>=0.2,<0.3",
 ]
 
 # Tycheon Cloud (proprietary, /ee). Never imported by src/tycheon. Postgres access is asyncpg
@@ -353,9 +351,5 @@ name = "pytorch-cpu"
 url = "https://download.pytorch.org/whl/cpu"
 explicit = true
 
-# uv-only (not part of published package metadata): resolve Keelgate from its public git
-# repository at a pinned commit until it is released to PyPI. AGENTS.md: "PyPI, or a pinned git
-# tag until published"; the repository has no tags yet, so this is a commit.
 [tool.uv.sources]
 torch = [{ index = "pytorch-cpu", marker = "sys_platform == 'linux'" }]
-keelgate = { git = "https://github.com/anilatambharii/keelgate", rev = "0852b148f1fcaba825dd5b8d94a218dcd1b63f89" }  # pragma: allowlist secret

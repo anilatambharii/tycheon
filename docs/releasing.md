@@ -59,17 +59,11 @@ Conventional Commits (`feat:` minor, `fix:` patch, `feat!:` or `BREAKING CHANGE:
 while below 1.0 a breaking change bumps the minor). Merging it creates the tag and release;
 the tag triggers `Publish`.
 
-## Releasing 0.2.0 and the Keelgate dependency
+## The Keelgate dependency
 
-The `agents` and `serve` extras declare `keelgate>=0.1,<0.2`. Keelgate is **not on PyPI yet**, and
-in this repository its source is pinned by commit through `[tool.uv.sources]`, which is uv-only and
-not part of published package metadata. So a published `tycheon[agents]` or `tycheon[serve]` cannot
-be installed until a Keelgate release in that range is on PyPI. `pip install tycheon` (the base
-package) is unaffected.
-
-Before uploading 0.2.0: publish Keelgate 0.1.x to PyPI first (or accept that those two extras do not
-install until you do, and say so in the release notes). Verify with a clean virtual environment:
-`pip install "tycheon[agents,report]==0.2.0"` and run `examples/agentic_risk_review.py`.
+The `agents` and `serve` extras declare `keelgate>=0.2,<0.3`, resolved from PyPI. After a release,
+check in a clean virtual environment that `pip install "tycheon[agents,report]==<version>"`
+installs, then run `examples/agentic_risk_review.py` and `keelgate eval run`.
 
 ## What a release must not contain
 

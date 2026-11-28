@@ -34,7 +34,7 @@ def test_importing_the_governance_package_first_does_not_crash() -> None:
 def test_the_governance_package_loads_duckdb_before_keelgate() -> None:
     """Whatever order the caller imports in, duckdb is already loaded when Keelgate is."""
     done = run_python(
-        "import sys, tycheon.governance;"
+        "import sys, tycheon.governance as g; g.GovernedRuntime;"
         "d = list(sys.modules).index('duckdb'); k = list(sys.modules).index('keelgate');"
         "print('duckdb first' if d < k else 'keelgate first')"
     )

@@ -20,7 +20,7 @@ SRC = PROJECT_ROOT / "src" / "tycheon"
 GOVERNANCE = SRC / "governance"
 
 # Phases T0-T3 were a pure library. From T4 Keelgate may appear, but only in the `agents` and
-# `serve` extras, bounded to the 0.1 series, and never in the base install.
+# `serve` extras, bounded to the 0.2 series, and never in the base install.
 KEELGATE_ALLOWED_IN_DEPENDENCIES = True
 KEELGATE_EXTRAS = {"agents", "serve"}
 
@@ -74,7 +74,7 @@ def test_nothing_imports_keelgate_internals() -> None:
 
 
 def test_keelgate_is_only_a_bounded_optional_dependency(pyproject: dict[str, Any]) -> None:
-    """The base install never needs the harness; only agents and serve do, pinned to 0.1.x."""
+    """The base install never needs the harness; only agents and serve do, pinned to 0.2.x."""
     project = pyproject["project"]
     assert not [d for d in project["dependencies"] if "keelgate" in d.lower()]
     for group, deps in pyproject.get("dependency-groups", {}).items():
@@ -91,7 +91,7 @@ def test_keelgate_is_only_a_bounded_optional_dependency(pyproject: dict[str, Any
             f"keelgate must be in exactly {KEELGATE_EXTRAS}: {holders}"
         )
         for name in holders:
-            assert all(">=0.1,<0.2" in d.replace(" ", "") for d in declared[name]), declared[name]
+            assert all(">=0.2,<0.3" in d.replace(" ", "") for d in declared[name]), declared[name]
     else:
         assert not holders
 

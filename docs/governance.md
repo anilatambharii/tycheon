@@ -27,7 +27,7 @@ caller, decides.
 | Approvals | A paper trade always waits for a human; the approval is bound to the exact arguments, single-use, tenant-scoped. |
 | Audit | Every call, refusal and decision is a record in a hash-chained, per-tenant log; `verify_audit()` fails on tampering. |
 | Loop | The draft, verify, revise cycle runs on Keelgate's `Loop`: revision limit, token and time budgets, checkpoints. |
-| Telemetry | OpenTelemetry spans with GenAI attributes. Keelgate's own telemetry module is not implemented yet. |
+| Telemetry | OpenTelemetry spans with GenAI attributes, using the OpenTelemetry API directly. Tycheon has not adopted `keelgate.telemetry` yet. |
 | MCP | Keelgate's `GovernedMCPServer` exposes the same tools, over stdio only. |
 
 ### Capabilities per agent
@@ -69,22 +69,50 @@ restricted symbols, and trading hours (so a proposal as of a Saturday is denied,
   the report. No document text reaches a prompt (a test inspects every request).
 * **Tenants are isolated**: grants, approvals, audit chains, paper books and stored reports.
 
-## Differences between the plan and Keelgate as it is today
+## Outcome metrics in Keelgate evals
 
-Written down because the brief for this phase assumed things Keelgate does not yet provide:
+With `tycheon[agents]` installed, `keelgate eval run` discovers five metrics through the
+`keelgate.outcome_metrics` entry points: CRPS, the coverage gap of the 90% interval, MASE against
+the random walk, the one-sided Diebold-Mariano p-value (squared error) and QLIKE. All are
+lower-is-better.
 
-| Assumed | What is real | What Tycheon did |
-|---|---|---|
-| `keelgate>=0.1,<0.2` installable from PyPI | Not on PyPI; no git tags | The extras declare the range; `[tool.uv.sources]` pins a commit for development and CI. A published `tycheon[agents]` needs Keelgate released first. |
-| Register outcome metrics via `keelgate.outcome_metrics` | The group name is stable, but `keelgate.evals` is empty and the `OutcomeMetric` protocol is not defined | Metrics are registered under the group in a shape of Tycheon's own (`tycheon.metrics`), documented as a stand-in. Keelgate discovering them cannot be tested yet. |
-| Evals "using Keelgate's framework" | There is no eval framework yet | The evals are pytest suites (marker `eval`) on the real gateway with `keelgate.testing.FakeLLM`. |
-| `keelgate.telemetry` | Empty module | OpenTelemetry API used directly in `governance/_telemetry.py`. |
-| MCP for Claude, ChatGPT, Cursor | Keelgate's HTTP transport shares one grant across callers and its per-request hook sees no caller identity | stdio only. Not exposed over HTTP until Keelgate can authenticate callers. |
-| `mcp>=1.2,<2` (Tycheon T0) | Keelgate's MCP adapter needs `mcp>=2.3,<3` | Tycheon's `serve` extra follows Keelgate. |
+```python
+import json
+from dataclasses import asdict
+
+from tycheon.governance._outcome_metrics import records_from_scores
+
+with open("records.jsonl", "w", encoding="utf-8") as out:
+    for record in records_from_scores(model_scores, random_walk_scores):
+        out.write(json.dumps(asdict(record)) + "\n")
+```
+
+```bash
+keelgate eval run --suite outcome --outcomes records.jsonl
+```
+
+- The record format is described in `tycheon/governance/_outcome_metrics.py`.
+- Each metric runs in a child process (`tycheon._metrics_worker`), because of the native-library
+  conflict described under Known limits.
+- **Coverage** is reported as the distance from 90%, because Keelgate compares in one direction.
+  Achieved coverage is in the metric's details.
+- Without Tycheon records (Keelgate's built-in samples), each metric shows `n=0` and `inf`.
+  `report.json` then contains `Infinity`, which strict JSON parsers reject.
+- A metric that cannot be computed, such as QLIKE without sample paths, is reported as a failure.
+
+See [ADR 0013](adr/0013-keelgate-0.2-and-outcome-metric-adapters.md).
+
+## Where Tycheon does not use Keelgate's version yet
+
+| Area | What Tycheon does |
+|---|---|
+| Agent evals | pytest suites (marker `eval`) on the real gateway with `keelgate.testing.FakeLLM`, not Keelgate's eval suites. |
+| Telemetry | The OpenTelemetry API, in `governance/_telemetry.py`. |
+| MCP over HTTP | stdio only. This was decided against an earlier Keelgate, whose HTTP transport shared one grant across callers; it has not been re-evaluated for 0.2.0. |
 
 ## Known limits
 
-- **A native-library conflict on Linux.** Keelgate's in-process Rego engine loads `regopy`, and `regopy` and `duckdb` (Tycheon's as-of store) corrupt each other's heap when both are used in one process on Linux, in either import order (found when CI crashed with exit code 134). Tycheon therefore runs Keelgate's `RegoEngine` and `finance_basic` pack in a small worker process (`OutOfProcessRegoEngine`); any worker failure is a denial and the worker is restarted. `tycheon.governance` imports `duckdb` before `keelgate`, and pytest opts out of Keelgate's auto-loaded plugin (`-p no:keelgate`), which would load `regopy` in the test process. An application that creates a Keelgate `RegoEngine` in a process that also uses DuckDB can hit this on Linux; it is worth reporting upstream (to regopy / DuckDB).
+- **A native-library conflict on Linux.** Keelgate's in-process Rego engine loads `regopy`, and `regopy` and `duckdb` (Tycheon's as-of store) corrupt each other's heap on Linux (found when CI crashed with exit code 134). With Keelgate 0.2.0, importing a library after `regopy` is enough to abort: DuckDB and torch on Python 3.12 and 3.14, and matplotlib on 3.14. `tycheon.governance` therefore imports DuckDB first, and the outcome-metric adapters, which load after `regopy` under `keelgate eval run`, import only Keelgate and compute in a child process. Tycheon therefore runs Keelgate's `RegoEngine` and `finance_basic` pack in a small worker process (`OutOfProcessRegoEngine`); any worker failure is a denial and the worker is restarted. `tycheon.governance` imports `duckdb` before `keelgate`, and pytest opts out of Keelgate's auto-loaded plugin (`-p no:keelgate`), which would load `regopy` in the test process. An application that creates a Keelgate `RegoEngine` in a process that also uses DuckDB can hit this on Linux; it is worth reporting upstream (to regopy / DuckDB).
 - The verifier is rule-based: it catches wrong numbers, bad citations and missing disclosures, not
   a subtly misleading but numerically correct sentence.
 - The signing key is generated per process unless one is supplied; multi-process deployments must

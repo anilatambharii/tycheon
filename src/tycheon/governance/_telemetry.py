@@ -1,9 +1,8 @@
 """Tracing with OpenTelemetry, following the GenAI semantic conventions where they apply.
 
-Keelgate's ``keelgate.telemetry`` (``instrument()``, span helpers) is **not implemented yet** (the
-module is empty and the contract lists it as planned), so Tycheon uses the OpenTelemetry API
-directly, which Keelgate itself depends on. When Keelgate ships its instrumentation, adopt it
-here: this module is the one place that would change.
+Tycheon uses the OpenTelemetry API directly, which Keelgate itself depends on. It has not adopted
+``keelgate.telemetry`` (new in Keelgate 0.2.0) yet; this module is the one place that would
+change.
 
 Spans carry only ids, counts, statuses and token counts: never prompts, document text, or
 secrets.

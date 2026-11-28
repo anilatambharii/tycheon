@@ -1,23 +1,15 @@
-"""Tycheon's financial metrics, packaged for Keelgate's outcome-metric plugin point.
+"""Tycheon's financial metrics over walk-forward score records.
 
 AGENTS.md: Tycheon registers CRPS, coverage, MASE versus the random walk, the Diebold-Mariano
 test and QLIKE through the entry-point group ``keelgate.outcome_metrics`` (declared in
-``pyproject.toml``). The group name is part of Keelgate's integration contract.
+``pyproject.toml``). The classes here do the work and take
+:class:`~tycheon.calibration.scores.ScoreSet` records:
 
-.. important::
-   Keelgate's ``OutcomeMetric`` protocol is **not implemented yet** (``keelgate.evals`` is an
-   empty module and the contract lists it as planned), so its method signatures are not
-   specified. The classes here use a deliberately small shape of Tycheon's own:
+* ``name`` and ``higher_is_better`` attributes;
+* ``compute(model, benchmark=None) -> MetricResult``.
 
-   * ``name`` and ``higher_is_better`` attributes;
-   * ``compute(model, benchmark=None) -> MetricResult`` over walk-forward
-     :class:`~tycheon.calibration.scores.ScoreSet` records.
-
-   When Keelgate publishes the protocol, adapt it here (a thin wrapper in
-   ``tycheon.governance``); the metric maths does not change. Until then, discovery by
-   Keelgate cannot be tested, and the registration is a declaration of intent.
-
-This module imports no Keelgate code, by design.
+The entry points name thin adapters in ``tycheon.governance`` that convert Keelgate's
+``OutcomeRecord`` batches into these records. This module imports no Keelgate code, by design.
 """
 
 from __future__ import annotations
@@ -52,7 +44,7 @@ class MetricResult:
 
 @runtime_checkable
 class OutcomeMetric(Protocol):
-    """Tycheon's local stand-in for Keelgate's (not yet defined) protocol."""
+    """A metric over ``ScoreSet`` records (Keelgate's protocol is met by the adapters)."""
 
     name: str
     higher_is_better: bool
@@ -168,7 +160,7 @@ class QLIKE:
         )
 
 
-#: What the ``keelgate.outcome_metrics`` entry points expose, by registered name.
+#: The metric behind each ``keelgate.outcome_metrics`` entry point, by registered name.
 REGISTERED: dict[str, type[OutcomeMetric]] = {
     "crps": CRPS,
     "coverage": IntervalCoverage,
