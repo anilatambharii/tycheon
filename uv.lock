@@ -1770,8 +1770,8 @@ wheels = [
 
 [[package]]
 name = "keelgate"
-version = "0.1.0"
-source = { git = "https://github.com/anilatambharii/keelgate?rev=0852b148f1fcaba825dd5b8d94a218dcd1b63f89#0852b148f1fcaba825dd5b8d94a218dcd1b63f89" }
+version = "0.2.0"
+source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "httpx" },
     { name = "opentelemetry-api" },
@@ -1779,6 +1779,10 @@ dependencies = [
     { name = "pydantic" },
     { name = "pyseto" },
     { name = "regopy" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/04/64/93aab58e37a8336cfd192dbb9792b82656622572670e90afec6f84df95ca/keelgate-0.2.0.tar.gz", hash = "sha256:1d0bbf30dc4a646e43236dd1d168f837ed4b835edc592f69c3039d6c37b54721", size = 311841, upload-time = "2026-10-13T11:51:44.492Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/a5/e9/ae2dc7149aba7b6b45bc2c733872567b9598c028664b839dfb5cfc0451e5/keelgate-0.2.0-py3-none-any.whl", hash = "sha256:901b2eed43f0d706a619b3e3e2212e0dff59526715b0a761c9c409f3714e5153", size = 229956, upload-time = "2026-10-13T11:51:42.451Z" },
 ]
 
 [package.optional-dependencies]
@@ -4618,8 +4622,8 @@ requires-dist = [
     { name = "einops", marker = "extra == 'kronos'", specifier = ">=0.8,<1" },
     { name = "fastapi", marker = "extra == 'serve'", specifier = ">=0.115,<1" },
     { name = "huggingface-hub", marker = "extra == 'kronos'", specifier = ">=0.26,<1" },
-    { name = "keelgate", marker = "extra == 'agents'", git = "https://github.com/anilatambharii/keelgate?rev=0852b148f1fcaba825dd5b8d94a218dcd1b63f89" },
-    { name = "keelgate", extras = ["mcp"], marker = "extra == 'serve'", git = "https://github.com/anilatambharii/keelgate?rev=0852b148f1fcaba825dd5b8d94a218dcd1b63f89" },
+    { name = "keelgate", marker = "extra == 'agents'", specifier = ">=0.2,<0.3" },
+    { name = "keelgate", extras = ["mcp"], marker = "extra == 'serve'", specifier = ">=0.2,<0.3" },
     { name = "lightgbm", specifier = ">=4.5,<5" },
     { name = "matplotlib", marker = "extra == 'report'", specifier = ">=3.9,<4" },
     { name = "mcp", marker = "extra == 'serve'", specifier = ">=2.3,<3" },

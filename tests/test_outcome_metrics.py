@@ -1,10 +1,9 @@
-"""Outcome metrics: correct values, the registration, and an honest statement of its limits."""
+"""Outcome metrics over score records. The Keelgate adapters: test_keelgate_outcome_suite.py."""
 
 from __future__ import annotations
 
 import importlib
 import math
-from importlib import metadata
 from pathlib import Path
 
 import numpy as np
@@ -15,15 +14,12 @@ from tycheon.backtest.metrics import crps_per_origin, interval_stats, mase
 from tycheon.metrics import (
     CRPS,
     QLIKE,
-    REGISTERED,
     DieboldMarianoVsRandomWalk,
     IntervalCoverage,
     MASEvsRandomWalk,
     MetricResult,
     OutcomeMetric,
 )
-
-GROUP = "keelgate.outcome_metrics"
 
 
 @pytest.fixture(scope="module")
@@ -37,16 +33,8 @@ def pair():
     return good, rw
 
 
-def test_the_registered_entry_points_resolve_to_the_metric_classes() -> None:
-    eps = {ep.name: ep for ep in metadata.entry_points(group=GROUP)}
-    assert set(eps) == set(REGISTERED), "pyproject and tycheon.metrics.REGISTERED disagree"
-    for name, ep in eps.items():
-        module, _, attribute = ep.value.partition(":")
-        assert getattr(importlib.import_module(module), attribute) is REGISTERED[name]
-
-
 @pytest.mark.parametrize("metric", [CRPS(), IntervalCoverage(), MASEvsRandomWalk(), QLIKE()])
-def test_metrics_follow_the_local_protocol(metric) -> None:
+def test_metrics_follow_the_score_set_protocol(metric) -> None:
     assert isinstance(metric, OutcomeMetric)
     assert metric.name and isinstance(metric.higher_is_better, bool)
 

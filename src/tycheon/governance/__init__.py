@@ -13,12 +13,13 @@ Rules this package lives under (AGENTS.md):
   telemetry are all configured here.
 """
 
-# DuckDB and Keelgate's native ``regopy`` cannot share a process on Linux (heap corruption, in
-# either import order, as soon as both are in use: "double free or corruption"). Tycheon therefore
-# evaluates policy in a worker process (``_rego_process``) and never creates a Rego interpreter
-# here. Importing ``keelgate.policy`` loads the ``regopy`` module, which is only safe after
-# DuckDB, so DuckDB (a core dependency) is imported first. Do not move this below the imports.
-import duckdb  # noqa: F401
+# DuckDB and Keelgate's native ``regopy`` cannot share a process on Linux: importing DuckDB after
+# ``regopy`` is loaded corrupts the heap ("double free or corruption"), and so did using both.
+# Tycheon therefore evaluates policy in a worker process (``_rego_process``) and never creates a
+# Rego interpreter here. Importing ``keelgate.policy`` loads the ``regopy`` module, so
+# ``tycheon._duckdb`` comes first: it imports DuckDB now, unless ``regopy`` is already loaded (as
+# under ``keelgate eval run``), when importing it would abort. Keep it above the imports below.
+from tycheon import _duckdb as _duckdb  # isort: skip
 
 from tycheon.governance._llm import KeelgateTextModel, make_text_model, scripted_text_model
 from tycheon.governance._loop import KeelgateComposeRunner

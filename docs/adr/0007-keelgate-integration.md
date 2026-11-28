@@ -1,6 +1,6 @@
 # 0007. Integrating Keelgate
 
-- **Status:** Accepted
+- **Status:** Accepted; the dependency pin and the outcome-metric stand-in are replaced by [0013](0013-keelgate-0.2-and-outcome-metric-adapters.md)
 - **Date:** 2026-10-06
 - **Phase:** T4
 

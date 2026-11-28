@@ -57,7 +57,7 @@ use the real Keelgate gateway with `keelgate.testing.FakeLLM`, so CI needs no ke
   tag) leave the trajectory, the trade and the sentiment unchanged, are disclosed in the report,
   and never appear in any prompt sent to the model.
 
-Keelgate's eval framework is not implemented yet; see [governance](governance.md#differences-between-the-plan-and-keelgate-as-it-is-today).
+These agent evals do not use Keelgate's eval suites yet; see [governance](governance.md#where-tycheon-does-not-use-keelgates-version-yet).
 
 ## Running with a real model
 

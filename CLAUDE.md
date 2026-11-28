@@ -27,7 +27,7 @@ Keelgate is the safety harness (policy gates, capabilities, approvals, audit, lo
 Tycheon depends on it as a library. Rules:
 - Phases T0–T3 must NOT depend on Keelgate. Build forecasting, calibration, risk, and evaluation as a
   pure library.
-- Phase T4 onward depends on `keelgate>=0.1,<0.2` (PyPI, or a pinned git tag until published).
+- Phase T4 onward depends on `keelgate>=0.2,<0.3` (from PyPI).
 - All Keelgate imports live in ONE module: `src/tycheon/governance/`. Nothing else imports keelgate
   directly. This isolates Tycheon from contract changes.
 - Use only Keelgate's documented integration contract (its `docs/integration-contract.md`). Never import

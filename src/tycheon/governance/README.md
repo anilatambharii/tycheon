@@ -16,7 +16,8 @@ enforces that, so a change to Keelgate's integration contract touches exactly on
 | `_loop.py` | The draft, verify, revise cycle on Keelgate's `Loop` (budgets, revision limit, checkpoints, audit). |
 | `_llm.py` | Adapts Keelgate's `LLMClient` (real providers, or the scripted `FakeLLM` in CI) to the agents' `TextModel`. |
 | `_serving.py` | The MCP server (stdio only) and the approvals REST app, over the same runtime. |
-| `_telemetry.py` | OpenTelemetry spans following the GenAI conventions. Keelgate's own telemetry is not implemented yet. |
+| `_outcome_metrics.py` | Adapts Tycheon's metrics to Keelgate's `OutcomeMetric` protocol; the `keelgate.outcome_metrics` entry points name these classes. |
+| `_telemetry.py` | OpenTelemetry spans following the GenAI conventions. `keelgate.telemetry` is not adopted yet. |
 
 ## Rules this package lives under
 
@@ -31,7 +32,7 @@ enforces that, so a change to Keelgate's integration contract touches exactly on
 - Everything outside this package reaches an analytic or a side effect only by calling a governed
   tool, never the raw service function (a test checks that too).
 
-## Known gaps in what Keelgate provides today
+## What is not adopted yet
 
-Keelgate's `telemetry` and `evals` modules are empty (listed as planned in its contract), its
-`OutcomeMetric` protocol is not defined, and it is not on PyPI yet. See `docs/governance.md`.
+Agent evals run as Tycheon's own pytest suites, and tracing uses the OpenTelemetry API directly,
+although Keelgate 0.2.0 has `keelgate.evals` and `keelgate.telemetry`. See `docs/governance.md`.

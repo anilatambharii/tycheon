@@ -25,11 +25,11 @@ from typing import IO
 from keelgate.policy import (
     PolicyDecision,
     PolicyInput,
+    deny,
     hash_sources,
     load_pack_sources,
     pack_path,
 )
-from keelgate.policy.engine import deny
 
 WORKER = Path(__file__).with_name("_rego_worker.py")
 DEFAULT_TIMEOUT_SECONDS = 30.0

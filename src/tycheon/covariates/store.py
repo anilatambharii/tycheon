@@ -24,9 +24,9 @@ import uuid
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
-import duckdb
 import pandas as pd
 
+from tycheon import _duckdb
 from tycheon.data.asof import AVAILABLE_AT, as_utc, assert_available, require_not_future
 from tycheon.data.schema import TIMESTAMP, validate_symbol
 from tycheon.errors import DataValidationError
@@ -101,7 +101,7 @@ class CovariateStore:
         if not directory.is_dir() or not any(directory.glob("*.parquet")):
             raise DataValidationError(f"no covariate series {series_id!r}")
         glob = _quote((directory / "*.parquet").as_posix())
-        con = duckdb.connect(":memory:")
+        con = _duckdb.connect(":memory:")
         try:
             con.execute("SET TimeZone='UTC'")
             source = f"read_parquet({glob}, union_by_name=true)"

@@ -56,7 +56,7 @@ def test_pytest_does_not_auto_load_keelgates_plugin() -> None:
 
 def test_the_governance_source_keeps_the_duckdb_import_ahead_of_the_keelgate_imports() -> None:
     text = (ROOT / "src" / "tycheon" / "governance" / "__init__.py").read_text(encoding="utf-8")
-    assert text.index("import duckdb") < text.index("from tycheon.governance._llm import")
+    assert text.index("import _duckdb") < text.index("from tycheon.governance._llm import")
     assert "double free" in text  # the reason is written next to the import
 
 
