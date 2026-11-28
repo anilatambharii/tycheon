@@ -34,7 +34,7 @@ def test_importing_the_governance_package_first_does_not_crash() -> None:
 def test_the_governance_package_loads_duckdb_before_keelgate() -> None:
     """Whatever order the caller imports in, duckdb is already loaded when Keelgate is."""
     done = run_python(
-        "import sys, tycheon.governance;"
+        "import sys, tycheon.governance as g; g.GovernedRuntime;"
         "d = list(sys.modules).index('duckdb'); k = list(sys.modules).index('keelgate');"
         "print('duckdb first' if d < k else 'keelgate first')"
     )
@@ -56,7 +56,7 @@ def test_pytest_does_not_auto_load_keelgates_plugin() -> None:
 
 def test_the_governance_source_keeps_the_duckdb_import_ahead_of_the_keelgate_imports() -> None:
     text = (ROOT / "src" / "tycheon" / "governance" / "__init__.py").read_text(encoding="utf-8")
-    assert text.index("import _duckdb") < text.index("from tycheon.governance._llm import")
+    assert text.index("import duckdb") < text.index("from tycheon.governance._llm import")
     assert "double free" in text  # the reason is written next to the import
 
 

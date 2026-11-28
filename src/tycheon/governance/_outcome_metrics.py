@@ -1,10 +1,14 @@
 """Tycheon's outcome metrics in the shape of Keelgate's ``OutcomeMetric`` protocol.
 
 Keelgate calls ``compute(records) -> MetricResult`` over a batch of
-:class:`~keelgate.evals.OutcomeRecord`. Tycheon's metrics work on a
-:class:`~tycheon.calibration.scores.ScoreSet`, so each adapter here rebuilds one from the
-records and calls the matching class in :mod:`tycheon.metrics`. No metric is computed in this
-module.
+:class:`~keelgate.evals.OutcomeRecord`. Each adapter here hands its records to
+:mod:`tycheon._metrics_worker` in a child process, which rebuilds a
+:class:`~tycheon.calibration.scores.ScoreSet` and calls the matching class in
+:mod:`tycheon.metrics`. No metric is computed in this module.
+
+**Import only the standard library and Keelgate here.** ``keelgate eval run`` loads the native
+``regopy`` library before it loads this module, and on Linux importing DuckDB, torch or (on
+Python 3.14) matplotlib after it aborts the process. A test enforces this.
 
 **Record format.** One record is one forecast from one origin, in log-return space relative to
 the origin's last close. :func:`records_from_scores` writes it:
@@ -31,21 +35,24 @@ For research and risk analytics. Not investment advice.
 
 from __future__ import annotations
 
+import json
 import math
+import subprocess
+import sys
 from typing import TYPE_CHECKING, Any
 
-import numpy as np
-import pandas as pd
 from keelgate.evals import MetricResult, OutcomeRecord
-
-from tycheon import metrics as core
-from tycheon.calibration.scores import ScoreSet
 
 if TYPE_CHECKING:
     from collections.abc import Mapping, Sequence
 
+    from tycheon.calibration.scores import ScoreSet
+
 #: ``metadata["schema"]`` of a record these metrics read.
 RECORD_SCHEMA = "tycheon.forecast/1"
+
+#: How long one metric may take in its child process.
+WORKER_TIMEOUT_SECONDS = 300.0
 
 
 def records_from_scores(model: ScoreSet, benchmark: ScoreSet | None = None) -> list[OutcomeRecord]:
@@ -88,57 +95,35 @@ def _forecast(scores: ScoreSet, i: int) -> dict[str, Any]:
     return out
 
 
-def _scores(records: Sequence[OutcomeRecord], *, benchmark: bool = False) -> ScoreSet:
-    """Rebuild the model's (or the benchmark's) ``ScoreSet`` from Tycheon records."""
-    try:
-        origins = pd.DatetimeIndex([pd.Timestamp(r.metadata["origin_time"]) for r in records])
-        if origins.tz is None:
-            raise ValueError("origin_time needs a timezone")
-        shared = {
-            (str(r.metadata["model_id"]), int(r.metadata["stride"]), tuple(r.predicted["levels"]))
-            for r in records
-        }
-        if len(shared) != 1:
-            raise ValueError("records in one batch must share model_id, stride and levels")
-        ((model_id, stride, levels),) = shared
-        forecasts = [r.predicted["benchmark"] if benchmark else r.predicted for r in records]
-        quantiles = np.asarray([f["quantiles"] for f in forecasts], dtype=np.float64)
-        realized = np.asarray([r.realized["log_returns"] for r in records], dtype=np.float64)
-        with_samples = sum("samples" in f for f in forecasts)
-        if with_samples not in (0, len(forecasts)):
-            raise ValueError("either every record has sample paths or none does")
-        samples = (
-            np.asarray([f["samples"] for f in forecasts], dtype=np.float64)
-            if with_samples
-            else None
-        )
-    except KeyError as exc:
-        raise ValueError(f"a Tycheon outcome record is missing {exc}") from exc
-    if realized.ndim != 2 or not np.isfinite(realized).all() or not np.isfinite(quantiles).all():
-        raise ValueError("realized and quantiles must be finite, with one horizon for all records")
-    if samples is not None and not np.isfinite(samples).all():
-        raise ValueError("sample paths must be finite")
-    order = np.argsort(origins.asi8, kind="stable")  # DM autocovariances need time order
-    return ScoreSet(
-        model_id="random-walk" if benchmark else model_id,
-        horizon=realized.shape[1],
-        levels=tuple(float(level) for level in levels),
-        origin_times=origins[order],
-        # Not read by any metric: this ScoreSet is never used to fit a calibrator.
-        outcome_times=np.zeros(realized.shape, dtype=np.int64),
-        base_logq=quantiles[order],
-        realized=realized[order],
-        samples=None if samples is None else samples[order],
-        n_samples=0 if samples is None else samples.shape[1],
-        stride=stride,
+def _run_worker(request: Mapping[str, Any]) -> tuple[float, dict[str, Any]]:
+    """Ask :mod:`tycheon._metrics_worker` for one metric (fixed argv). Any failure raises."""
+    done = subprocess.run(
+        [sys.executable, "-P", "-m", "tycheon._metrics_worker"],
+        input=json.dumps(request),
+        capture_output=True,
+        text=True,
+        encoding="utf-8",
+        timeout=WORKER_TIMEOUT_SECONDS,
+        check=False,
     )
+    if done.returncode != 0:
+        raise RuntimeError(
+            f"the metrics worker exited with {done.returncode}: {done.stderr[-1000:]}"
+        )
+    answer = json.loads(done.stdout)
+    if not answer["ok"]:
+        raise ValueError(answer["error"])
+    return float(answer["value"]), dict(answer["details"])
 
 
 class _Adapter:
-    """Shared handling of the batch; subclasses name a metric and call it."""
+    """Shared handling of the batch; subclasses name the metric."""
 
     name: str
     higher_is_better = False
+    #: The metric's key in ``tycheon.metrics.REGISTERED``, and its constructor argument.
+    _kind: str
+    _argument: float | str | None = None
 
     def compute(self, records: Sequence[OutcomeRecord]) -> MetricResult:
         ours = [r for r in records if r.metadata.get("schema") == RECORD_SCHEMA]
@@ -150,64 +135,70 @@ class _Adapter:
                 self.higher_is_better,
                 {"reason": "no Tycheon forecast records in the batch"},
             )
-        value, details = self._value(ours)
-        return MetricResult(self.name, value, len(ours), self.higher_is_better, dict(details))
+        value, details = _run_worker(
+            {
+                "metric": self._kind,
+                "argument": self._argument,
+                "records": [
+                    {
+                        "predicted": dict(r.predicted),
+                        "realized": dict(r.realized),
+                        "metadata": dict(r.metadata),
+                    }
+                    for r in ours
+                ],
+            }
+        )
+        value, details = self._report(value, details)
+        return MetricResult(self.name, value, len(ours), self.higher_is_better, details)
 
-    def _value(self, records: Sequence[OutcomeRecord]) -> tuple[float, Mapping[str, object]]:
-        raise NotImplementedError
-
-
-def _required(result: core.MetricResult) -> tuple[float, Mapping[str, object]]:
-    if result.value is None:
-        raise ValueError(f"{result.name} cannot be computed on these records: {result.details}")
-    return result.value, result.details
+    def _report(self, value: float, details: dict[str, Any]) -> tuple[float, dict[str, Any]]:
+        return value, details
 
 
 class CRPSOutcome(_Adapter):
     """Mean CRPS of the horizon-end return."""
 
     name = "crps"
-
-    def _value(self, records: Sequence[OutcomeRecord]) -> tuple[float, Mapping[str, object]]:
-        return _required(core.CRPS().compute(_scores(records)))
+    _kind = "crps"
 
 
 class CoverageGapOutcome(_Adapter):
     """Distance between achieved and nominal coverage of the central interval."""
 
-    def __init__(self, level: float = 0.9) -> None:
-        self._metric = core.IntervalCoverage(level)
-        self.name = f"{self._metric.name}_gap"
+    _kind = "coverage"
 
-    def _value(self, records: Sequence[OutcomeRecord]) -> tuple[float, Mapping[str, object]]:
-        coverage, details = _required(self._metric.compute(_scores(records)))
-        return float(str(details["gap"])), {**details, "coverage": coverage}
+    def __init__(self, level: float = 0.9) -> None:
+        if not 0.0 < level < 1.0:
+            raise ValueError("level must be strictly between 0 and 1")
+        self._argument = level
+        self.name = f"coverage_{round(level * 100)}_gap"
+
+    def _report(self, value: float, details: dict[str, Any]) -> tuple[float, dict[str, Any]]:
+        return float(details["gap"]), {**details, "coverage": value}
 
 
 class MASEvsRandomWalkOutcome(_Adapter):
     """MAE over the no-change forecast's MAE (below 1 beats the random walk)."""
 
-    name = core.MASEvsRandomWalk.name
-
-    def _value(self, records: Sequence[OutcomeRecord]) -> tuple[float, Mapping[str, object]]:
-        return _required(core.MASEvsRandomWalk().compute(_scores(records)))
+    name = "mase_vs_random_walk"
+    _kind = "mase_vs_rw"
 
 
 class DieboldMarianoOutcome(_Adapter):
     """One-sided Diebold-Mariano p-value that the model beats the random walk."""
 
-    def __init__(self, loss: str = "squared_error") -> None:
-        self._metric = core.DieboldMarianoVsRandomWalk(loss)
-        self.name = self._metric.name
+    _kind = "dm_test"
 
-    def _value(self, records: Sequence[OutcomeRecord]) -> tuple[float, Mapping[str, object]]:
-        return _required(self._metric.compute(_scores(records), _scores(records, benchmark=True)))
+    def __init__(self, loss: str = "squared_error") -> None:
+        if loss not in ("squared_error", "crps"):
+            raise ValueError("loss must be 'squared_error' or 'crps'")
+        self._argument = loss
+        self.name = f"dm_p_{loss}"
 
 
 class QLIKEOutcome(_Adapter):
     """QLIKE loss of the forecast variance; needs sample paths."""
 
-    name = core.QLIKE.name
-
-    def _value(self, records: Sequence[OutcomeRecord]) -> tuple[float, Mapping[str, object]]:
-        return _required(core.QLIKE().compute(_scores(records)))
+    name = "qlike"
+    _kind = "qlike"

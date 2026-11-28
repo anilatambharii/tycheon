@@ -2,12 +2,14 @@
 
 The suite tests run the real ``keelgate eval run`` command in a child process. That matters:
 the command loads Keelgate's ``regopy`` library *before* it loads plugins, an order in which
-importing DuckDB aborts the process on Linux. A test calling the suite inside pytest, where
-DuckDB is already loaded, would pass while the command crashed.
+importing DuckDB, torch or (on Python 3.14) matplotlib aborts the process on Linux. A test
+calling the suite inside pytest, where they are already loaded, would pass while the command
+crashed.
 """
 
 from __future__ import annotations
 
+import io
 import json
 import math
 import os
@@ -23,7 +25,7 @@ import pytest
 from keelgate.evals import OutcomeMetric, OutcomeRecord, discover_metrics, sample_records
 from tests.test_backtest_metrics import make_scores
 
-from tycheon import _duckdb
+from tycheon import _metrics_worker
 from tycheon import metrics as core
 from tycheon.governance._outcome_metrics import (
     CoverageGapOutcome,
@@ -189,9 +191,63 @@ def test_records_need_a_benchmark_from_the_same_origins(pair) -> None:
         records_from_scores(model, rw.take(slice(1, None)))
 
 
-def test_opening_a_store_after_regopy_fails_loudly_instead_of_aborting(monkeypatch) -> None:
-    monkeypatch.setattr(sys, "platform", "linux")
-    monkeypatch.setitem(sys.modules, "regopy", sys.modules.get("regopy") or sys)
-    monkeypatch.delitem(sys.modules, "duckdb")
-    with pytest.raises(RuntimeError, match="would abort"):
-        _duckdb.connect(":memory:")
+def test_loading_the_adapters_after_regopy_imports_nothing_native() -> None:
+    """The structural guard against the Linux abort, checkable on every platform."""
+    program = (
+        "import sys, keelgate.evals;"
+        "assert 'regopy' in sys.modules;"
+        "before = set(sys.modules);"
+        "import tycheon.governance._outcome_metrics;"
+        "new = {m.split('.')[0] for m in set(sys.modules) - before};"
+        "bad = new & {'duckdb', 'torch', 'matplotlib', 'arch', 'numpy', 'pandas', 'scipy',"
+        " 'pyarrow'};"
+        "assert not bad, bad"
+    )
+    done = subprocess.run(  # noqa: S603 - fixed argv
+        [sys.executable, "-c", program], capture_output=True, text=True, timeout=120, check=False
+    )
+    assert done.returncode == 0, done.stderr[-2000:]
+
+
+def test_the_governance_package_still_exports_its_names_and_rejects_unknown_ones() -> None:
+    from tycheon import governance
+
+    for name in governance.__all__:
+        assert getattr(governance, name) is not None
+    assert set(governance._EXPORTS) == set(governance.__all__)
+    with pytest.raises(AttributeError):
+        governance.does_not_exist  # noqa: B018
+
+
+@pytest.mark.parametrize("kind", sorted(ENTRY_POINTS))
+def test_the_worker_computes_what_the_metric_computes(pair, kind) -> None:
+    model, rw = pair
+    records = [asdict(r) for r in records_from_scores(model, rw)]
+    got = _metrics_worker.compute({"metric": kind, "argument": None, "records": records})
+    benchmark = rw if kind == "dm_test" else None
+    assert got["value"] == pytest.approx(core.REGISTERED[kind]().compute(model, benchmark).value)
+
+
+def test_the_worker_answers_bad_input_with_a_message(monkeypatch, capsys) -> None:
+    request = {"metric": "crps", "argument": None, "records": [{"metadata": {}}]}
+    monkeypatch.setattr(sys, "stdin", io.StringIO(json.dumps(request)))
+    _metrics_worker.main()
+    answer = json.loads(capsys.readouterr().out)
+    assert answer["ok"] is False and "missing 'origin_time'" in answer["error"]
+
+
+def test_a_worker_that_dies_is_a_failure_not_a_value(pair, monkeypatch) -> None:
+    model, _ = pair
+    died = subprocess.CompletedProcess(args=[], returncode=-11, stdout="", stderr="boom")
+    monkeypatch.setattr(subprocess, "run", lambda *a, **k: died)
+    with pytest.raises(RuntimeError, match="exited with -11"):
+        CRPSOutcome().compute(records_from_scores(model))
+
+
+@pytest.mark.parametrize(
+    "make",
+    [lambda: CoverageGapOutcome(1.5), lambda: DieboldMarianoOutcome("mae")],
+)
+def test_an_adapter_rejects_an_impossible_argument(make) -> None:
+    with pytest.raises(ValueError):
+        make()

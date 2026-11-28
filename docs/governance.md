@@ -92,6 +92,8 @@ keelgate eval run --suite outcome --outcomes records.jsonl
 ```
 
 - The record format is described in `tycheon/governance/_outcome_metrics.py`.
+- Each metric runs in a child process (`tycheon._metrics_worker`), because of the native-library
+  conflict described under Known limits.
 - **Coverage** is reported as the distance from 90%, because Keelgate compares in one direction.
   Achieved coverage is in the metric's details.
 - Without Tycheon records (Keelgate's built-in samples), each metric shows `n=0` and `inf`.
@@ -110,7 +112,7 @@ See [ADR 0013](adr/0013-keelgate-0.2-and-outcome-metric-adapters.md).
 
 ## Known limits
 
-- **A native-library conflict on Linux.** Keelgate's in-process Rego engine loads `regopy`, and `regopy` and `duckdb` (Tycheon's as-of store) corrupt each other's heap on Linux (found when CI crashed with exit code 134). With Keelgate 0.2.0 and DuckDB 1.5.6, importing DuckDB after `regopy` is enough to abort. `tycheon._duckdb` imports DuckDB early, and skips it when `regopy` is already loaded, as under `keelgate eval run`. Tycheon therefore runs Keelgate's `RegoEngine` and `finance_basic` pack in a small worker process (`OutOfProcessRegoEngine`); any worker failure is a denial and the worker is restarted. `tycheon.governance` imports `duckdb` before `keelgate`, and pytest opts out of Keelgate's auto-loaded plugin (`-p no:keelgate`), which would load `regopy` in the test process. An application that creates a Keelgate `RegoEngine` in a process that also uses DuckDB can hit this on Linux; it is worth reporting upstream (to regopy / DuckDB).
+- **A native-library conflict on Linux.** Keelgate's in-process Rego engine loads `regopy`, and `regopy` and `duckdb` (Tycheon's as-of store) corrupt each other's heap on Linux (found when CI crashed with exit code 134). With Keelgate 0.2.0, importing a library after `regopy` is enough to abort: DuckDB and torch on Python 3.12 and 3.14, and matplotlib on 3.14. `tycheon.governance` therefore imports DuckDB first, and the outcome-metric adapters, which load after `regopy` under `keelgate eval run`, import only Keelgate and compute in a child process. Tycheon therefore runs Keelgate's `RegoEngine` and `finance_basic` pack in a small worker process (`OutOfProcessRegoEngine`); any worker failure is a denial and the worker is restarted. `tycheon.governance` imports `duckdb` before `keelgate`, and pytest opts out of Keelgate's auto-loaded plugin (`-p no:keelgate`), which would load `regopy` in the test process. An application that creates a Keelgate `RegoEngine` in a process that also uses DuckDB can hit this on Linux; it is worth reporting upstream (to regopy / DuckDB).
 - The verifier is rule-based: it catches wrong numbers, bad citations and missing disclosures, not
   a subtly misleading but numerically correct sentence.
 - The signing key is generated per process unless one is supplied; multi-process deployments must
