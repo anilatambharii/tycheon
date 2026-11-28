@@ -16,7 +16,7 @@ desk actually uses. Tycheon is that missing layer.
 
 **For research and risk analytics. Not investment advice.**
 
-> **Status: v0.6.0, alpha.** Try the [live demo](https://huggingface.co/spaces/AmbhariiLabs/tycheon-demo)
+> **Status: v0.6.1, alpha.** Try the [live demo](https://huggingface.co/spaces/AmbhariiLabs/tycheon-demo)
 > (precomputed, synthetic data). The library, a governed agentic risk review, a REST API and an
 > MCP server exist and are tested. **The evidence so far is synthetic: on the bundled series
 > no model, Kronos included, is distinguishable from the random walk, and we publish that**
@@ -113,9 +113,7 @@ pip install "tycheon[report]"       # + the HTML risk report
 Foundation models are optional extras, so the base install stays small
 (`import tycheon.models` never imports torch): `tycheon[kronos]`, `[timesfm]`, `[chronos]`.
 The `serve` and `agents` extras depend on [Keelgate](https://github.com/anilatambharii/keelgate),
-`keelgate>=0.2,<0.3` from PyPI. The published `tycheon` 0.6.0 still asks for the 0.1 series, so
-until the next release, work from a clone (below) to use the REST API, the MCP server or the
-agents. The PyPI package is `tycheon` 0.6.0.
+`keelgate>=0.2,<0.3` from PyPI. The PyPI package is `tycheon` 0.6.1.
 
 ## Quickstart
 
